@@ -1,5 +1,31 @@
 # HANDOVER.md
 
+## 2026-07-30 (later still) -- first real run, from Claude Code on the Mac
+
+Picked this up from the zipped handoff. This machine has real network
+access, and the very first live test confirms the core approach works:
+
+- `uv sync` succeeded cleanly (`httpx`/`typer`/`rich` all installed and
+  importable -- the pypi 403 was specific to the planning sandbox, not a
+  problem here).
+- `just probe LAYER=20260729kumamoto_yatsushiro_0729do_sokuho SEED_X=883 SEED_Y=414`
+  against the live `cyberjapandata.gsi.go.jp`: **37,141 requests, 26,982
+  confirmed tiles at z18.** The seed tile (z10, 883, 414) was correct on
+  the first try -- no need for the neighboring-seed fallback. Quadtree
+  pruning behaves as designed: most of the request volume is spent only
+  near the coverage-polygon boundary, not brute-forcing the full bbox.
+- One thing worth noting for later layers: `just probe`/`just download`
+  read `LAYER=`/`SEED_X=`/`SEED_Y=` etc. as **environment variables**
+  (via `just`'s `env_var_or_default`), not as trailing `just probe
+  LAYER=...` arguments -- e.g. `LAYER=... SEED_X=... SEED_Y=... just
+  probe`. Passing them the other way fails with "justfile does not
+  contain recipe `LAYER=...`".
+
+Next: create+push the `optgeo/cogenerate` repo (pending Hidenori's
+go-ahead), then run `download`/`georef`/`cog` to validate the remaining
+two untested-risk items (HEAD-not-supported fallback, RGB/RGBA band
+mixing at tile boundaries).
+
 ## 2026-07-30 (later same day) -- pre-handoff review pass
 
 Went through every file again before handing off to a Mac-based Claude
