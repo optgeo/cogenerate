@@ -76,14 +76,21 @@ cog:
     set -euo pipefail
     src="{{out_dir}}/{{layer}}.vrt"
     dst="{{out_dir}}/{{layer}}.tif"
+    tmp="{{out_dir}}/{{layer}}.tif.building"
     if [ -f "$dst" ] && [ "{{force}}" != "1" ] && [ "$dst" -nt "$src" ]; then
         echo "skip: $dst is newer than $src (FORCE=1 to rebuild)" >&2
     else
+        # Build to a temp path and mv into place only on success, so a
+        # killed/interrupted build (this took long enough to hit that in
+        # practice) never leaves a truncated file at $dst that a later
+        # run's -nt skip-check would wrongly trust as done.
+        rm -f "$tmp"
         gdal_translate -of COG \
             -co COMPRESS=DEFLATE \
             -co OVERVIEW_RESAMPLING=AVERAGE \
             -co BLOCKSIZE=512 \
-            "$src" "$dst"
+            "$src" "$tmp"
+        mv "$tmp" "$dst"
     fi
     gdalinfo "$dst" | head -30
 

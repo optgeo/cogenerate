@@ -105,10 +105,16 @@ def main(
         vrt_paths.append(str(vrt_path))
 
     merged.parent.mkdir(parents=True, exist_ok=True)
+    # Pass the (potentially tens of thousands of) source paths via
+    # -input_file_list, not as individual argv entries -- large layers
+    # blow past the OS's ARG_MAX ("Argument list too long") otherwise.
+    file_list_path = merged.with_suffix(".input_file_list.txt")
+    file_list_path.write_text("\n".join(vrt_paths) + "\n")
     subprocess.run(
-        ["gdalbuildvrt", "-addalpha", str(merged), *vrt_paths],
+        ["gdalbuildvrt", "-addalpha", "-input_file_list", str(file_list_path), str(merged)],
         check=True,
     )
+    file_list_path.unlink()
     err.print(
         f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
         f"({skipped} per-tile .vrt already present, not regenerated)"

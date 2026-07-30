@@ -5,6 +5,48 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (continued yet again) -- georef's first real completion, two bugs caught by actually finishing a run
+
+`georef`'s original (pre-D11) run finally reached the end of its
+26,982 per-tile loop and hit its **first real failure**: the final
+`gdalbuildvrt -addalpha <merged> <26982 paths...>` call passed every
+per-tile `.vrt` path as an individual argv entry and blew past the OS's
+`ARG_MAX` -- `OSError: [Errno 7] Argument list too long`. All 26,982
+per-tile `.vrt`s had already been written successfully (only the merge
+step failed), so nothing was lost. Fixed in `georef.py`: write the
+path list to a temp file and call `gdalbuildvrt -addalpha
+-input_file_list <file> <merged>` instead -- the standard fix for
+`gdalbuildvrt` at this scale. Re-ran `just georef`: thanks to D11, the
+26,982 already-done per-tile VRTs were all skipped, and the whole
+recipe (skip-check + fixed merge) finished in **18.5 seconds** instead
+of another ~70 minutes.
+
+Also finally checked the RGB/RGBA band-count risk `georef.py`'s
+docstring has been flagging since the original planning session:
+scanned all 26,982 source PNGs' PNG color-type byte directly (no
+per-file `gdalinfo` subprocess needed). **Every single tile is RGBA**
+(`color_type=6`) -- both the 1,137 tiles on the coverage-polygon
+boundary and a sample of deep-interior tiles. No RGB/RGBA mixing for
+this layer, contrary to the original hypothesis that interior tiles
+would come back as plain RGB. Doesn't prove every layer behaves this
+way, but the specific untested risk didn't materialize here.
+
+Then `just cog`: `gdal_translate -of COG` on a 61184x65536px mosaic
+timed out and was killed after the Bash tool's 2-minute limit (this
+one didn't auto-move to background the way `georef`/`download` did
+earlier -- unclear why, possibly how `time (...)` wrapped it). Left a
+**truncated, corrupt `.tif` behind** -- and D11's skip check (`[ -f
+"$dst" ] && "$dst" -nt "$src"`) would have happily treated that
+truncated file as "done" on the next run. Deleted the partial output
+by hand, then fixed `Justfile`'s `cog` recipe to build to a
+`.tif.building` temp path and `mv` it into place only after
+`gdal_translate` exits successfully -- so an interrupted build can
+never leave a corrupt file at the trusted path again. Re-ran `cog` with
+`run_in_background: true` explicitly this time so it can't be killed
+by a tool timeout; as of this entry it's still running (overview
+generation on a very large mosaic takes a while). Next entry will
+record the final COG's `gdalinfo` output.
+
 ## 2026-07-31 (continued further still) -- FORCE=1 skip-work support (D11)
 
 Hidenori pointed out the `Justfile` had no dependency management --
