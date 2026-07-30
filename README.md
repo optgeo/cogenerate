@@ -14,5 +14,9 @@ current session's status and untested parts.
 
 ```sh
 uv sync
-just run LAYER=20260729kumamoto_yatsushiro_0729do_sokuho SEED_X=883 SEED_Y=414
+LAYER=20260729kumamoto_yatsushiro_0729do_sokuho SEED_X=883 SEED_Y=414 just run
 ```
+
+(`just`'s recipe variables are read as environment variables -- set them
+*before* the recipe name, not after; `just run LAYER=...` fails with
+"justfile does not contain recipe `LAYER=...`".)

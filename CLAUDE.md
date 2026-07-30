@@ -30,6 +30,16 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
 - `layers-martin`'s tile IDs are identical to GSI's own 地理院タイル IDs.
   Confirmed by cross-referencing `hfu/layers-martin/catalog.json` against
   `maps.gsi.go.jp/development/ichiran.html` (地理院タイル一覧).
+- **Always read the catalog from the canonical live URL,
+  `https://hfu.github.io/layers-martin/catalog.json` (equivalently
+  `/catalog`), not from a local `git clone` of `layers-martin`.** GitHub
+  Actions there rebuilds and commits `docs/catalog.json` on a daily
+  cron (`build-catalog.yml`, 18:00 UTC), so a local checkout that isn't
+  freshly `git pull`ed silently drifts stale -- confirmed 2026-07-31: a
+  local clone last touched 2026-07-17 was missing 15 days of rebuilds,
+  including the entry for the very layer this pipeline was tested
+  against. If you do work from a local clone for convenience, `git
+  pull --ff-only` it first and don't trust its age otherwise.
 - GSI tiles are **256px**. If you ever compare zoom levels against a
   512px-tile system (vector tiles, most modern basemaps), the effective
   equivalent zoom is **one less** (z18 @ 256px ≈ z17 @ 512px). This
@@ -105,7 +115,7 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
 
 ```sh
 uv sync                          # install deps
-just probe LAYER=... SEED_X=... SEED_Y=...   # quadtree existence probe
+LAYER=... SEED_X=... SEED_Y=... just probe   # quadtree existence probe (vars go BEFORE the recipe name -- they're env vars, not recipe args)
 just download                    # fetch confirmed tiles
 just georef                      # tile PNGs -> merged VRT (EPSG:3857)
 just cog                         # VRT -> COG (overviews generated here)

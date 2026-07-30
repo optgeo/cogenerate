@@ -1,5 +1,43 @@
 # HANDOVER.md
 
+## 2026-07-31 -- repo pushed, full pipeline run, and a catalog-staleness bug caught
+
+- Repo created and pushed: https://github.com/optgeo/cogenerate (public,
+  CC0-1.0, license text fetched from GitHub's `licenses/cc0-1.0` API
+  rather than hand-typed).
+- `just download` for the 26,982 probed tiles: **26,982/26,982 saved**,
+  zero errors -- the "confirmed-then-flaky" skip path in `download.py`
+  was never exercised, which is a good sign for probe/download
+  consistency.
+- `just georef`: works, but is **slow** -- it shells out to
+  `gdal_translate` once per tile sequentially (~26,982 subprocess
+  spawns for this one layer). Took on the order of an hour for this
+  layer. Worth a follow-up: parallelize the per-tile VRT step (e.g.
+  `asyncio`/thread pool around the subprocess calls, matching the
+  concurrency pattern already used in `probe.py`/`download.py`) before
+  this becomes the bottleneck for larger layers or batch runs across
+  many layers.
+- **Caught and fixed a real bug in how we read `layers-martin`'s
+  catalog, not in `cogenerate` itself:** while cross-checking today's
+  layer count against `/Users/hfu/layers-martin/docs/catalog.json`, that
+  local clone's last commit touching `catalog.json` was dated
+  2026-07-17 -- 15 days of `layers-martin`'s daily catalog-rebuild cron
+  (`build-catalog.yml`, 18:00 UTC) had never been pulled locally. It was
+  even missing the entry for `20260729kumamoto_yatsushiro_0729do_sokuho`,
+  the exact layer this pipeline was being validated against. `git pull
+  --ff-only` fixed the local clone (clean fast-forward, no local
+  changes lost). Root cause: nothing wrong with the mirror or the cron
+  job -- it rebuilds fine every day -- the bug was trusting an unpulled
+  local git clone as if it were live data. Fixed going forward per
+  `CLAUDE.md`: read `https://hfu.github.io/layers-martin/catalog.json`
+  directly instead.
+- Redid the "how many `_do`/`_do_sokuho` layers exist" count against the
+  now-current catalog: **74 layers across 15 disaster events** (was 73/14
+  against the stale snapshot). Full per-event breakdown given to
+  Hidenori in chat, not duplicated here since it'll be stale again
+  within days -- re-derive from the live catalog URL when needed rather
+  than trusting a number written down here.
+
 ## 2026-07-30 (later still) -- first real run, from Claude Code on the Mac
 
 Picked this up from the zipped handoff. This machine has real network
