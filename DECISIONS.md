@@ -20,12 +20,13 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D1](#d1-quadtree-pruning-existence-probing-as-the-primary-discovery-strategy) | Quadtree-pruning existence probing as the primary discovery strategy | Accepted | 2026-07-30 |
 | [D2](#d2-toolchain-uv--justfile--direct-gdal-cli-via-subprocess-src-layout) | Toolchain: uv + Justfile + direct GDAL CLI via subprocess, src-layout | Accepted | 2026-07-30 |
 | [D3](#d3-cc0-10-license) | CC0-1.0 license | Accepted | 2026-07-30 |
-| [D4](#d4-stac-datetime-source-capture-date-vs-publish-date) | STAC `datetime` source: capture date vs. publish date | Open | 2026-07-30 |
+| [D4](#d4-stac-datetime-source-capture-date-vs-publish-date) | STAC `datetime` source: capture date vs. publish date | Accepted | 2026-07-31 |
 | [D5](#d5-zoom-to-fetch-fixed-at-maxzoom18-cog-overviews-generated-locally) | Zoom-to-fetch fixed at maxzoom=18, COG overviews generated locally | Accepted | 2026-07-30 |
-| [D6](#d6-openaerialmap-ingestion-path-unresearched) | OpenAerialMap ingestion path: unresearched | Open | 2026-07-30 |
+| [D6](#d6-openaerialmap-ingestion-path-still-open-now-with-research-notes) | OpenAerialMap ingestion path: still open, now with research notes | Open | 2026-07-30 |
 | [D7](#d7-read-layers-martins-catalog-from-its-canonical-live-url-never-a-local-clone) | Read layers-martin's catalog from its canonical live URL, never a local clone | Accepted | 2026-07-31 |
 | [D8](#d8-language-policy-japanese-chat-english-repository) | Language policy: Japanese chat, English repository | Accepted | 2026-07-31 |
 | [D9](#d9-disaster-response-principle-build-what-the-tile-server-confirms-dont-block-on-gsis-own-catalog-page) | Disaster-response principle: build what the tile server confirms, don't block on GSI's own catalog page | Accepted | 2026-07-31 |
+| [D10](#d10-source-cooperative-publishing-path) | Source Cooperative publishing path | Accepted (blocked on 1 manual step) | 2026-07-31 |
 
 ---
 
@@ -107,7 +108,7 @@ separate question (see D9).
 
 ## D4: STAC `datetime` source: capture date vs. publish date
 
-**Status**: Open
+**Status**: Accepted
 
 **Context**: A layer ID embeds a capture-date fragment (e.g.
 `20260729...0729do_sokuho`), while `ichiran.html`'s "提供開始" (publish
@@ -115,11 +116,17 @@ date) typically lags actual capture by a day or more and is easier to
 scrape reliably than parsing every layer-ID naming variant's embedded
 date.
 
-**Decision**: Not yet made. Surface to Hidenori before finalizing
-`stac_item.py`; do not silently pick one.
+**Decision** (Hidenori, 2026-07-31): use the **capture date**, parsed
+from the layer ID's embedded date fragment. More correct than publish
+date, and per D9, `ichiran.html` (the easier-to-scrape source) can't be
+relied on to even exist yet for a brand-new disaster layer -- so the
+harder-to-parse-but-always-available source is also the more robust
+one operationally, not just the more accurate one.
 
-**Consequences**: Blocks `stac_item.py` / `stac_catalog.py` until
-resolved.
+**Consequences**: `stac_item.py` needs a date-fragment parser that
+handles the naming variants seen so far (`_do`, `_do_sokuho`, `dol`,
+`dol2`, `doh`, `doh2`, etc. -- see the `layers-martin` catalog census
+for real examples) rather than a single fixed regex.
 
 ## D5: Zoom-to-fetch fixed at maxzoom=18, COG overviews generated locally
 
@@ -138,17 +145,43 @@ tiles from GSI beyond 18.
 entry documents native resolution beyond z18 (not observed in any
 layer surveyed as of this writing).
 
-## D6: OpenAerialMap ingestion path: unresearched
+## D6: OpenAerialMap ingestion path: still open, now with research notes
 
 **Status**: Open
 
 **Context**: The pipeline's stated end goal (`README.md`) is "make them
 usable in OpenAerialMap," but OAM's actual ingestion mechanism (API
-push vs. static-STAC harvest) has not been researched.
+push vs. static-STAC harvest) had not been researched as of 2026-07-30.
 
-**Decision**: Not yet made. Research OAM's actual API / STAC-harvest
-schema requirements before finalizing `stac_item.py`'s field set; do
-not build STAC metadata blind to it.
+**Research, 2026-07-31**: OAM's current (v1) uploader API
+(`hotosm/oam-uploader-api`) is **token-authenticated, direct-file-upload
+based** -- tokens are issued through a separate `oam-uploader-admin`
+interface, which reads as an account/access-request step, not
+something scriptable without a human going through OAM/HOTOSM's own
+signup first. Public docs (`docs.openaerialmap.org`) mark the
+upload/processing sections as literally "To be developed." Separately,
+OAM v2 (in progress per HOTOSM's own announcements) is being rebuilt on
+pgstac/stac-fastapi/TiTiler, with a stated roadmap goal of *"engaging
+more providers ... to map publicly available STACs to the OAM metadata
+schema"` -- i.e. static-STAC harvesting is a planned direction, not
+something confirmed available today.
+
+**Decision**: Still not made -- this needs either (a) Hidenori
+contacting HOTOSM/OAM directly once we have a real static STAC catalog
+to show them (the "map publicly available STACs" roadmap item suggests
+this is the right conversation to have, and is a much better pitch with
+working output in hand), or (b) going through OAM's own account/token
+flow for the current v1 uploader if (a) stalls. Either way: **do not
+block finishing this pipeline's own static STAC + GitHub Pages
+catalog** (already-decided, in `CLAUDE.md`'s Mission) on resolving
+this -- that catalog is useful on its own, matching the rest of the
+`optgeo` "Adopt Geodata" family, regardless of whether/how OAM
+ultimately ingests it.
+
+**Consequences**: `stac_item.py`/`stac_catalog.py` can proceed using
+plain STAC spec conventions without OAM-specific schema contortions;
+revisit field choices only if/when an actual OAM ingestion conversation
+clarifies requirements.
 
 **Consequences**: Blocks the pipeline's final stage (OAM ingestion
 itself) and constrains `stac_item.py`'s design until resolved.
@@ -222,3 +255,38 @@ attribution, zoom range) rather than a redo of the actual
 tile-fetch/mosaic work. This **supersedes** the more cautious "don't
 treat this layer as cleared for publishing" stance recorded in
 `HANDOVER.md`'s first 2026-07-31 entry.
+
+## D10: Source Cooperative publishing path
+
+**Status**: Accepted (mechanism); blocked on one manual step
+
+**Context**: `CLAUDE.md`'s naming convention already assumed
+`source.coop/smartmaps/cogenerate/<layer_id>.tif`, but the upload auth
+mechanism was unconfirmed (S3-compatible credentials? something else?).
+
+**Research, 2026-07-31**: the `smartmaps` org already exists on Source
+Cooperative, owned by Hidenori, with 14 public products already live
+there (mostly PMTiles -- Japan terrain tiles, GTFS, PLATEAU, etc.).
+Upload is S3-compatible: either the web UI (per-file, manual), or
+`source-coop login` (one-time human auth) followed by scriptable `aws
+s3 cp` / `aws s3 sync --profile source-coop ... --acl
+bucket-owner-full-control` targeting
+`s3://us-west-2.opendata.source.coop/smartmaps/cogenerate/`. A
+`cogenerate` product does not exist yet under `smartmaps` -- creating
+one requires the source.coop web UI, i.e. a human (Hidenori) action;
+this is account/product creation, not something Claude should do on
+its own (see this project's standing safety rules on account
+creation). Once the product exists and Hidenori runs `source-coop
+login` once locally, the actual upload calls can be scripted and run
+by Claude without any credential ever passing through chat.
+
+**Decision**: Use the `source-coop login` + AWS CLI path for uploads
+(scriptable as its own `just` recipe later), not the web UI. Product
+creation and the one-time `source-coop login` stay manual, human-only
+steps.
+
+**Consequences**: Nothing else in the pipeline is blocked by this --
+`probe`/`download`/`georef`/`cog` don't touch Source Cooperative at
+all. Only the eventual upload step needs Hidenori to: (1) create the
+`smartmaps/cogenerate` product on source.coop, (2) run `source-coop
+login` once. Until then, produced COGs stay local/on GitHub only.

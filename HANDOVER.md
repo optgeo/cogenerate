@@ -5,6 +5,40 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (continued further) -- two decisions from Hidenori, OAM/Source Coop research
+
+While `georef` kept running, resolved the two things blocking further
+planning and researched the two remaining unknowns:
+
+- **Hidenori decided D4** (STAC `datetime` source): capture date, from
+  the layer ID's date fragment. D4 is now Accepted.
+- **Hidenori decided to actually publish this layer for real**
+  (Source Cooperative + OAM) once `just cog` finishes, not just use it
+  for pipeline validation -- per D9, with attribution treated as
+  provisional until `ichiran.html` catches up.
+- Researched D6 (OAM ingestion) and added a new D10 (Source Cooperative
+  publishing path) to `DECISIONS.md` with what was found. Bottom line
+  on **what needs Hidenori specifically, not Claude**:
+  - **Source Cooperative**: the `smartmaps` org already exists (14
+    products live there). A `cogenerate` product under it does not.
+    Creating one requires the source.coop web UI -- account/product
+    creation, which stays a human action per this project's standing
+    rules. After that, a one-time `source-coop login` locally is enough
+    for Claude to script the actual `aws s3 sync` uploads afterward
+    without ever handling credentials directly.
+  - **OpenAerialMap**: the current (v1) uploader needs a token issued
+    through OAM/HOTOSM's own admin interface -- another account-side
+    step. Given OAM's own roadmap mentions "map publicly available
+    STACs to the OAM metadata schema" as a planned direction, the
+    likely better move is Hidenori reaching out to HOTOSM once a real
+    static STAC catalog exists to show them, rather than going through
+    the current v1 token flow now. Either way, this doesn't block
+    finishing this pipeline's own static STAC + GitHub Pages catalog,
+    which is useful on its own regardless of OAM.
+  - Nothing about this blocks `probe`/`download`/`georef`/`cog` --
+    only the eventual `stac_item.py` (now unblocked, D4 resolved) and
+    upload steps.
+
 ## 2026-07-31 (continued) -- hygiene pass + a second staleness finding
 
 While `georef` ran in the background, picked up loose ends rather than
