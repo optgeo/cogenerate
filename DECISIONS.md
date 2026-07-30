@@ -28,6 +28,8 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D9](#d9-disaster-response-principle-build-what-the-tile-server-confirms-dont-block-on-gsis-own-catalog-page) | Disaster-response principle: build what the tile server confirms, don't block on GSI's own catalog page | Accepted | 2026-07-31 |
 | [D10](#d10-source-cooperative-publishing-path) | Source Cooperative publishing path | Accepted (blocked on 1 manual step) | 2026-07-31 |
 | [D11](#d11-skip-already-done-work-by-default-force1-to-redo-it) | Skip already-done work by default; FORCE=1 to redo it | Accepted | 2026-07-31 |
+| [D12](#d12-nodata-via-pure-black-pixels-treat-as-transparent-not-backfilled) | NODATA via pure-black pixels: treat as transparent, not backfilled | Accepted | 2026-07-31 |
+| [D13](#d13-cog-internal-format-vs-oams-ingestion-profile) | COG internal format vs. OAM's ingestion profile | Accepted | 2026-07-31 |
 
 ---
 
@@ -338,3 +340,86 @@ interrupted runs are a real scenario, not a hypothetical. Tradeoff: the
 you deliberately want to re-probe with different seeds under the same
 layer+maxzoom, use `FORCE=1`, since the skip check can't tell that the
 seeds changed.
+
+## D12: NODATA via pure-black pixels: treat as transparent, not backfilled
+
+**Status**: Accepted
+
+**Context**: GSI tiles sometimes encode "no data" as literal opaque
+black (RGB `0,0,0`) rather than `alpha=0` transparency. This is a real,
+quantified problem in the sibling `optgeo/kitaphoto` project (GSI
+seamlessphoto-based aerial/satellite mosaic): 13.2% of its z13 seed
+tiles had meaningful black content, including 31 tiles that were
+*entirely* black despite decoding as valid JPEGs. `kitaphoto` fixed
+this by masking exact-`(0,0,0)` pixels (numpy) and compositing in
+GSI's own live satellite tile at the same z/x/y as a fallback --
+appropriate there because a lower-quality-but-real fallback source
+exists at every zoom.
+
+**Decision** (Hidenori, 2026-07-31): `cogenerate` has no equivalent
+fallback source for disaster-response ortho imagery -- there's nothing
+sensible to composite in. So: treat pure-black pixels as NODATA and
+make them **transparent**, don't backfill them with anything. Same
+detection technique as `kitaphoto` (exact-`(0,0,0)` pixel mask via
+numpy), simpler outcome (alpha=0, not a composite). Implemented as
+`clean_black_nodata()` in `georef.py`, applied per-tile before the
+`gdal_translate -a_ullr` georeferencing step; skips the extra
+read/write entirely for a tile with no black pixels (the common case,
+consistent with D11's skip-what's-unnecessary philosophy).
+
+**Consequences**: New dependencies (`numpy`, `pillow`) added to
+`pyproject.toml` -- a deliberate, narrow exception to D2's "no
+image-processing libraries" preference, justified the same way
+`kitaphoto` already established the pattern within the `optgeo`
+family: GDAL's CLI has no simple way to do exact-pixel-value masking
+combined with conditional alpha rewriting, and reimplementing that in
+raw GDAL VRT pixel functions would be far less legible than a dozen
+lines of numpy. **Validated with a synthetic test tile** (2026-07-31):
+an opaque black square correctly comes back with `alpha=0` and
+unchanged RGB elsewhere; a tile with no black pixels returns its
+original path unmodified (no needless copy). **Not yet exercised by
+real data**: `20260729kumamoto_yatsushiro_0729do_sokuho` has zero
+opaque pure-black pixels in a 300-tile empirical sample (~19.6M
+pixels) -- the fix is correct by construction and by synthetic test,
+but this run doesn't prove it against a real positive case. Re-check
+`clean_black_nodata`'s actual trigger count (should be printed in
+future output, currently only the per-tile-VRT skip count is reported)
+the first time it runs against a layer that actually has black-nodata
+content.
+
+## D13: COG internal format vs. OAM's ingestion profile
+
+**Status**: Accepted
+
+**Context**: Before treating a produced `.tif` as ready to hand to
+OpenAerialMap (D6), needed to know whether its *internal* format
+(block size, compression, band layout) has to match some specific
+profile OAM requires.
+
+**Research, 2026-07-31**: OAM's own uploader **transcodes every
+upload into a COG on ingest** -- per Planet's own writeup of OAM's
+architecture ("all data inserted ... is processed on upload, so that
+every piece of imagery on OpenAerialMap is a Cloud Optimized GeoTIFF"),
+and separately, OAM's resulting internal profile is documented
+elsewhere as 512x512 internal tiling, RGB bands converted to
+YCbCr+JPEG, with a 4th band (if present) extracted as an alpha mask
+rather than kept as a literal band. That's what OAM *produces*, not a
+constraint on what must be *submitted* -- since it transcodes
+regardless. Separately: `gdal_translate -of COG` (the dedicated COG
+driver we already use, not manual tiling+overview flags) is
+constructed specifically to always emit spec-compliant COGs -- that's
+the entire reason the driver exists, distinct from the older
+manual-tiling approach that could accidentally produce a "COG-ish"
+but non-compliant file.
+
+**Decision**: No format changes needed before OAM ingestion. Our COG
+(`BLOCKSIZE=512` -- already matching OAM's own internal block size
+coincidentally, `COMPRESS=DEFLATE`, RGBA) is a valid COG by
+construction and is exactly the kind of source OAM's uploader expects
+to transcode. Don't hand-tune our output to imitate OAM's *post-ingest*
+profile (JPEG/YCbCr, alpha-as-mask) -- that would be solving a problem
+OAM's own pipeline already solves.
+
+**Consequences**: Nothing blocks handing this COG to OAM on format
+grounds; D6 (account/token access) remains the only real gate on
+actual ingestion.

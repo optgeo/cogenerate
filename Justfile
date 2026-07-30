@@ -89,6 +89,7 @@ cog:
             -co COMPRESS=DEFLATE \
             -co OVERVIEW_RESAMPLING=AVERAGE \
             -co BLOCKSIZE=512 \
+            -co BIGTIFF=YES \
             "$src" "$tmp"
         mv "$tmp" "$dst"
     fi

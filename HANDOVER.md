@@ -5,6 +5,44 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (continued once more) -- NODATA handling (D12) and OAM format check (D13)
+
+Hidenori's ask: once the COG exists, check whether its internal format
+is OAM-acceptable, and handle GSI's known black-vs-transparent NODATA
+inconsistency the same pragmatic way it was handled for `seamlessphoto`
+before -- referencing the sibling `optgeo/kitaphoto` project, which hit
+and fixed exactly this class of problem.
+
+- **D13 (OAM format)**: researched -- OAM's own uploader transcodes
+  every upload into a COG on ingest, so our output doesn't need to
+  hand-match OAM's internal post-ingest profile (512px blocks,
+  YCbCr/JPEG, alpha-as-mask). `gdal_translate -of COG` already
+  guarantees a spec-compliant COG by construction. Nothing to change;
+  D6 (account/token access) remains the only real OAM gate.
+- **D12 (NODATA)**: found `kitaphoto`'s prior fix (numpy exact-black
+  pixel mask, then composite in satellite fallback imagery) via its
+  `HANDOVER.md` -- quantified there as 13.2% of z13 seed tiles having
+  meaningful black content. `cogenerate` has no fallback source to
+  composite in, so implemented the simpler version Hidenori chose:
+  same detection, but turn matched pixels transparent (`alpha=0`)
+  rather than backfilling them. New `clean_black_nodata()` in
+  `georef.py`, wired into the per-tile loop before georeferencing;
+  skips the extra read/write for tiles with no black pixels (the
+  common case). Added `numpy`/`pillow` to `pyproject.toml` for this --
+  a deliberate, narrow exception to D2, matching the precedent
+  `kitaphoto` already set.
+  - **Validated with a synthetic test tile**: opaque black square ->
+    correctly comes back `alpha=0`, rest of the tile untouched; a tile
+    with no black pixels returns unmodified. `just lint` clean.
+  - **Empirically checked against real data**: scanned all pixels in a
+    300-tile sample (~19.6M pixels) of
+    `20260729kumamoto_yatsushiro_0729do_sokuho` -- **zero** opaque
+    pure-black pixels. This layer doesn't need the fix; it's now a
+    general safeguard for layers that do, unexercised by this run.
+    `georef.py`'s summary line now reports a cleaned-tile count so a
+    future run against a layer that actually has the problem will show
+    a nonzero number instead of silence.
+
 ## 2026-07-31 (continued yet again) -- georef's first real completion, two bugs caught by actually finishing a run
 
 `georef`'s original (pre-D11) run finally reached the end of its

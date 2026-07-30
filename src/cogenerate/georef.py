@@ -14,14 +14,25 @@ consistent with the existing GDAL/Tippecanoe/Unix-CLI workflow.
 Requires: gdal_translate, gdalbuildvrt on PATH (system GDAL, not a
 Python binding -- deliberately, to match the existing toolchain).
 
-UNTESTED RISK: GSI ortho PNGs may mix band counts -- fully-interior
-tiles as RGB (3 band) and boundary tiles that straddle the coverage
-polygon as RGBA (4 band, transparent outside coverage). `gdalbuildvrt`
-generally handles this by promoting everything to the superset band
-count, but this has not been verified against real GSI tiles from this
-sandbox (no network access). If `gdalbuildvrt` errors or produces a
-mosaic with wrong colors at tile boundaries, check band counts first:
-`gdalinfo <one interior tile>.vrt` vs `gdalinfo <one boundary tile>.vrt`.
+Band counts: originally flagged as an untested risk (fully-interior
+tiles as RGB, boundary tiles as RGBA). Checked 2026-07-31 against
+20260729kumamoto_yatsushiro_0729do_sokuho: all 26,982 source PNGs are
+RGBA (PNG color_type=6), boundary and interior alike -- no mixing for
+this layer. Not proven true for every layer, but the specific failure
+mode didn't materialize here.
+
+NODATA via pure-black pixels (DECISIONS.md D12): GSI tiles sometimes
+encode "no data" as literal opaque black (0,0,0) rather than alpha=0 --
+a real, quantified problem in the sibling `optgeo/kitaphoto` project
+(13.2% of its seed tiles had meaningful black content). `clean_black_nodata()`
+below applies the same detection (exact-black pixel mask via numpy) but
+the simpler fix Hidenori chose for this pipeline: turn those pixels
+transparent (alpha=0), not backfill them with other imagery -- there's
+no fallback data source for a disaster-response ortho layer the way
+kitaphoto had satellite imagery to fall back on. Checked 2026-07-31
+against the same layer: 0 opaque pure-black pixels in a 300-tile
+sample (~19.6M pixels) -- this specific layer didn't need the fix, but
+it's implemented as a general safeguard, unexercised by this run.
 
 Usage:
     uv run python -m cogenerate.georef \\
@@ -36,7 +47,9 @@ import math
 import subprocess
 from pathlib import Path
 
+import numpy as np
 import typer
+from PIL import Image
 from rich.console import Console
 from rich.progress import track
 
@@ -44,6 +57,21 @@ app = typer.Typer(add_completion=False)
 err = Console(stderr=True)
 
 ORIGIN_SHIFT = 2 * math.pi * 6378137 / 2.0  # 20037508.342789244
+
+
+def clean_black_nodata(src: Path) -> tuple[Path, bool]:
+    """Turn exact-(0,0,0) pixels transparent; returns (path, cleaned).
+    `path` is a cleaned copy if any black pixels were found, else `src`
+    unchanged (common case, no extra I/O). See DECISIONS.md D12."""
+    img = Image.open(src).convert("RGBA")
+    arr = np.array(img)
+    black = (arr[:, :, 0] == 0) & (arr[:, :, 1] == 0) & (arr[:, :, 2] == 0)
+    if not black.any():
+        return src, False
+    arr[black, 3] = 0
+    cleaned = src.with_suffix(".cleaned.png")
+    Image.fromarray(arr, "RGBA").save(cleaned)
+    return cleaned, True
 
 
 def tile_bounds_3857(z: int, x: int, y: int) -> tuple[float, float, float, float]:
@@ -83,6 +111,7 @@ def main(
 
     vrt_paths: list[str] = []
     skipped = 0
+    cleaned_count = 0
     for z, x, y, src in track(tiles, description="georeferencing", console=err):
         vrt_path = src.with_suffix(".vrt")
         if vrt_path.exists() and not force:
@@ -90,13 +119,16 @@ def main(
             vrt_paths.append(str(vrt_path))
             continue
         ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
+        src_for_vrt, was_cleaned = clean_black_nodata(src)
+        if was_cleaned:
+            cleaned_count += 1
         subprocess.run(
             [
                 "gdal_translate",
                 "-of", "VRT",
                 "-a_srs", "EPSG:3857",
                 "-a_ullr", str(ulx), str(uly), str(lrx), str(lry),
-                str(src),
+                str(src_for_vrt),
                 str(vrt_path),
             ],
             check=True,
@@ -117,7 +149,8 @@ def main(
     file_list_path.unlink()
     err.print(
         f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
-        f"({skipped} per-tile .vrt already present, not regenerated)"
+        f"({skipped} per-tile .vrt already present, not regenerated; "
+        f"{cleaned_count} tiles had opaque-black pixels cleaned to transparent, D12)"
     )
 
 
