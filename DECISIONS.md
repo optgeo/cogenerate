@@ -27,6 +27,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D8](#d8-language-policy-japanese-chat-english-repository) | Language policy: Japanese chat, English repository | Accepted | 2026-07-31 |
 | [D9](#d9-disaster-response-principle-build-what-the-tile-server-confirms-dont-block-on-gsis-own-catalog-page) | Disaster-response principle: build what the tile server confirms, don't block on GSI's own catalog page | Accepted | 2026-07-31 |
 | [D10](#d10-source-cooperative-publishing-path) | Source Cooperative publishing path | Accepted (blocked on 1 manual step) | 2026-07-31 |
+| [D11](#d11-skip-already-done-work-by-default-force1-to-redo-it) | Skip already-done work by default; FORCE=1 to redo it | Accepted | 2026-07-31 |
 
 ---
 
@@ -290,3 +291,50 @@ steps.
 all. Only the eventual upload step needs Hidenori to: (1) create the
 `smartmaps/cogenerate` product on source.coop, (2) run `source-coop
 login` once. Until then, produced COGs stay local/on GitHub only.
+
+## D11: Skip already-done work by default; FORCE=1 to redo it
+
+**Status**: Accepted
+
+**Context**: None of the four `Justfile` stages checked whether their
+output already existed before doing the (sometimes expensive, sometimes
+GSI-load-generating) work again. Watched live 2026-07-31: a plain
+re-run of `just download` after the first full run would have
+re-requested all 26,982 tiles from `cyberjapandata.gsi.go.jp` for no
+reason, and `just georef` (already the slow stage at ~7 tiles/sec,
+~70 min for one layer) would have re-spawned a `gdal_translate` per
+tile even though a tile's `.vrt` is fully determined by its `z/x/y` and
+never needs to change once written.
+
+**Decision**: Every stage skips work whose output already exists,
+unless `FORCE=1` is set (a single Justfile variable, `force :=
+env_var_or_default("FORCE", "")`, threaded through as a `--force` flag
+or an inline shell check):
+- `probe`: skips re-running `probe.py` entirely (zero GSI requests) if
+  the output CSV already exists. No `--force` flag inside `probe.py`
+  itself -- the skip decision is "should we invoke the network round at
+  all," which lives in the `Justfile`, one level up.
+- `download`: `download.py` checks `dest.exists()` per tile before
+  issuing the HTTP request; `--force` bypasses it. This is the main
+  lever for reducing GSI server load on re-runs.
+- `georef`: `georef.py` checks whether a tile's per-tile `.vrt` already
+  exists before shelling out to `gdal_translate`; `--force` bypasses
+  it. The final `gdalbuildvrt` merge step always re-runs regardless
+  (metadata-only, cheap, and must reflect the current tile set even if
+  most per-tile VRTs were skipped).
+- `cog`: shell-level `mtime` check in the `Justfile` recipe -- skips
+  rebuilding the `.tif` if it's newer than its source `.vrt`; `FORCE=1`
+  bypasses it.
+
+**Consequences**: Verified live 2026-07-31: re-running `just probe`
+and `just download` against a fully-completed layer both finished in
+well under a second, with zero GSI requests (`26982/26982 ... already
+present, not re-fetched`). Re-running `just run` (or any single stage)
+after a partial or interrupted prior run now only does the remaining
+work, which matters in practice since `georef` is slow enough that
+interrupted runs are a real scenario, not a hypothetical. Tradeoff: the
+`probe` output filename only encodes `layer` + `maxzoom`
+(`tiles/{layer}.z{maxzoom}.csv`), not `minzoom`/seed coordinates -- if
+you deliberately want to re-probe with different seeds under the same
+layer+maxzoom, use `FORCE=1`, since the skip check can't tell that the
+seeds changed.

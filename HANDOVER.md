@@ -5,7 +5,24 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
-## 2026-07-31 (continued further) -- two decisions from Hidenori, OAM/Source Coop research
+## 2026-07-31 (continued further still) -- FORCE=1 skip-work support (D11)
+
+Hidenori pointed out the `Justfile` had no dependency management --
+every stage redid its work unconditionally, including re-hitting GSI
+for tiles already on disk. Implemented D11 while `georef`'s first run
+kept going in the background (safe to edit `georef.py`/`download.py`
+mid-run -- the already-running process has the old code loaded in
+memory; editing the file on disk doesn't touch it):
+
+- `probe`/`download`/`georef`/`cog` all skip already-done work now,
+  `FORCE=1` to redo it. Full design in DECISIONS.md D11.
+- Verified live against the (nearly complete) first run: re-running
+  `just probe` and `just download` for
+  `20260729kumamoto_yatsushiro_0729do_sokuho` both completed in under a
+  second, `26982/26982 already present, not re-fetched` -- zero new
+  GSI requests. `georef`'s skip path will get its first real exercise
+  whenever this layer's `georef`/`cog` gets re-run (e.g. after a
+  restart, or once `stac_item.py` needs to reference it again).
 
 While `georef` kept running, resolved the two things blocking further
 planning and researched the two remaining unknowns:

@@ -72,6 +72,9 @@ def main(
     tiles_dir: Path = typer.Option(..., "--dir", help="Root of z/x/y.ext downloaded tiles"),
     ext: str = typer.Option("png"),
     merged: Path = typer.Option(..., help="Output path for the merged mosaic .vrt"),
+    force: bool = typer.Option(
+        False, "--force", help="Regenerate every per-tile .vrt even if it already exists"
+    ),
 ):
     tiles = discover_tiles(tiles_dir, ext)
     if not tiles:
@@ -79,9 +82,14 @@ def main(
         raise typer.Exit(1)
 
     vrt_paths: list[str] = []
+    skipped = 0
     for z, x, y, src in track(tiles, description="georeferencing", console=err):
-        ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
         vrt_path = src.with_suffix(".vrt")
+        if vrt_path.exists() and not force:
+            skipped += 1
+            vrt_paths.append(str(vrt_path))
+            continue
+        ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
         subprocess.run(
             [
                 "gdal_translate",
@@ -101,7 +109,10 @@ def main(
         ["gdalbuildvrt", "-addalpha", str(merged), *vrt_paths],
         check=True,
     )
-    err.print(f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged}")
+    err.print(
+        f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
+        f"({skipped} per-tile .vrt already present, not regenerated)"
+    )
 
 
 if __name__ == "__main__":

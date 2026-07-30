@@ -39,35 +39,45 @@ def read_tiles(path: Path) -> list[tuple[int, int, int]]:
     return out
 
 
-async def fetch_one(client: httpx.AsyncClient, layer: str, z: int, x: int, y: int, ext: str, out: Path) -> bool:
-    url = f"{BASE}/{layer}/{z}/{x}/{y}.{ext}"
+async def fetch_one(
+    client: httpx.AsyncClient, layer: str, z: int, x: int, y: int, ext: str, out: Path, force: bool
+) -> tuple[bool, bool]:
+    """Returns (ok, skipped)."""
     dest = out / str(z) / str(x) / f"{y}.{ext}"
+    if dest.exists() and not force:
+        return True, True
+    url = f"{BASE}/{layer}/{z}/{x}/{y}.{ext}"
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         r = await client.get(url, timeout=20.0)
         if r.status_code != 200:
             err.print(f"[yellow]skip[/yellow] {z}/{x}/{y}: HTTP {r.status_code} (was confirmed earlier -- flaky?)")
-            return False
+            return False, False
         dest.write_bytes(r.content)
-        return True
+        return True, False
     except httpx.HTTPError as e:
         err.print(f"[yellow]skip[/yellow] {z}/{x}/{y}: {e!r}")
-        return False
+        return False, False
 
 
-async def download_all(layer: str, tiles: list[tuple[int, int, int]], ext: str, out: Path, concurrency: int) -> None:
+async def download_all(
+    layer: str, tiles: list[tuple[int, int, int]], ext: str, out: Path, concurrency: int, force: bool
+) -> None:
     sem = asyncio.Semaphore(concurrency)
-    ok_count = 0
 
     async with httpx.AsyncClient(headers={"User-Agent": "optgeo/cogenerate download (contact via github.com/optgeo)"}) as client:
-        async def bound_fetch(z: int, x: int, y: int) -> bool:
+        async def bound_fetch(z: int, x: int, y: int) -> tuple[bool, bool]:
             async with sem:
-                return await fetch_one(client, layer, z, x, y, ext, out)
+                return await fetch_one(client, layer, z, x, y, ext, out, force)
 
         results = await asyncio.gather(*(bound_fetch(z, x, y) for z, x, y in tiles))
-        ok_count = sum(results)
+        ok_count = sum(ok for ok, _ in results)
+        skipped_count = sum(skipped for _, skipped in results)
 
-    err.print(f"[green]done[/green] {ok_count}/{len(tiles)} tiles saved to {out}")
+    err.print(
+        f"[green]done[/green] {ok_count}/{len(tiles)} tiles saved to {out} "
+        f"({skipped_count} already present, not re-fetched)"
+    )
 
 
 @app.command()
@@ -77,12 +87,13 @@ def main(
     out: Path = typer.Option(..., help="Output directory (z/x/y.ext layout)"),
     ext: str = typer.Option("png"),
     concurrency: int = typer.Option(8),
+    force: bool = typer.Option(False, "--force", help="Re-download even if the destination file already exists"),
 ):
     tile_list = read_tiles(tiles)
     if not tile_list:
         err.print("[red]error[/red] no tiles in input CSV")
         raise typer.Exit(1)
-    asyncio.run(download_all(layer, tile_list, ext, out, concurrency))
+    asyncio.run(download_all(layer, tile_list, ext, out, concurrency, force))
 
 
 if __name__ == "__main__":
