@@ -2,6 +2,15 @@
 
 Guidance for Claude (Code or chat) working on this repository.
 
+## Language policy
+
+- Converse with Hidenori (chat, CLI turns, questions) in **Japanese**.
+- Everything that lands in the repository -- code, comments, docstrings,
+  `CLAUDE.md`/`HANDOVER.md`/`README.md` prose, commit messages, PR
+  descriptions -- stays in **English**, matching the rest of the optgeo
+  family. Don't mix: a Japanese-language commit message or doc section
+  is as wrong here as an English chat reply.
+
 ## Repo metadata (for whoever runs `gh repo create`)
 
 - Description (English, GitHub repo field): "Generator for COGs from GSI

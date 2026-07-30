@@ -11,12 +11,15 @@
   consistency.
 - `just georef`: works, but is **slow** -- it shells out to
   `gdal_translate` once per tile sequentially (~26,982 subprocess
-  spawns for this one layer). Took on the order of an hour for this
-  layer. Worth a follow-up: parallelize the per-tile VRT step (e.g.
-  `asyncio`/thread pool around the subprocess calls, matching the
-  concurrency pattern already used in `probe.py`/`download.py`) before
-  this becomes the bottleneck for larger layers or batch runs across
-  many layers.
+  spawns for this one layer). Still running as of this entry (progress
+  was ~5,900/26,982 tiles converted to per-tile `.vrt` after roughly 30
+  minutes); exact total duration and the `just cog` / final-COG result
+  will be recorded in a follow-up entry once it finishes. Worth a
+  follow-up regardless of how long it ends up taking: parallelize the
+  per-tile VRT step (e.g. `asyncio`/thread pool around the subprocess
+  calls, matching the concurrency pattern already used in
+  `probe.py`/`download.py`) before this becomes the bottleneck for
+  larger layers or batch runs across many layers.
 - **Caught and fixed a real bug in how we read `layers-martin`'s
   catalog, not in `cogenerate` itself:** while cross-checking today's
   layer count against `/Users/hfu/layers-martin/docs/catalog.json`, that
@@ -37,6 +40,29 @@
   Hidenori in chat, not duplicated here since it'll be stale again
   within days -- re-derive from the live catalog URL when needed rather
   than trusting a number written down here.
+- Adopted a language policy for this repo, now documented in
+  `CLAUDE.md`: chat with Hidenori in Japanese, everything committed to
+  the repo (code, docs, commit messages) in English.
+
+### If resuming from a fresh session (e.g. after `/clear`)
+
+Nothing downstream of `just download` has been verified yet. Say
+something like:
+
+> `/Users/hfu/cogenerate` の作業を続けて。HANDOVER.md の
+> "2026-07-31" のエントリを読んで、`just georef` の完了確認と
+> `just cog` の実行、gdalinfo での検証、RGB/RGBA バンド数チェック
+> （georef.py の UNTESTED RISK コメント参照）から再開して。
+
+which points the fresh session at this file and names the exact next
+steps: confirm `georef` finished (`tiles/<layer>/` should hold one
+`.vrt` per source PNG; the merged mosaic lands at
+`out/<layer>.vrt`), run `just cog`, inspect the result with `gdalinfo`,
+and specifically check the RGB-vs-RGBA band-count risk `georef.py`
+flags in its module docstring. After that, the two decisions in
+`CLAUDE.md`'s "Open decisions" section (STAC `datetime` source; OAM
+ingestion path) still need Hidenori's call before `stac_item.py` can be
+started.
 
 ## 2026-07-30 (later still) -- first real run, from Claude Code on the Mac
 
