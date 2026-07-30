@@ -1,5 +1,52 @@
 # HANDOVER.md
 
+## 2026-07-31 (continued) -- hygiene pass + a second staleness finding
+
+While `georef` ran in the background, picked up loose ends rather than
+waiting idle:
+
+- `uv sync` alone does **not** install `[project.optional-dependencies]
+  dev` (pytest/ruff) -- need `uv sync --extra dev`. Worth remembering,
+  since `just lint`/`just test` silently look like they'd work off a
+  plain `uv sync` but actually can't import ruff/pytest at all until you
+  do this.
+- Manually confirmed the HEAD-support assumption `probe.py` flagged as
+  untested: `curl -I` against both `std` and
+  `20260729kumamoto_yatsushiro_0729do_sokuho` returns a clean `200` --
+  `cyberjapandata.gsi.go.jp` supports `HEAD` directly, the `405`→`GET`
+  fallback path in `probe.py`/`exists()` is a safety net that (at least
+  for this server) never actually triggers.
+- `just lint` failed (7 ruff errors) the first time it was actually run
+  -- it hadn't been run before. 6 were `B008` false positives against
+  typer's own idiom of `= typer.Option(...)` as an argument default;
+  fixed properly by adding `extend-immutable-calls = ["typer.Argument",
+  "typer.Option"]` under `[tool.ruff.lint.flake8-bugbear]` in
+  `pyproject.toml` (the documented fix for typer+ruff, not a rule
+  suppression). The 7th (`UP037`, a redundant quoted forward-ref in
+  `probe.py` now that `from __future__ import annotations` makes it
+  unnecessary) was auto-fixed with `ruff check --fix`. `just lint` is
+  now clean. `just test` correctly reports "no tests ran" (exit 5) --
+  expected, no tests exist yet, not building them per HANDOVER's
+  existing scope call.
+- **Second staleness finding, this time in GSI's own metadata, not a
+  mirror:** fetched `maps.gsi.go.jp/development/ichiran.html` directly
+  and searched for `20260729kumamoto_yatsushiro_0729do_sokuho` -- **no
+  entry exists yet.** The only `kumamoto` hits are the unrelated 2016
+  Kumamoto earthquake layers (the known-good coordinate cross-check from
+  the original planning session), and the only `yatsushiro` hits are a
+  different, unrelated 2025-08 disaster (`20250815rain_yatsushiro{nishi,
+  higashi}_0816do_sokuho`). So: **the live tile server already serves
+  this layer (confirmed by probe/download), but GSI's own public catalog
+  page hasn't caught up yet** -- meaning the zoom-range and 備考
+  (remarks/attribution) fields `CLAUDE.md` says to check before
+  publishing **cannot be verified for this specific layer right now**.
+  Don't treat this layer as cleared for real publishing to Source
+  Cooperative/OAM until `ichiran.html` actually lists it (or another
+  authoritative GSI source for attribution terms is found) -- this is
+  fine for pipeline-validation purposes (which is all we're doing with
+  it so far) but would be a real gap if we tried to actually publish
+  it today.
+
 ## 2026-07-31 -- repo pushed, full pipeline run, and a catalog-staleness bug caught
 
 - Repo created and pushed: https://github.com/optgeo/cogenerate (public,

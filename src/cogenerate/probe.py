@@ -50,7 +50,7 @@ class Tile:
     x: int
     y: int
 
-    def children(self) -> list["Tile"]:
+    def children(self) -> list[Tile]:
         return [
             Tile(self.z + 1, self.x * 2 + dx, self.y * 2 + dy)
             for dx in (0, 1)
