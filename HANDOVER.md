@@ -5,6 +5,43 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (final for this session) -- first COG built and verified
+
+`just cog` (with the BIGTIFF fix) finished: **10m47s**,
+`out/20260729kumamoto_yatsushiro_0729do_sokuho.tif`, 5.46 GB.
+`gdalinfo` confirms:
+
+- `LAYOUT=COG` (GDAL's own compliance marker), `BLOCK=512x512`,
+  `COMPRESSION=DEFLATE`, 7 overview levels + mask-band overviews.
+- Extent (61184x65536 px @ ~0.6m/px, correct for z18) lands exactly on
+  八代市 (Yatsushiro), Kumamoto -- Upper Left 130°25'46.88"E
+  32°32'48.53"N to Lower Right 130°45'28.45"E 32°14'59.91"N.
+- RGB bands: real variance (mean ~103-124, stddev ~27-32 per band,
+  `STATISTICS_VALID_PERCENT=43.7`, i.e. ~44% of the bounding rectangle
+  has real coverage -- the rest is the probe-confirmed polygon's
+  padding, correctly nodata).
+- Alpha band: min 0 / max 255 / mean 111.44 -- consistent with 43.7%
+  opacity coverage assuming near-binary (not partially antialiased)
+  transparency (`0.437 * 255 = 111.4`, matches to 3 significant
+  figures).
+- Generated a 1600px preview PNG and sent it to Hidenori for visual
+  review, per "I'll check the COG myself first" from earlier in this
+  session -- **holding here, not proceeding to Source Cooperative/OAM
+  publishing until Hidenori has looked at it.**
+
+### Next steps (pick up here)
+
+1. Hidenori reviews the COG (visually via the preview, or by pulling
+   the real file).
+2. If approved: Source Cooperative upload needs Hidenori to do the two
+   manual steps from D10 first (create the `smartmaps/cogenerate`
+   product, run `source-coop login` once) -- neither is done yet.
+3. OAM ingestion: still gated on D6 (contact HOTOSM, or go through the
+   v1 token flow) -- not attempted yet.
+4. `stac_item.py` is now unblocked on the datetime question (D4
+   resolved) but still doesn't exist -- next real coding task once
+   publishing is underway.
+
 ## 2026-07-31 (continued once more) -- NODATA handling (D12) and OAM format check (D13)
 
 Hidenori's ask: once the COG exists, check whether its internal format
