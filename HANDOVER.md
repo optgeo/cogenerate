@@ -26,21 +26,26 @@ of looking for rationale here -- entries below link to the relevant
   figures).
 - Generated a 1600px preview PNG and sent it to Hidenori for visual
   review, per "I'll check the COG myself first" from earlier in this
-  session -- **holding here, not proceeding to Source Cooperative/OAM
-  publishing until Hidenori has looked at it.**
+  session. **Hidenori opened the real file in QGIS directly (asked for
+  the absolute path: `/Users/hfu/cogenerate/out/20260729kumamoto_yatsushiro_0729do_sokuho.tif`)
+  and confirmed "looks good."** COG approved.
 
 ### Next steps (pick up here)
 
-1. Hidenori reviews the COG (visually via the preview, or by pulling
-   the real file).
-2. If approved: Source Cooperative upload needs Hidenori to do the two
-   manual steps from D10 first (create the `smartmaps/cogenerate`
-   product, run `source-coop login` once) -- neither is done yet.
-3. OAM ingestion: still gated on D6 (contact HOTOSM, or go through the
-   v1 token flow) -- not attempted yet.
+1. ~~Hidenori reviews the COG~~ -- done, approved 2026-07-31.
+2. **Blocked on Hidenori** (D10): Source Cooperative upload needs two
+   manual steps neither done yet -- (a) create the `smartmaps/cogenerate`
+   product via the source.coop web UI, (b) run `source-coop login`
+   once locally. Claude can script the actual `aws s3 sync` upload as
+   soon as both are done, without ever handling credentials.
+3. OAM ingestion: still gated on D6 (contact HOTOSM once a real static
+   STAC catalog exists, or go through the v1 token flow) -- not
+   attempted yet, and not blocking Source Cooperative publishing.
 4. `stac_item.py` is now unblocked on the datetime question (D4
-   resolved) but still doesn't exist -- next real coding task once
-   publishing is underway.
+   resolved) but still doesn't exist -- worth building alongside/before
+   the Source Cooperative upload, since D10's naming convention and a
+   real STAC item both want to exist before calling this layer
+   "published."
 
 ## 2026-07-31 (continued once more) -- NODATA handling (D12) and OAM format check (D13)
 
