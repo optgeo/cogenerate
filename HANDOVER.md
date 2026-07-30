@@ -1,5 +1,10 @@
 # HANDOVER.md
 
+Session-by-session log: what happened, what's still running, what's
+next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
+of looking for rationale here -- entries below link to the relevant
+`D`-number rather than re-explaining it.
+
 ## 2026-07-31 (continued) -- hygiene pass + a second staleness finding
 
 While `georef` ran in the background, picked up loose ends rather than
@@ -34,18 +39,16 @@ waiting idle:
   entry exists yet.** The only `kumamoto` hits are the unrelated 2016
   Kumamoto earthquake layers (the known-good coordinate cross-check from
   the original planning session), and the only `yatsushiro` hits are a
-  different, unrelated 2025-08 disaster (`20250815rain_yatsushiro{nishi,
-  higashi}_0816do_sokuho`). So: **the live tile server already serves
-  this layer (confirmed by probe/download), but GSI's own public catalog
-  page hasn't caught up yet** -- meaning the zoom-range and 備考
-  (remarks/attribution) fields `CLAUDE.md` says to check before
-  publishing **cannot be verified for this specific layer right now**.
-  Don't treat this layer as cleared for real publishing to Source
-  Cooperative/OAM until `ichiran.html` actually lists it (or another
-  authoritative GSI source for attribution terms is found) -- this is
-  fine for pipeline-validation purposes (which is all we're doing with
-  it so far) but would be a real gap if we tried to actually publish
-  it today.
+  different, unrelated 2025-08 disaster
+  (`20250815rain_yatsushiro{nishi,higashi}_0816do_sokuho`). So the live
+  tile server already serves this layer (confirmed by probe/download),
+  but GSI's own public catalog page hasn't caught up yet -- zoom-range
+  and 備考 (remarks/attribution) can't be cross-checked for this layer
+  right now. **Update, same day:** Hidenori decided this doesn't block
+  pipeline execution -- see DECISIONS.md D9 (disaster-response
+  principle). Proceed to `georef`/`cog` regardless; only the
+  *attribution field written into a published STAC item* stays
+  provisional until `ichiran.html` catches up, not the COG itself.
 
 ## 2026-07-31 -- repo pushed, full pipeline run, and a catalog-staleness bug caught
 
@@ -67,49 +70,47 @@ waiting idle:
   calls, matching the concurrency pattern already used in
   `probe.py`/`download.py`) before this becomes the bottleneck for
   larger layers or batch runs across many layers.
-- **Caught and fixed a real bug in how we read `layers-martin`'s
-  catalog, not in `cogenerate` itself:** while cross-checking today's
-  layer count against `/Users/hfu/layers-martin/docs/catalog.json`, that
-  local clone's last commit touching `catalog.json` was dated
-  2026-07-17 -- 15 days of `layers-martin`'s daily catalog-rebuild cron
-  (`build-catalog.yml`, 18:00 UTC) had never been pulled locally. It was
-  even missing the entry for `20260729kumamoto_yatsushiro_0729do_sokuho`,
-  the exact layer this pipeline was being validated against. `git pull
+- **Caught a real bug in how we read `layers-martin`'s catalog, not in
+  `cogenerate` itself:** while cross-checking today's layer count
+  against `/Users/hfu/layers-martin/docs/catalog.json`, that local
+  clone's last commit touching `catalog.json` was dated 2026-07-17 --
+  15 days behind, even missing the entry for
+  `20260729kumamoto_yatsushiro_0729do_sokuho` itself. `git pull
   --ff-only` fixed the local clone (clean fast-forward, no local
-  changes lost). Root cause: nothing wrong with the mirror or the cron
-  job -- it rebuilds fine every day -- the bug was trusting an unpulled
-  local git clone as if it were live data. Fixed going forward per
-  `CLAUDE.md`: read `https://hfu.github.io/layers-martin/catalog.json`
-  directly instead.
+  changes lost). Root cause and the going-forward fix: DECISIONS.md D7.
 - Redid the "how many `_do`/`_do_sokuho` layers exist" count against the
   now-current catalog: **74 layers across 15 disaster events** (was 73/14
   against the stale snapshot). Full per-event breakdown given to
   Hidenori in chat, not duplicated here since it'll be stale again
   within days -- re-derive from the live catalog URL when needed rather
   than trusting a number written down here.
-- Adopted a language policy for this repo, now documented in
-  `CLAUDE.md`: chat with Hidenori in Japanese, everything committed to
-  the repo (code, docs, commit messages) in English.
+- Adopted a language policy for this repo (DECISIONS.md D8): chat with
+  Hidenori in Japanese, everything committed to the repo (code, docs,
+  commit messages) in English.
+- Split rationale out of this file into `DECISIONS.md` (new, ADR-format
+  log) so `HANDOVER.md` can stay a lean session log instead of growing a
+  duplicate copy of every decision's reasoning. `README.md` now has a
+  "Documentation map" explaining the split.
 
 ### If resuming from a fresh session (e.g. after `/clear`)
 
-Nothing downstream of `just download` has been verified yet. Say
-something like:
+Read this file's latest entry, then `DECISIONS.md` for why anything
+here looks the way it does. Nothing downstream of `just download` has
+been verified yet as of this writing. Say something like:
 
-> `/Users/hfu/cogenerate` の作業を続けて。HANDOVER.md の
-> "2026-07-31" のエントリを読んで、`just georef` の完了確認と
-> `just cog` の実行、gdalinfo での検証、RGB/RGBA バンド数チェック
-> （georef.py の UNTESTED RISK コメント参照）から再開して。
+> `/Users/hfu/cogenerate` の作業を続けて。HANDOVER.md の最新エントリと
+> DECISIONS.md を読んで、`just georef` の完了確認と `just cog` の実行、
+> gdalinfo での検証、RGB/RGBA バンド数チェック（georef.py の
+> UNTESTED RISK コメント参照）から再開して。
 
-which points the fresh session at this file and names the exact next
+which points the fresh session at both files and names the exact next
 steps: confirm `georef` finished (`tiles/<layer>/` should hold one
-`.vrt` per source PNG; the merged mosaic lands at
-`out/<layer>.vrt`), run `just cog`, inspect the result with `gdalinfo`,
-and specifically check the RGB-vs-RGBA band-count risk `georef.py`
-flags in its module docstring. After that, the two decisions in
-`CLAUDE.md`'s "Open decisions" section (STAC `datetime` source; OAM
-ingestion path) still need Hidenori's call before `stac_item.py` can be
-started.
+`.vrt` per source PNG; the merged mosaic lands at `out/<layer>.vrt`),
+run `just cog`, inspect the result with `gdalinfo`, and specifically
+check the RGB-vs-RGBA band-count risk `georef.py` flags in its module
+docstring. After that, `DECISIONS.md`'s two **Open** entries (D4: STAC
+`datetime` source; D6: OAM ingestion path) still need Hidenori's call
+before `stac_item.py` can be started.
 
 ## 2026-07-30 (later still) -- first real run, from Claude Code on the Mac
 

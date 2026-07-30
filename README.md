@@ -21,8 +21,18 @@ same day). The goal is to run all of them through this pipeline and get
 them into OpenAerialMap, not just the one layer used so far to validate
 the pipeline itself.
 
-See `CLAUDE.md` for architecture and rationale, `HANDOVER.md` for the
-current session's status and untested parts.
+## Documentation map
+
+| File | Purpose | Audience |
+|---|---|---|
+| `README.md` | What this is, why, quickstart | Humans |
+| `CLAUDE.md` | How to operate this repo day to day (conventions, facts about the data source, commands) | Claude sessions, and humans who want the same grounding |
+| `DECISIONS.md` | *Why* things are the way they are -- ADR log, stable | Both; read before reconsidering something that looks arbitrary |
+| `HANDOVER.md` | *What happened*, session by session, and what to do first if resuming cold (e.g. after `/clear`) | Whoever (human or Claude) picks this up next |
+
+Each file has one job -- decisions don't get re-explained in
+`HANDOVER.md`, and session narrative doesn't get buried in
+`DECISIONS.md`.
 
 ```sh
 uv sync
