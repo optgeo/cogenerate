@@ -10,13 +10,32 @@ of looking for rationale here -- entries below link to the relevant
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below.
 
+**TOP PRIORITY right now (D17)**: Hidenori spotted missing northern
+coverage in `20260729kumamoto_yatsushiro_0729do_sokuho`'s published
+COG. Root cause found and fixed: `probe.py`'s single-seed quadtree
+descent could never discover a *sibling* minzoom tile with real data
+(only children of the seed). Added minzoom flood-fill
+(`expand_seeds_at_minzoom()`). Re-probed with `FORCE=1`: **found 3
+minzoom tiles (was 1), 32,016 confirmed z18 tiles (was 26,982, +5,034 /
++18.7%)**. Currently re-downloading (D11 should make this incremental
+-- only the ~5,034 new tiles need fetching). **Next steps in order**:
+`just download` (in progress) -> `just georef` (D11-incremental) ->
+`FORCE=1 just cog` (full rebuild needed, geometry changed) -> `just
+upload` (re-publish). Do this *before* resuming the layers-2-5 table
+below, per Hidenori's explicit priority.
+
+Every other already-probed layer should eventually get a `FORCE=1`
+re-probe too, to check whether it was similarly incomplete -- not
+urgent for the in-progress test-run layers below (small, single-area
+layers, less likely to straddle a minzoom boundary, but not verified
+either).
+
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate):
 - `README.md` (D14)
-- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **rebuilt with
-  D15's fix and re-uploaded**, done (rebuild: 11m19s; re-upload
-  confirmed via `aws s3api head-object`, `LastModified`
-  2026-07-31T01:34:14Z). Fully current.
+- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently stale
+  w.r.t. D17** (still the D15-fixed-but-pre-D17 26,982-tile version).
+  Being rebuilt now, see above.
 
 Verified separately (D16): a brightness difference Hidenori noticed
 between this COG's Source Cooperative preview and 地理院地図's own
@@ -26,23 +45,24 @@ the coarsest overview. No action needed.
 
 Multi-layer test run (Hidenori's request: prioritize new-disaster /
 Kumamoto-area layers while he's away; not approved for Source
-Cooperative upload -- local COGs only, unless/until he says otherwise):
+Cooperative upload -- local COGs only, unless/until he says otherwise).
+**Paused after layer 2 to fix D17 first** -- resume here after the
+kumamoto_yatsushiro rebuild above is done:
 
 | Layer | Area | probe | download | georef | cog |
 |---|---|---|---|---|---|
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
 | `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | in progress | -- | -- |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | in progress | -- |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | not started | -- | -- | -- |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
 z10) are recorded in this file's "multi-layer run" entry further down
 -- re-derive or re-scrape if this file somehow loses them, don't guess.
-
-**Next action**: continue down the table above in order --
-`LAYER=<id> SEED_X=<x> SEED_Y=<y> just run` for each (the `cog` recipe
-already has D15's fix by default now, no FORCE needed for new layers).
+Given D17, treat these as the *starting* seed only -- the flood-fill
+will find any additional minzoom tiles automatically now, no manual
+neighbor-guessing needed.
 
 Nothing is currently blocked on Hidenori. Open decisions that will
 eventually need him: D6 (OAM ingestion path) before real OAM

@@ -33,6 +33,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D14](#d14-a-separate-readmemd-for-the-source-cooperative-product-itself) | A separate README.md for the Source Cooperative product itself | Accepted | 2026-07-31 |
 | [D15](#d15-explicit-a_nodata-0-and-embedded-metadata-on-the-cog) | Explicit `-a_nodata 0` and embedded metadata on the COG | Accepted | 2026-07-31 |
 | [D16](#d16-pixel-values-are-untouched-a-brightness-difference-vs-地理院地図-is-the-previewers-not-ours) | Pixel values are untouched: a brightness difference vs. 地理院地図 is the previewer's, not ours | Investigated, no action | 2026-07-31 |
+| [D17](#d17-flood-fill-at-minzoom-a-single-seed-tile-can-miss-real-coverage-in-a-neighboring-cell) | Flood-fill at minzoom: a single seed tile can miss real coverage in a neighboring cell | Accepted | 2026-07-31 |
 
 ---
 
@@ -565,3 +566,43 @@ not something to fix in `cogenerate`.
 complaint from data consumers, it'd be a Source Cooperative
 previewer-configuration question, not a reason to alter COG generation
 here.
+
+## D17: Flood-fill at minzoom: a single seed tile can miss real coverage in a neighboring cell
+
+**Status**: Accepted
+
+**Context**: Hidenori noticed the published `20260729kumamoto_yatsushiro_0729do_sokuho.tif`
+was visibly missing part of the northern coverage area when compared
+against a basemap. D1's quadtree-pruning probe only ever descends into
+a seed tile's own *children* -- it never discovers a *sibling* minzoom
+tile, even one immediately adjacent, since siblings aren't reachable
+by parent->child recursion from a different starting cell.
+
+**Confirmed directly, 2026-07-31**: manually probed the 8 neighbors of
+the original seed (z10, 883, 414) for this layer. `883,413` (north)
+and `883,415` (south) both return `200` -- real coverage, silently
+missed by the single-seed probe -- while every other neighbor (and
+their further-out neighbors) returns `404`. The true coverage is a
+north-south strip of exactly 3 adjacent z10 tiles; 八代市's coastline
+is long and thin, so this isn't surprising in hindsight -- any
+elongated coverage polygon can straddle more than one minzoom grid
+cell, and a single point-seed has no way to know that in advance.
+
+**Decision**: `probe.py` now flood-fills at minzoom before the
+existing top-down descent: starting from the given seed(s), check each
+confirmed tile's up-to-8 neighbors at the *same* zoom, follow any that
+are also `200`, repeat until no new minzoom tiles are found
+(`expand_seeds_at_minzoom()`). The resulting full set of minzoom tiles
+feeds the unchanged top-down quadtree descent (D1) from every one of
+them, not just the original seed(s). No CLI change needed -- existing
+single-seed usage (`--seed-x --seed-y` once) now transparently finds
+the full extent instead of requiring the caller to already know how
+many minzoom tiles a layer spans.
+
+**Consequences**: Request cost is bounded by the coverage polygon's
+minzoom-grid footprint (typically single digits of tiles), negligible
+next to the thousands of maxzoom requests the descent itself makes.
+Every layer already probed with a single-cell-only result should be
+**re-probed with `FORCE=1`** to check whether it was similarly
+incomplete -- prioritized first for `20260729kumamoto_yatsushiro_0729do_sokuho`
+(the one Hidenori caught visually), tracked in `HANDOVER.md`.
