@@ -29,18 +29,14 @@ published COG. Root cause found and fixed in two parts:
 Re-download (D11-incremental, only ~5,034 new tiles), re-georef (also
 incremental, 13m39s), and `FORCE=1 just cog` rebuild (15m37s, new size
 64000x76800 up from 61184x65536, 6.42GB) are all **done**, verified
-(`LAYOUT=COG`, `NoData Value=0` on all 4 bands). **Re-upload
-FAILED**: `Error: Cached credentials have expired. Run 'source-coop
-login' to refresh.` -- the STS session credentials from Hidenori's
-earlier login expired (~1.5h TTL, noted when this was set up). This is
-a browser-based OAuth step only Hidenori can do (D10) -- **blocked on
-him running `source-coop login` again**. The rebuilt COG is sitting
-ready locally at `out/20260729kumamoto_yatsushiro_0729do_sokuho.tif`;
-run `LAYER=20260729kumamoto_yatsushiro_0729do_sokuho just upload` as
-soon as login is refreshed -- don't rebuild again, just re-upload.
-
-Not blocked on this: continuing the multi-layer test run below in the
-meantime (doesn't touch Source Cooperative).
+(`LAYOUT=COG`, `NoData Value=0` on all 4 bands). First re-upload
+attempt failed on expired session credentials -- Hidenori re-ran
+`source-coop login`, **re-upload retried and in progress now**
+(running in parallel with the layer-4 georef below, per his request).
+Check `aws s3api head-object --bucket smartmaps --key
+cogenerate/20260729kumamoto_yatsushiro_0729do_sokuho.tif --profile
+source-coop --query LastModified` for completion if picking this up
+cold -- should show today's date once done.
 
 Every other already-probed layer should eventually get a `FORCE=1`
 re-probe too, to check whether it was similarly incomplete -- not
