@@ -22,7 +22,7 @@ entry against `ichiran.html`'s actual disaster-response table
 structure rather than guessing from the ID string; don't trust a fixed
 number here, new layers are added whenever a new disaster response
 starts). The goal is to run all of them through this pipeline and get
-them into OpenAerialMap. **38/194 published as of 2026-08-01** --
+them into OpenAerialMap. **48/194 published as of 2026-08-01** --
 re-run `candidates.py` (its stderr summary line reports both numbers)
 rather than trusting this fraction, it moves often.
 
@@ -30,11 +30,10 @@ The archive turns out to span further than expected: this year's
 Kumamoto/Noto-era disaster response back through 1947-48 and 1962
 reference imagery of Hiroshima (kept by GSI alongside its 2014
 landslide-disaster layers, for land-use comparison against the
-present day).
-
-Priority currently favors Hiroshima-area layers ahead of FOSS4G 2026
-Hiroshima (`candidates.py --keyword 広島市`) -- see `HANDOVER.md` for
-the live state of that push.
+present day) -- all 10 Hiroshima-area layers are published as of
+2026-08-01, prioritized ahead of FOSS4G 2026 Hiroshima
+(`candidates.py --keyword <text>` supports this kind of temporary
+geographic priority; see `HANDOVER.md` for the current pick order).
 
 ## Documentation map
 
