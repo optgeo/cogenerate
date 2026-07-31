@@ -5,6 +5,17 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (new session, milestone) -- first real layer published
+
+`20260729kumamoto_yatsushiro_0729do_sokuho.tif` (5,457,760,113 bytes)
+finished uploading to `s3://smartmaps/cogenerate/` -- confirmed via
+`aws s3api list-objects-v2`. This is the first COG this pipeline has
+ever put somewhere a real consumer could use it, live at
+https://source.coop/smartmaps/cogenerate. Everything since the
+scaffold handoff (probe -> download -> georef -> cog -> QGIS review by
+Hidenori -> upload) has now gone all the way through for one real
+disaster layer.
+
 ## 2026-07-31 (new session, multi-layer run) -- Source Cooperative upload validated end to end
 
 Hidenori created `smartmaps/cogenerate` on Source Cooperative (title
