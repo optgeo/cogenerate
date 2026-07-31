@@ -2,43 +2,43 @@
   "stac_version": "1.0.0",
   "stac_extensions": [],
   "type": "Feature",
-  "id": "20250815rain_amakusa_0815do_sokuho",
+  "id": "20191012typhoon19_tamagawa_1013do",
   "geometry": {
     "type": "Polygon",
     "coordinates": [
       [
         [
-          130.1715088,
-          32.5526011
+          139.2599487,
+          35.7442831
         ],
         [
-          130.1715088,
-          32.3625633
+          139.2599487,
+          35.548988
         ],
         [
-          130.4942322,
-          32.3625633
+          139.7406006,
+          35.548988
         ],
         [
-          130.4942322,
-          32.5526011
+          139.7406006,
+          35.7442831
         ],
         [
-          130.1715088,
-          32.5526011
+          139.2599487,
+          35.7442831
         ]
       ]
     ]
   },
   "bbox": [
-    130.1715088,
-    32.3625633,
-    130.4942322,
-    32.5526011
+    139.2599487,
+    35.548988,
+    139.7406006,
+    35.7442831
   ],
   "properties": {
-    "datetime": "2025-08-15T00:00:00Z",
-    "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho",
+    "datetime": "2019-10-13T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tamagawa_1013do",
     "gsd": 0.5971642834779395,
     "license": "CC-BY-4.0",
     "platform": "aircraft",
@@ -58,14 +58,14 @@
         "url": "https://github.com/optgeo/cogenerate"
       }
     ],
-    "gsi:layer_id": "20250815rain_amakusa_0815do_sokuho",
-    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20250815rain_amakusa_0815do_sokuho/{z}/{x}/{y}.png",
+    "gsi:layer_id": "20191012typhoon19_tamagawa_1013do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20191012typhoon19_tamagawa_1013do/{z}/{x}/{y}.png",
     "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
   },
   "links": [
     {
       "rel": "self",
-      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tamagawa_1013do.json",
       "type": "application/json"
     },
     {
@@ -81,18 +81,18 @@
   ],
   "assets": {
     "imagery": {
-      "href": "https://data.source.coop/smartmaps/cogenerate/20250815rain_amakusa_0815do_sokuho.tif",
+      "href": "https://data.source.coop/smartmaps/cogenerate/20191012typhoon19_tamagawa_1013do.tif",
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
-      "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tamagawa_1013do",
       "roles": [
         "ortho",
         "data"
       ],
-      "file:size": 5171394938,
-      "file:checksum_sha256": "ccc833d1fded03115885e965dd534212a05d1251d437adff943f609236f6dea4"
+      "file:size": 2178916451,
+      "file:checksum_sha256": "9ce52c9d4fd4958b8630214ff2cb4096b74bc25fc7ee1280a7d7e3c9c7614b66"
     },
     "metadata": {
-      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tamagawa_1013do.json",
       "type": "application/json",
       "roles": [
         "metadata"

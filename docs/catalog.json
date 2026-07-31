@@ -17,6 +17,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tamagawa_1013do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tamagawa_1013do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240809hyuganada_nichinan_0809do_sokuho.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240809hyuganada_nichinan_0809do_sokuho"
