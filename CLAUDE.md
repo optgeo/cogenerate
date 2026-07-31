@@ -76,6 +76,19 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   helps (a small tile grid *at* minzoom) and D17 for why a single seed
   tile isn't enough by itself (it can only ever find coverage within
   its own minzoom cell, never a sibling cell with real data).
+- **Picking "which layer next"**: `src/cogenerate/candidates.py` ranks
+  not-yet-published layers by a municipality-count proxy (parsed from
+  ichiran.html's 提供範囲 field -- no real bbox/km² exists on GSI's
+  side, confirmed 2026-07-31). It filters to real disaster-response
+  layers by checking which catalog IDs actually have an ichiran.html
+  entry with that field, **not** by pattern-matching the ID string --
+  an ID-suffix regex (`ends with "do"`) picks up false positives from
+  unrelated layers (`gsjgeomap_*`, `*hirado`, `*mikado`) and also
+  undercounts (missed non-`_do`-suffixed variants like
+  `20190828_kyusyu_0828dansaizu`). The correct count is **194** real
+  disaster-response layers as of 2026-07-31, not the ~74-75 an
+  ID-regex guess produces -- always re-run the tool rather than
+  trusting a cached number.
 - 404s are not errors to fear: since we probe first and download second,
   an unexpected 404 during download is logged and skipped, not fatal.
   Gaps left by skipped tiles are legitimate nodata and are handled by the
@@ -130,6 +143,7 @@ to just do silently: turning on GitHub Pages for `optgeo/cogenerate`
 
 ```sh
 uv sync                          # install deps
+uv run python -m cogenerate.candidates --top 10   # rank not-yet-published layers by a spatial-extent proxy (see below)
 LAYER=... SEED_X=... SEED_Y=... just probe   # quadtree existence probe (vars go BEFORE the recipe name -- they're env vars, not recipe args)
 just download                    # fetch confirmed tiles
 just georef                      # tile PNGs -> merged VRT (EPSG:3857)
