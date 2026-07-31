@@ -10,9 +10,9 @@ of looking for rationale here -- entries below link to the relevant
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below.
 
-**TOP PRIORITY right now (D17/D18)**: Hidenori spotted missing
+**D17/D18 fully resolved and live** -- Hidenori spotted missing
 northern coverage in `20260729kumamoto_yatsushiro_0729do_sokuho`'s
-published COG. Root cause found and fixed in two parts:
+published COG; root cause found and fixed in two parts:
 - **D17**: `probe.py`'s single-seed quadtree descent could never
   discover a *sibling* minzoom tile with real data (only children of
   the seed). Fixed with a minzoom flood-fill (`expand_seeds_at_minzoom()`).
@@ -27,16 +27,14 @@ published COG. Root cause found and fixed in two parts:
   seed deliberately offset 2 tiles -- still found the real coverage.
 
 Re-download (D11-incremental, only ~5,034 new tiles), re-georef (also
-incremental, 13m39s), and `FORCE=1 just cog` rebuild (15m37s, new size
-64000x76800 up from 61184x65536, 6.42GB) are all **done**, verified
-(`LAYOUT=COG`, `NoData Value=0` on all 4 bands). First re-upload
-attempt failed on expired session credentials -- Hidenori re-ran
-`source-coop login`, **re-upload retried and in progress now**
-(running in parallel with the layer-4 georef below, per his request).
-Check `aws s3api head-object --bucket smartmaps --key
-cogenerate/20260729kumamoto_yatsushiro_0729do_sokuho.tif --profile
-source-coop --query LastModified` for completion if picking this up
-cold -- should show today's date once done.
+incremental, 13m39s), `FORCE=1 just cog` rebuild (15m37s, new size
+64000x76800 up from 61184x65536, 6.42GB, verified `LAYOUT=COG`/
+`NoData Value=0`), and **re-upload are all done**. First re-upload
+attempt failed on expired session credentials; Hidenori re-ran
+`source-coop login`, retry succeeded (ran in parallel with the layer-4
+georef below, per his request) -- confirmed live via `aws s3api
+head-object`: `LastModified: 2026-07-31T02:58:16+00:00`, `Size:
+6422996048`. **This layer is fully current on Source Cooperative.**
 
 Every other already-probed layer should eventually get a `FORCE=1`
 re-probe too, to check whether it was similarly incomplete -- not
