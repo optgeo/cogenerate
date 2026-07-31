@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20191025oame_sakura_1026do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20191025oame_sakura_1026do_sokuho"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20210705oame_0706do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20210705oame_0706do"
