@@ -99,6 +99,16 @@ cog:
 run: probe download georef cog
     echo "done: {{out_dir}}/{{layer}}.tif"
 
+# Step 5 (manual, not part of `run`): publish one layer's COG to Source
+# Cooperative. Needs `source-coop login` done once already (D10) --
+# this repo/Claude never handles the actual credentials, only invokes
+# `aws` with --profile source-coop, which reads them via
+# ~/.aws/config's credential_process.
+upload:
+    aws s3 cp {{out_dir}}/{{layer}}.tif \
+        s3://smartmaps/cogenerate/{{layer}}.tif \
+        --profile source-coop --acl bucket-owner-full-control
+
 # Remove intermediate tiles (keep out/ COGs)
 clean:
     rm -rf tiles

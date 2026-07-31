@@ -5,6 +5,57 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (new session, multi-layer run) -- Source Cooperative upload validated end to end
+
+Hidenori created `smartmaps/cogenerate` on Source Cooperative (title
+"Japan GSI Disaster-Response Aerial Imagery (COGs)", using the
+title/description Claude suggested) and ran `source-coop login`
+locally -- both D10 manual steps now done.
+
+- **Incident, self-reported**: while checking the new `source-coop`
+  CLI setup, ran `source-coop creds` directly to inspect it, which
+  printed the actual temporary AWS access key / secret key / session
+  token into the conversation. Should have gone straight to `~/.aws/config`
+  + `--profile source-coop` without ever calling `creds` manually.
+  Low real impact (STS session credential, ~1.5h TTL, expired long
+  before this could matter), but noting it so it doesn't repeat: never
+  invoke `source-coop creds` (or equivalent raw-credential-dump
+  commands) directly again, only through `--profile`.
+- Set up `~/.aws/config` with the `source-coop` profile per D10.
+- **Validated the whole upload path for real**: uploaded
+  `source-coop/README.md` to `s3://smartmaps/cogenerate/README.md`,
+  confirmed both via `aws s3api list-objects-v2` and by re-fetching the
+  live product page -- title/description/README all showing correctly.
+- Added a `just upload` recipe (D10's "scriptable as its own just
+  recipe" plan, now real): `aws s3 cp {{out_dir}}/{{layer}}.tif
+  s3://smartmaps/cogenerate/{{layer}}.tif --profile source-coop --acl
+  bucket-owner-full-control`.
+- Kicked off the actual upload of `20260729kumamoto_yatsushiro_0729do_sokuho.tif`
+  (5.46GB) -- this layer was already approved for real publishing
+  earlier this session (D9's disaster-response principle); now that
+  the upload mechanism is proven, running it for real. Result recorded
+  in the next entry once it finishes.
+
+### Also this session: producing more COGs while Hidenori is away
+
+Asked to prioritize new-disaster and Kumamoto-area layers as a
+multi-layer test run. Selected from the live catalog (D7):
+
+1. `20250815rain_amakusa_0815do_sokuho` (天草上島, Kumamoto) -- in progress
+2. `20250815rain_yatsushirohigashi_0816do_sokuho` (八代東, Kumamoto)
+3. `20250815rain_yatsushironishi_0816do_sokuho` (八代西, Kumamoto)
+4. `20240923rain_wajima_0923do_sokuho` (輪島, next most recent)
+5. `20240809hyuganada_nichinan_0809do_sokuho` (日南, different region)
+
+Seed coordinates for all 5 taken from `ichiran.html`'s own tilejump
+links (z15, integer-divided by 32 for the z10 seed) -- all 5 confirmed
+`ズームレベル 10～18` and the same standard 備考 disclaimer (automated
+processing artifacts, cloud interference), no extra attribution terms.
+Progress on each tracked below as it completes; not attempting Source
+Cooperative upload for these new layers without checking with Hidenori
+first -- only the already-approved kumamoto_yatsushiro layer is being
+published this session.
+
 ## 2026-07-31 (final for this session) -- first COG built and verified
 
 `just cog` (with the BIGTIFF fix) finished: **10m47s**,

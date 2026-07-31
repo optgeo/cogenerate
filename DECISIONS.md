@@ -26,7 +26,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D7](#d7-read-layers-martins-catalog-from-its-canonical-live-url-never-a-local-clone) | Read layers-martin's catalog from its canonical live URL, never a local clone | Accepted | 2026-07-31 |
 | [D8](#d8-language-policy-japanese-chat-english-repository) | Language policy: Japanese chat, English repository | Accepted | 2026-07-31 |
 | [D9](#d9-disaster-response-principle-build-what-the-tile-server-confirms-dont-block-on-gsis-own-catalog-page) | Disaster-response principle: build what the tile server confirms, don't block on GSI's own catalog page | Accepted | 2026-07-31 |
-| [D10](#d10-source-cooperative-publishing-path) | Source Cooperative publishing path | Accepted (blocked on 1 manual step) | 2026-07-31 |
+| [D10](#d10-source-cooperative-publishing-path) | Source Cooperative publishing path | Accepted, validated end to end | 2026-07-31 |
 | [D11](#d11-skip-already-done-work-by-default-force1-to-redo-it) | Skip already-done work by default; FORCE=1 to redo it | Accepted | 2026-07-31 |
 | [D12](#d12-nodata-via-pure-black-pixels-treat-as-transparent-not-backfilled) | NODATA via pure-black pixels: treat as transparent, not backfilled | Accepted | 2026-07-31 |
 | [D13](#d13-cog-internal-format-vs-oams-ingestion-profile) | COG internal format vs. OAM's ingestion profile | Accepted | 2026-07-31 |
@@ -262,38 +262,55 @@ treat this layer as cleared for publishing" stance recorded in
 
 ## D10: Source Cooperative publishing path
 
-**Status**: Accepted (mechanism); blocked on one manual step
+**Status**: Accepted and **validated end to end** (2026-07-31)
 
 **Context**: `CLAUDE.md`'s naming convention already assumed
 `source.coop/smartmaps/cogenerate/<layer_id>.tif`, but the upload auth
 mechanism was unconfirmed (S3-compatible credentials? something else?).
 
 **Research, 2026-07-31**: the `smartmaps` org already exists on Source
-Cooperative, owned by Hidenori, with 14 public products already live
+Cooperative, owned by Hidenori, with public products already live
 there (mostly PMTiles -- Japan terrain tiles, GTFS, PLATEAU, etc.).
-Upload is S3-compatible: either the web UI (per-file, manual), or
-`source-coop login` (one-time human auth) followed by scriptable `aws
-s3 cp` / `aws s3 sync --profile source-coop ... --acl
-bucket-owner-full-control` targeting
-`s3://us-west-2.opendata.source.coop/smartmaps/cogenerate/`. A
-`cogenerate` product does not exist yet under `smartmaps` -- creating
-one requires the source.coop web UI, i.e. a human (Hidenori) action;
-this is account/product creation, not something Claude should do on
-its own (see this project's standing safety rules on account
-creation). Once the product exists and Hidenori runs `source-coop
-login` once locally, the actual upload calls can be scripted and run
-by Claude without any credential ever passing through chat.
+Upload is S3-compatible via the `source-coop` CLI
+(`source-cooperative/source-coop-cli`, installed via `brew install
+source-cooperative/tap/source-coop`): `source-coop login` does a
+one-time human browser OAuth step and caches short-lived credentials
+in the OS keyring; `~/.aws/config` gets a profile
+(`credential_process = source-coop creds`, `endpoint_url =
+https://data.source.coop`) so plain `aws s3 cp/sync --profile
+source-coop --acl bucket-owner-full-control` works afterward. Product
+creation itself needs the source.coop web UI -- account/product
+creation, a human (Hidenori) action per this project's standing safety
+rules, not something Claude does.
 
-**Decision**: Use the `source-coop login` + AWS CLI path for uploads
-(scriptable as its own `just` recipe later), not the web UI. Product
+**Decision**: Use the `source-coop login` + AWS CLI path for uploads,
+scripted as `just upload` (added 2026-07-31: `aws s3 cp
+{{out_dir}}/{{layer}}.tif s3://smartmaps/cogenerate/{{layer}}.tif
+--profile source-coop --acl bucket-owner-full-control`). Product
 creation and the one-time `source-coop login` stay manual, human-only
-steps.
+steps; everything after that is scriptable without any credential
+passing through chat.
+
+**Validated live, 2026-07-31**: Hidenori created the `smartmaps/cogenerate`
+product and ran `source-coop login`. Confirmed the **actual bucket
+path is `s3://smartmaps/<product>/`**, not the
+`us-west-2.opendata.source.coop` form this entry originally guessed
+from docs alone -- corrected here after testing against the real
+endpoint. Uploaded `source-coop/README.md` (D14) as a test; confirmed
+via `aws s3api list-objects-v2` and by re-fetching the live product
+page, both title/description (which Hidenori set from Claude's
+suggestion) and the README content showing correctly.
+
+**One process note for future sessions**: `source-coop creds` prints
+the actual raw credential material (access key, secret key, session
+token) to stdout -- it exists for `credential_process` to call
+internally, not for a human or Claude to invoke directly to "check
+that it works." Use `--profile source-coop` and let `aws` call it
+internally instead; don't run `creds` directly.
 
 **Consequences**: Nothing else in the pipeline is blocked by this --
 `probe`/`download`/`georef`/`cog` don't touch Source Cooperative at
-all. Only the eventual upload step needs Hidenori to: (1) create the
-`smartmaps/cogenerate` product on source.coop, (2) run `source-coop
-login` once. Until then, produced COGs stay local/on GitHub only.
+all, and the upload step is now a one-line `just upload` per layer.
 
 ## D11: Skip already-done work by default; FORCE=1 to redo it
 
