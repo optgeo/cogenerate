@@ -14,28 +14,72 @@ push) have been trimmed from here now that they're fully done and
 superseded -- full detail is preserved in the dated entries below if
 needed, nothing lost, just not repeated at the top anymore.
 
+**Disk space is a real constraint with 6 layers now building in
+parallel** -- checked 2026-07-31, 460GB volume, only ~51-59GB free.
+`tiles/20240102noto_0405_0426do/` alone is 28GB (its download of
+270,378 tiles is essentially done); by rough proportion to
+kumamoto_yatsushiro (32,016 tiles -> 6.42GB COG), noto's own COG could
+plausibly land in the 30-50GB+ range, and `gdal_translate -of COG`
+writes to a `.tif.building` temp file alongside the still-present
+source tiles before the final `mv` -- i.e. source tiles + in-progress
+output coexist on disk at that step's peak. **Mitigation (Hidenori's
+call)**: once a layer's COG is verified AND confirmed uploaded to
+Source Cooperative, delete its `tiles/<layer>/` directory immediately
+-- already done this session for the 3 fully-settled layers
+(kumamoto_yatsushiro, wajima, nichinan; freed ~8.5GB). Do **not** delete
+`tiles/` for a layer that's still mid-rebuild/mid-download -- `download.py`
+skips already-present files (D11), so deleting early would force an
+expensive full re-fetch instead of the cheap incremental one. A
+persistent background monitor now watches free space (warns <25GB,
+critical <10GB) so this doesn't get missed between pipeline-completion
+checkpoints -- if it fires, clean up any newly-completed+uploaded
+layer's `tiles/` first; only consider deleting an already-uploaded
+`out/*.tif` (the final COG itself, not just tiles/) as a last resort,
+and ask Hidenori before doing that.
+
 **6 layers published on Source Cooperative** (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate): `20260729kumamoto_yatsushiro_0729do_sokuho`,
 `20250815rain_amakusa_0815do_sokuho`, `20250815rain_yatsushirohigashi_0816do_sokuho`,
 `20250815rain_yatsushironishi_0816do_sokuho`, `20240923rain_wajima_0923do_sokuho`,
 `20240809hyuganada_nichinan_0809do_sokuho`. Plus `README.md` (D14).
 
-**Next batch: 3 spatially-large layers, picked from the ~75 remaining
-`_do`/`_do_sokuho` layers in `layers-martin`'s catalog** (Hidenori
-asked for the biggest-looking ones first). No real bbox/km² field
-exists on GSI's side (confirmed this session) -- ranked instead by
-`ichiran.html`'s free-text 提供範囲 (coverage) field's municipality
-count, a weak but real proxy:
+**3 of those 6 are confirmed STALE/INCOMPLETE** -- FORCE=1 re-probed
+this session (D17/D18 landed after their original probe): `amakusa`
+23,767 -> **28,019** confirmed z18 tiles (+17.9%), `yatsushirohigashi`
+2,276 -> **2,909** (+27.8%), `yatsushironishi` 14,896 -> **35,256**
+(**+136.7%**, more than double). Same missing-northern/sibling-cell
+bug D17/D18 fixed for kumamoto_yatsushiro, just not yet applied to
+these 3's *published* artifacts. **Rebuild (download/georef/cog) +
+re-upload in progress now** -- Hidenori approved uploading each as it
+finishes without asking again this session (standing approval for
+*this batch*, not a blanket policy going forward -- still confirm
+before publishing layers outside it).
+
+**Next-batch layers, picked from `layers-martin`'s (corrected count:
+194, see `candidates.py` below) catalog** by `ichiran.html`
+municipality-count proxy -- **all now building in parallel** with the
+3 stale-layer rebuilds above, per Hidenori's explicit go-ahead (was
+sequential earlier this session; noto turned out far larger than
+expected, ~12.7h estimated for its `georef` step alone at the pace
+observed, not worth blocking everything else on):
 
 | Layer | Area | Municipalities | Pipeline status |
 |---|---|---|---|
-| `20240102noto_0405_0426do` | 能登地区 (2024 Noto earthquake), Ishikawa + Toyama | 19 | probe done (**270,378** confirmed z18 tiles -- ~8.4x kumamoto_yatsushiro's 32,016), download in progress |
-| `20191012typhoon19_tamagawa_1013do` | 多摩川地区 (2019 Typhoon 19), Tokyo + Kanagawa | 15 | queued next (seed 909,403 @ z10) |
-| `20190828kyusyu_sagachiku_0830do` | 佐賀地区 (2019 Kyushu rain), Saga | 10 | queued last (seed 882,411 @ z10); ichiran.html's データソース text calls this one "佐賀地区一部" (partial) despite the h4 title saying "佐賀地区" -- sanity-check extent against the 3 sibling variants (`0831do`, `0830do_sokuho`, `0831do_sokuho`) if the result looks suspiciously small |
+| `20240102noto_0405_0426do` | 能登地区 (2024 Noto earthquake), Ishikawa + Toyama | 19 | probe done (**270,378** confirmed z18 tiles -- ~8.4x kumamoto_yatsushiro's 32,016), `georef` in progress (slow -- see above) |
+| `20191012typhoon19_tamagawa_1013do` | 多摩川地区 (2019 Typhoon 19), Tokyo + Kanagawa | 15 | running (seed 909,403 @ z10) |
+| `20190828kyusyu_sagachiku_0830do` | 佐賀地区 (2019 Kyushu rain), Saga | 10 | running (seed 882,411 @ z10); ichiran.html's データソース text calls this one "佐賀地区一部" (partial) despite the h4 title saying "佐賀地区" -- sanity-check extent against the 3 sibling variants (`0831do`, `0830do_sokuho`, `0831do_sokuho`) if the result looks suspiciously small |
 
-**Building locally only -- ask Hidenori before `just upload` for any of
-these 3**, same as every new layer (publishing needs a fresh ask each
-time, not covered by the earlier 6-layer approval).
+Upload for these 3 (once each finishes locally) is covered by the same
+standing approval as the stale-layer rebuilds above.
+
+**`src/cogenerate/candidates.py` added this session**: ranks
+not-yet-published layers by the same municipality-count proxy, sourced
+from which catalog IDs actually have a real ichiran.html
+disaster-response entry (not an ID-suffix regex, which both false-
+positived on unrelated layers and undercounted -- corrected total is
+**194** real layers, not the ~74-75 an ID-regex guess gave). Run `uv
+run python -m cogenerate.candidates --top N` to re-derive "what's
+next" instead of repeating this session's one-off analysis.
 
 **STAC catalog implementation landed this session (D6 resolved, D19
 added)**: `src/cogenerate/stac_item.py` + `stac_catalog.py`, schema
