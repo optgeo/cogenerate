@@ -125,6 +125,15 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   DECISIONS.md D11 -- this makes reruns after an interruption, or after
   a probe/recipe fix like D17/D18, cheap and mostly incremental instead
   of starting over.
+- **Local disk is not infinite -- clean up per-layer once the remote
+  copy is verified, don't just let `tiles/`/`out/` grow forever.**
+  `just verify` checks a layer's `out/{{layer}}.tif` against Source
+  Cooperative before anything gets deleted; `just cleanup-tiles` (safe,
+  routine) then removes `tiles/{{layer}}/`, and `just cleanup-cog`
+  (only once that layer's STAC Item already exists, D19) removes the
+  local COG too. See DECISIONS.md D20 -- never delete a layer's
+  `tiles/` while it's still mid-download/rebuild (D11's incremental
+  skip-if-present logic needs it there).
 
 ## Decisions and open questions
 
@@ -154,6 +163,9 @@ just stac-item                   # build docs/items/{{layer}}.json from the alre
 just stac-catalog                # rebuild docs/catalog.json from every docs/items/*.json so far
 just stac                        # stac-item + stac-catalog for one layer
 just stac-validate                # validate every Item + the catalog against the STAC spec (needs `uv sync --extra dev`)
+just verify                      # confirm out/{{layer}}.tif matches what's live on Source Cooperative (D20)
+just cleanup-tiles               # delete tiles/{{layer}}/ once verify passes -- routine, safe any time after upload
+just cleanup-cog                 # delete out/{{layer}}.tif too, once verify passes AND its STAC Item already exists (D20)
 
 just lint / just test
 

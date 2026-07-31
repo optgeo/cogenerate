@@ -164,7 +164,60 @@ stac-validate:
     uv run stac-validator batch {{docs_dir}}/items/*.json
     uv run stac-validator validate {{docs_dir}}/catalog.json
 
-# Remove intermediate tiles (keep out/ COGs)
+# Step 8 (D20): confirm a layer's local out/<layer>.tif matches what's
+# actually live on Source Cooperative -- the gate every cleanup recipe
+# below checks before deleting anything. Never trust "upload probably
+# succeeded"; always re-check the remote.
+verify:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f "{{out_dir}}/{{layer}}.tif" ]; then
+        echo "NOT VERIFIED: {{out_dir}}/{{layer}}.tif doesn't exist locally" >&2
+        exit 1
+    fi
+    local_size=$(stat -f%z "{{out_dir}}/{{layer}}.tif" 2>/dev/null || stat -c%s "{{out_dir}}/{{layer}}.tif")
+    remote_size=$(aws s3api head-object --bucket smartmaps --key "cogenerate/{{layer}}.tif" \
+        --profile source-coop --query 'ContentLength' --output text 2>/dev/null) || {
+        echo "NOT VERIFIED: {{layer}} -- no such object on Source Cooperative" >&2
+        exit 1
+    }
+    if [ "$local_size" != "$remote_size" ]; then
+        echo "NOT VERIFIED: {{layer}} -- local $local_size bytes != remote $remote_size bytes" >&2
+        exit 1
+    fi
+    echo "verified: {{layer}} ($local_size bytes matches Source Cooperative)"
+
+# Step 9 (D20): delete tiles/<layer>/ once `verify` confirms the COG
+# built from it is safely on Source Cooperative. Safe to run any time
+# after that -- never for a layer still mid-download/rebuild (D11's
+# incremental skip-if-present logic needs tiles/ around for that).
+cleanup-tiles: verify
+    rm -rf {{tiles_dir}}
+    echo "removed {{tiles_dir}}/"
+
+# Step 10 (D20, more aggressive -- not bundled into `cleanup-tiles`):
+# delete the local out/<layer>.tif COG itself, once BOTH `verify`
+# passes AND its STAC Item (docs/items/<layer>.json) already exists --
+# the Item's embedded checksum/size is the permanent record of what
+# was published, so this is safe only after `just stac-item` has run,
+# never before.
+cleanup-cog: verify
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f "{{docs_dir}}/items/{{layer}}.json" ]; then
+        echo "refusing: {{docs_dir}}/items/{{layer}}.json doesn't exist yet -- run 'just stac' first" >&2
+        exit 1
+    fi
+    rm -f "{{out_dir}}/{{layer}}.tif"
+    echo "removed {{out_dir}}/{{layer}}.tif (recorded in {{docs_dir}}/items/{{layer}}.json)"
+
+# The routine end-of-layer disk reclaim: tiles/ only, not the COG
+# itself (see cleanup-cog for that, a separate deliberate step).
+cleanup: cleanup-tiles
+
+# Remove intermediate tiles for EVERY layer, verified or not -- a blunt
+# full reset, not the per-layer verified reclaim above. Prefer
+# `cleanup`/`cleanup-tiles` for routine use.
 clean:
     rm -rf tiles
 

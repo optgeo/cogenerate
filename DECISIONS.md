@@ -36,6 +36,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D17](#d17-flood-fill-at-minzoom-a-single-seed-tile-can-miss-real-coverage-in-a-neighboring-cell) | Flood-fill at minzoom: a single seed tile can miss real coverage in a neighboring cell | Accepted | 2026-07-31 |
 | [D18](#d18-seed-grid-expansion-tolerate-an-imprecise-seed-not-a-lower-zoom) | Seed-grid expansion: tolerate an imprecise seed, not a lower zoom | Accepted | 2026-07-31 |
 | [D19](#d19-stac-item--catalog-schema-hand-built-json-matching-oam-starcs-conventions) | STAC Item/Catalog schema: hand-built JSON, matching `oam-starc`'s conventions | Accepted | 2026-07-31 |
+| [D20](#d20-local-storage-lifecycle-delete-tilesout-only-after-remote-is-the-verified-source-of-truth) | Local storage lifecycle: delete `tiles/`/`out/` only after remote is the verified source of truth | Accepted | 2026-07-31 |
 
 ---
 
@@ -716,3 +717,63 @@ rebuilds the Catalog from whatever Items exist so far. Both validated
 layers' Items plus the Catalog they produce are schema-valid. GitHub
 Pages is not yet enabled on `optgeo/cogenerate`; `docs/` exists and is
 ready to serve once it is (D6).
+
+## D20: Local storage lifecycle: delete `tiles/`/`out/` only after remote is the verified source of truth
+
+**Status**: Accepted
+
+**Context**: Scaling from 6 to (eventually) ~194 layers (`candidates.py`)
+makes local disk a real constraint, not a hypothetical one -- hit
+directly 2026-07-31, running 6 layers' pipelines in parallel: a single
+huge layer's `tiles/` can be 28GB+, and `gdal_translate -of COG` writes
+a full `.tif.building` temp file alongside the still-present source
+tiles before its final `mv`, so source + in-progress output coexist at
+that step's peak. The Mission (`CLAUDE.md`) already treats Source
+Cooperative as the durable, canonical home for a finished COG -- local
+`out/*.tif` was never meant to be the permanent copy, matching the
+`optgeo` "Adopt Geodata" pattern's whole point (adopt data, publish it
+durably elsewhere, don't keep hoarding it locally forever).
+
+**Decision**: A layer's local artifacts are deleted in two independent
+steps, each gated on its own verification, never on a time-based or
+"probably done" guess:
+- **`tiles/<layer>/`** (the downloaded PNGs + per-tile `.vrt`
+  sidecars): safe to delete once `out/<layer>.tif` exists, passes a
+  `gdalinfo` sanity check (`LAYOUT=COG` present), **and** `aws s3api
+  head-object` against Source Cooperative confirms the same file is
+  live there (size match). Never delete `tiles/` for a layer whose
+  download/rebuild is still in progress -- `download.py`'s D11
+  skip-if-present logic depends on partial `tiles/` contents to make
+  re-runs incremental rather than a full re-fetch.
+- **`out/<layer>.tif`** (the final local COG): safe to delete once the
+  upload check above passes **and** `docs/items/<layer>.json` (D19)
+  already exists -- the STAC Item captures the file's size/sha256
+  checksum permanently, so deleting the local copy doesn't lose the
+  ability to verify what was actually published, even after it's gone
+  from this machine. Ordering matters: run `stac-item` *before*
+  deleting `out/<layer>.tif`, never after.
+
+Applied retroactively this session for `kumamoto_yatsushiro`/`wajima`/
+`nichinan`'s `tiles/` (all 3 conditions already held: uploaded,
+confirmed, and -- for the STAC-item condition on `out/` specifically --
+their Items already existed too, so those 3 layers already satisfy
+both steps if disk pressure ever calls for reclaiming their `out/*.tif`
+too, not just `tiles/`).
+
+**Consequences**: `Justfile`'s `cleanup-tiles`/`cleanup-cog`/`cleanup`
+recipes automate the two checks above instead of relying on remembering
+to do it manually every time (as happened ad hoc for the first 3
+layers, prompted by an actual near-miss on disk space this session). A
+persistent background disk-space monitor (started 2026-07-31, warns
+<25GB free, critical <10GB) is a safety net for catching problems
+between cleanup passes, not a replacement for running cleanup as each
+layer settles. Investigated and cleaned up a related but separate
+project's (`~/photosynthesis`, the Mapterhorn/Freetown pipeline) own
+stale intermediates the same session (~150GB reclaimed: a completed
+pipeline's now-redundant merge component, its now-unneeded
+per-zoom-level PMTiles store, a stale partial download superseded by
+the real source, and -- Hidenori's call, after confirming the OAM
+hosting URL still resolves -- the 110GB original source COG itself)
+-- same underlying principle (don't keep local copies of data a
+finished pipeline has already durably published elsewhere), different
+repo, not itself part of `cogenerate`'s own lifecycle policy.

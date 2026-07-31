@@ -14,28 +14,57 @@ push) have been trimmed from here now that they're fully done and
 superseded -- full detail is preserved in the dated entries below if
 needed, nothing lost, just not repeated at the top anymore.
 
-**Disk space is a real constraint with 6 layers now building in
-parallel** -- checked 2026-07-31, 460GB volume, only ~51-59GB free.
-`tiles/20240102noto_0405_0426do/` alone is 28GB (its download of
-270,378 tiles is essentially done); by rough proportion to
-kumamoto_yatsushiro (32,016 tiles -> 6.42GB COG), noto's own COG could
-plausibly land in the 30-50GB+ range, and `gdal_translate -of COG`
-writes to a `.tif.building` temp file alongside the still-present
-source tiles before the final `mv` -- i.e. source tiles + in-progress
-output coexist on disk at that step's peak. **Mitigation (Hidenori's
-call)**: once a layer's COG is verified AND confirmed uploaded to
-Source Cooperative, delete its `tiles/<layer>/` directory immediately
--- already done this session for the 3 fully-settled layers
-(kumamoto_yatsushiro, wajima, nichinan; freed ~8.5GB). Do **not** delete
-`tiles/` for a layer that's still mid-rebuild/mid-download -- `download.py`
-skips already-present files (D11), so deleting early would force an
-expensive full re-fetch instead of the cheap incremental one. A
-persistent background monitor now watches free space (warns <25GB,
-critical <10GB) so this doesn't get missed between pipeline-completion
-checkpoints -- if it fires, clean up any newly-completed+uploaded
-layer's `tiles/` first; only consider deleting an already-uploaded
-`out/*.tif` (the final COG itself, not just tiles/) as a last resort,
-and ask Hidenori before doing that.
+**Disk space: was a real constraint, now has a wide margin (D20).**
+With 6 `cogenerate` layers building in parallel, 460GB volume was down
+to ~51-59GB free 2026-07-31 (`tiles/20240102noto_0405_0426do/` alone
+28GB; `gdal_translate -of COG` briefly needs source tiles + a
+`.tif.building` temp file simultaneously, so noto's COG-build step
+alone could plausibly have peaked near ~80GB). Two things fixed this:
+
+1. **`cogenerate`'s own D11-safe cleanup, now formalized as D20 +
+   `Justfile` recipes** (`verify` / `cleanup-tiles` / `cleanup-cog`,
+   not just ad hoc `rm -rf`): `verify` confirms `out/<layer>.tif`'s
+   size matches Source Cooperative's `head-object` before anything is
+   deleted; `cleanup-tiles` then removes `tiles/<layer>/`;
+   `cleanup-cog` additionally removes `out/<layer>.tif` itself, but
+   only once that layer's STAC Item (`docs/items/<layer>.json`, D19)
+   already exists to permanently record its checksum/size. Applied to
+   the 3 fully-settled layers (kumamoto_yatsushiro, wajima, nichinan):
+   **both** `tiles/` and `out/*.tif` removed for all 3 (their STAC
+   Items already existed from earlier this session). **Never** run
+   `cleanup-tiles`/`clean` on a layer still mid-download/rebuild --
+   `download.py`'s incremental skip-if-present (D11) needs `tiles/`
+   there.
+2. **Investigated and cleaned up `~/photosynthesis`** (a separate,
+   already-complete project -- the Mapterhorn/Freetown drone-orthophoto
+   pipeline, "status: complete and live" per its own `HANDOVER.md` since
+   2026-07-14) at Hidenori's request, since it turned out to be the
+   single largest thing on the whole machine (163GB of 315GB in
+   `~/`). Read its `HANDOVER.md`/`README.md`/`DIRECTORY_STRUCTURE.md`
+   first rather than guessing. Freed **~150GB**: `pmtiles-store/`
+   (13GB, pipeline's own README explicitly sanctions removing this
+   once not needed), `bundle-store/6-29-30.pmtiles` (12.76GB, a
+   pre-merge component already fully contained in the already-uploaded
+   `freetown-mapterhorn.pmtiles`), a stale 14GB partial download in
+   `src/` superseded by the real 118GB source in `source-store/`
+   (confirmed by file size/date mismatch, not assumed), and -- Hidenori's
+   explicit call, after confirming via OAM's search API that the
+   original hosting URL (`oin-hotosm-temp.s3...`) still resolves with
+   HTTP 200 -- the 110GB original source COG itself. Verified nothing
+   else in `bundle-store/` was touched (`freetown-mapterhorn.pmtiles`,
+   the actual live deliverable, and tiny `planet.pmtiles` both intact).
+
+**Net result: 460GB volume now at ~220GB free**, comfortable for
+noto's COG build and everything else currently in flight. The
+persistent disk-space monitor (warns <25GB, critical <10GB, started
+earlier this session) is still running as a safety net.
+
+**Follow-up needed once amakusa/yatsushirohigashi/yatsushironishi's
+rebuilds finish and re-upload**: their `docs/items/*.json` STAC Items
+still describe the *old, stale* COGs (wrong checksum/size) -- re-run
+`just stac` for each after its `upload` to refresh the Item (and
+`stac-catalog`) before trusting `cleanup-cog`'s "Item already exists"
+check for them specifically.
 
 **6 layers published on Source Cooperative** (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate): `20260729kumamoto_yatsushiro_0729do_sokuho`,
