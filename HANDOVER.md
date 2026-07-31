@@ -9,11 +9,20 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-07-31 (twice -- was 200+ lines of
+section was rewritten 2026-07-31 (three times now -- was 200+ lines of
 accumulated, increasingly-stale narrative from D17 through D22) --
 older detail lives only in the dated entries below now, not duplicated
-here. **Session was `/clear`-ed right after this update** -- if you're
-reading this cold, this *is* the handover, not a summary of one.
+here.
+
+**Standing directive from Hidenori, 2026-07-31 ~23:00**: he'll be
+unreachable for ~8h and explicitly said not to stop the pipeline for
+decisions during that window -- keep the build/upload/verify/stac/
+cleanup/commit loop running autonomously, including the `upload`
+publish step, without waiting for per-layer approval. This supersedes
+the earlier "ask before upload" caution below for the duration of that
+window. Still exercise judgment on anything outside the established
+pattern (a genuinely new kind of decision, a destructive/irreversible
+action outside this loop, disk/credential problems that need a human).
 
 ### Do this first when resuming
 
@@ -25,39 +34,42 @@ reading this cold, this *is* the handover, not a summary of one.
    around it). Verify with `aws s3api head-object --bucket smartmaps
    --key cogenerate/README.md --profile source-coop --query
    LastModified --output text`.
-2. **Retry the 2 uploads that failed right before this handover**:
-   `wajimatobu` and `wajimaseibu` (輪島東部/西部, both 2024-09-24,
-   distinct capture from the already-published main `wajima` 9/23
-   layer) are fully built and verified locally (`out/20240923rain_wajimatobu_0924do_sokuho.tif`,
-   `out/20240923rain_wajimaseibu_0924do_sokuho.tif`) -- Hidenori
-   already approved uploading both, this is just re-running `LAYER=...
-   just upload` for each once credentials work, then the normal
-   `verify` -> `stac` -> `stac-validate` -> `cleanup-tiles` ->
-   `cleanup-cog` -> commit+push sequence.
-3. **Check on `noto`**: `ps aux | grep gdal_translate` -- its `cog`
-   build (`out/20240102noto_0405_0426do.tif.building`) had been running
-   5+ hours as of this handover (by far the largest layer built so
-   far, 270,378 z18 tiles across 19 municipalities/2 prefectures) and
-   was still actively burning CPU, not stuck. If it's finished: `gdalinfo`
-   sanity check (`LAYOUT=COG`, `NoData Value=0`), then the same
-   verify->stac->cleanup->commit sequence (ask before `upload`, this
-   one was never pre-approved like the D17/D18 rebuild batch was).
+2. **`wajimatobu`/`wajimaseibu` are done** (see dated entry below) --
+   both uploaded, verified, STAC published, cleaned up, committed+pushed
+   (`71a38dc`). 18 layers live now.
+3. **`noto`'s first build attempt silently died** (no `gdal_translate`
+   process, `.tif.building` size static, never renamed to `.tif` --
+   most likely killed when the prior session ended, since it was
+   started via a plain backgrounded shell rather than a tracked
+   background task). Restarted properly via the harness's tracked
+   background-task mechanism this time (task id `bmp4gm1e8`) so it
+   should survive a session boundary. If you're resuming and don't see
+   that task's completion notification: `ps aux | grep gdal_translate`
+   to check if it's still alive; if dead again with `.tif.building`
+   present but static, delete the stale `.tif.building` +
+   `.tif.building.ovr.tmp` and re-run `LAYER=20240102noto_0405_0426do
+   just cog` (in background, tracked). Once it finishes: `gdalinfo`
+   sanity check (`LAYOUT=COG`, `NoData Value=0`), then upload (now
+   authorized, see standing directive above) -> verify -> stac ->
+   stac-validate -> cleanup-tiles -> cleanup-cog -> commit+push.
 4. **Then keep going**: `uv run python -m cogenerate.candidates --top
    10 --sort-by date` for what's next (see "Priority" below), same
-   build/verify/stac/cleanup loop.
+   build/verify/upload/stac/cleanup loop, autonomously per the standing
+   directive.
 
 ### What's published
 
-**16 layers** live on Source Cooperative + the STAC catalog
+**18 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages):
 `kumamoto_yatsushiro`, `amakusa`, `yatsushirohigashi`, `yatsushironishi`
 (original 6, all 3 of these rebuilt this session for the D17/D18 gap),
 `wajima`, `nichinan`, `tamagawa`, `sagachiku`, `kagoshima_soo`,
 `chikumagawa`, `tokigawa`, `nakagawa`, `kujigawa`, `marumori`, `sukumo`,
-`ainan`. Each followed the same settled lifecycle: build locally ->
-ask Hidenori before `upload` (except the D17/D18 rebuild batch, which
-had standing approval) -> `just verify` -> `just stac` -> `stac-validate`
--> `cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
+`ainan`, `wajimatobu`, `wajimaseibu`. Each followed the same settled
+lifecycle: build locally -> `upload` (per-layer approval up through
+`ainan`; autonomous per the standing directive from `wajimatobu`
+onward) -> `just verify` -> `just stac` -> `stac-validate` ->
+`cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
 
 **Priority temporarily changed, 2026-07-31**: Hidenori asked to
 prioritize by *newest disaster event* instead of spatial extent for a
