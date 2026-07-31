@@ -35,6 +35,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_marumori_1021do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_marumori_1021do_sokuho"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_nakagawa_1017do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20191012typhoon19_nakagawa_1017do"
