@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20210705oame_0706do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20210705oame_0706do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240102_noto_anamizu_0105do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102_noto_anamizu_0105do"
