@@ -26,10 +26,21 @@ published COG. Root cause found and fixed in two parts:
   radius 2 = 5x5, `SEED_GRID_RADIUS` to override). Validated with a
   seed deliberately offset 2 tiles -- still found the real coverage.
 
-Re-download (D11-incremental, only ~5,034 new tiles) and re-georef
-(also incremental, 13m39s) both done. `FORCE=1 just cog` rebuild is
-**currently running** (new size 64000x76800, up from 61184x65536) --
-re-upload next once it finishes.
+Re-download (D11-incremental, only ~5,034 new tiles), re-georef (also
+incremental, 13m39s), and `FORCE=1 just cog` rebuild (15m37s, new size
+64000x76800 up from 61184x65536, 6.42GB) are all **done**, verified
+(`LAYOUT=COG`, `NoData Value=0` on all 4 bands). **Re-upload
+FAILED**: `Error: Cached credentials have expired. Run 'source-coop
+login' to refresh.` -- the STS session credentials from Hidenori's
+earlier login expired (~1.5h TTL, noted when this was set up). This is
+a browser-based OAuth step only Hidenori can do (D10) -- **blocked on
+him running `source-coop login` again**. The rebuilt COG is sitting
+ready locally at `out/20260729kumamoto_yatsushiro_0729do_sokuho.tif`;
+run `LAYER=20260729kumamoto_yatsushiro_0729do_sokuho just upload` as
+soon as login is refreshed -- don't rebuild again, just re-upload.
+
+Not blocked on this: continuing the multi-layer test run below in the
+meantime (doesn't touch Source Cooperative).
 
 Every other already-probed layer should eventually get a `FORCE=1`
 re-probe too, to check whether it was similarly incomplete -- not
@@ -43,7 +54,8 @@ https://source.coop/smartmaps/cogenerate):
 - `README.md` (D14)
 - `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently stale
   w.r.t. D17/D18** (still the D15-fixed-but-pre-D17 26,982-tile
-  version). Rebuild in progress, see above -- re-upload once it's done.
+  version). Rebuilt locally, re-upload blocked on login refresh, see
+  above.
 
 Verified separately (D16): a brightness difference Hidenori noticed
 between this COG's Source Cooperative preview and 地理院地図's own
@@ -62,7 +74,7 @@ conflict):
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
 | `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
 | `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | in progress (D17/D18-enabled) | -- | -- | -- |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | in progress | -- |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
