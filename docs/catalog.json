@@ -17,6 +17,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20190828kyusyu_sagachiku_0830do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20190828kyusyu_sagachiku_0830do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tamagawa_1013do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tamagawa_1013do"
