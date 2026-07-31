@@ -22,8 +22,20 @@ ichiran.html's actual 近年の災害 section structure sidesteps that
 entirely and also catches naming variants (`dol`, `doh`, etc. -- D4)
 an ID-suffix regex might miss.
 
+Two ranking modes (`--sort-by`): `extent` (default, municipality
+count above) or `date` (newest disaster event first -- Hidenori asked
+2026-07-31 to temporarily prioritize this way instead). Date is the
+leading `YYYYMMDD` embedded in almost every layer ID (event date, not
+necessarily the exact capture date D4 uses for STAC `datetime` --
+close enough for "what's newest" triage, and far more layer IDs parse
+this way than D4's stricter `_MMDDdo`-suffix pattern would allow: only
+4 of 182 candidates checked 2026-07-31 lack a leading 8-digit date
+(a couple of volcano-monitoring layers, `kuchinoerabured`, `rinya`) --
+those sort last under `date` mode rather than erroring.
+
 Usage:
     uv run python -m cogenerate.candidates --top 10
+    uv run python -m cogenerate.candidates --top 10 --sort-by date
     uv run python -m cogenerate.candidates --top 10 --json
 """
 
@@ -101,16 +113,32 @@ def count_municipalities(coverage_text: str) -> int:
     return total
 
 
+def extract_event_date(layer_id: str) -> str | None:
+    """Leading YYYYMMDD embedded in the layer ID (event date, not the
+    stricter capture-date fragment D4/stac_item.py parses) -- None if
+    the ID doesn't start with 8 digits (rare, see module docstring)."""
+    m = re.match(r"^(\d{8})", layer_id)
+    return m.group(1) if m else None
+
+
 @app.command()
 def main(
     top: int = typer.Option(10, help="How many ranked candidates to show"),
+    sort_by: str = typer.Option(
+        "extent", help="Rank by 'extent' (municipality-count proxy, default) or 'date' (newest event first)"
+    ),
     include_published: bool = typer.Option(
         False, help="Include layers already on the live STAC catalog (default: excluded)"
     ),
     as_json: bool = typer.Option(False, "--json", help="Print JSON instead of a table"),
 ):
     """Rank not-yet-published `_do`/`_do_sokuho`-style layers by a
-    municipality-count proxy for spatial extent."""
+    municipality-count proxy for spatial extent, or by newest event
+    date first (--sort-by date)."""
+    if sort_by not in ("extent", "date"):
+        err.print(f"[red]error[/red] --sort-by must be 'extent' or 'date', got {sort_by!r}")
+        raise typer.Exit(1)
+
     with httpx.Client(headers={"User-Agent": "optgeo/cogenerate candidates (contact via github.com/optgeo)"}) as client:
         layer_ids = fetch_layer_ids(client)
         published = set() if include_published else fetch_published_ids(client)
@@ -123,23 +151,40 @@ def main(
         f"{len(published)} already published"
     )
 
-    ranked = sorted(
-        ((lid, text, count_municipalities(text)) for lid, text in coverage.items() if lid not in published),
-        key=lambda row: row[2],
-        reverse=True,
-    )[:top]
+    candidates = [(lid, text) for lid, text in coverage.items() if lid not in published]
+    if sort_by == "date":
+        ranked = sorted(
+            ((lid, text, extract_event_date(lid)) for lid, text in candidates),
+            key=lambda row: row[2] or "",
+            reverse=True,
+        )[:top]
+    else:
+        ranked = sorted(
+            ((lid, text, count_municipalities(text)) for lid, text in candidates),
+            key=lambda row: row[2],
+            reverse=True,
+        )[:top]
 
     if as_json:
-        print(json.dumps([{"layer_id": lid, "coverage": text, "municipalities": n} for lid, text, n in ranked],
+        key = "event_date" if sort_by == "date" else "municipalities"
+        print(json.dumps([{"layer_id": lid, "coverage": text, key: n} for lid, text, n in ranked],
                           ensure_ascii=False, indent=2))
         return
 
-    table = Table(title=f"Top {top} unpublished layers by municipality count (spatial-extent proxy)")
-    table.add_column("Layer ID")
-    table.add_column("Munis", justify="right")
-    table.add_column("Coverage")
-    for lid, text, n in ranked:
-        table.add_row(lid, str(n), text[:80])
+    if sort_by == "date":
+        table = Table(title=f"Top {top} unpublished layers, newest event first")
+        table.add_column("Layer ID")
+        table.add_column("Event date", justify="right")
+        table.add_column("Coverage")
+        for lid, text, event_date in ranked:
+            table.add_row(lid, event_date or "?", text[:80])
+    else:
+        table = Table(title=f"Top {top} unpublished layers by municipality count (spatial-extent proxy)")
+        table.add_column("Layer ID")
+        table.add_column("Munis", justify="right")
+        table.add_column("Coverage")
+        for lid, text, n in ranked:
+            table.add_row(lid, str(n), text[:80])
     Console().print(table)
 
 

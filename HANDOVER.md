@@ -8,215 +8,78 @@ of looking for rationale here -- entries below link to the relevant
 ## Current status (read this first, then the dated entries below for detail)
 
 **Keep this section current** -- update it every time status changes,
-don't let it drift while only appending dated entries below. Older
-resolved sagas (D17/D18 flood-fill fix, the original 6-layer upload
-push) have been trimmed from here now that they're fully done and
-superseded -- full detail is preserved in the dated entries below if
-needed, nothing lost, just not repeated at the top anymore.
+don't let it drift while only appending dated entries below. This
+section was fully rewritten 2026-07-31 (was 200+ lines of accumulated,
+increasingly-stale narrative from D17 through D22) -- older detail
+lives only in the dated entries below now, not duplicated here.
 
-**`georef` was the slow step -- Hidenori's hunch, confirmed and fixed
-(D22).** Benchmarked on real noto tiles: ~250ms/tile, almost entirely
-`gdal_translate` subprocess-spawn overhead for what's actually just a
-few hundred bytes of VRT XML (no pixel copy). Replaced with a
-hand-written VRT (reusing width/height/mode the D12 black-check step
-already has open) -- **~68x faster** (~3.7ms/tile), verified
-byte-identical pixel checksums against the old subprocess output.
-Restarted `noto` and `yatsushironishi`'s already-in-flight `georef`
-mid-session to benefit (safe: D11's skip-if-`.vrt`-exists logic
-resumed each from wherever it had gotten to, no wasted work) --
-`yatsushironishi` (35,256 tiles, ~30% remaining) finished in well under
-a minute post-restart, `noto` (270,378 tiles, was projected ~19h for
-this step alone) is now moving at a similar accelerated pace. Full
-rationale/verification: DECISIONS.md D22.
+**14 layers published** on Source Cooperative + the STAC catalog
+(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages
+live): the original 6 (kumamoto_yatsushiro, amakusa, yatsushirohigashi,
+yatsushironishi -- all 3 rebuilt this session, D17/D18 gap, see below
+-- wajima, nichinan) plus 8 new ones added this session (tamagawa,
+sagachiku, kagoshima_soo, chikumagawa, tokigawa, nakagawa, kujigawa,
+marumori). Each followed the same settled lifecycle: build locally ->
+ask Hidenori before `upload` (except the D17/D18 rebuild batch, which
+had standing approval) -> `just verify` -> `just stac` -> `stac-validate`
+-> `cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
 
-**yatsushironishi rebuild complete end to end**: uploaded (after
-Hidenori re-ran `source-coop login`, credentials had expired), `just
-verify` confirmed (6,260,281,755 bytes), STAC Item + catalog refreshed,
-`tiles/`/`out/*.tif` cleaned up (D20). **amakusa's rebuild initially
-looked done but wasn't** -- its `georef` step silently crashed
-(`discover_tiles()` choked on a leftover `.cleaned.png` sidecar from
-D12, a pre-existing bug unrelated to D22, only now exercised) --
-caught because the file size/mtime didn't match what a real rebuild
-should have produced, not because anything printed an error near the
-end. Fixed (`discover_tiles()` now skips `.cleaned` sidecars) and
-amakusa's rebuild is redoing `georef`+`cog` now. **Lesson**: `just
-run`'s final `echo "done: ..."` always prints, even when an earlier
-step in the chain failed and a later step then correctly no-ops on
-stale mtimes -- don't trust that line alone, check the actual output
-file's size/mtime when a rebuild matters. yatsushirohigashi still
-needs the same upload+STAC-refresh+cleanup treatment (its `cog`
-finished earlier, untouched since).
+**In flight right now**: `noto` (能登, 2024 earthquake, 19
+municipalities across Ishikawa+Toyama -- by far the largest layer this
+pipeline has built, 270,378 z18 tiles) has been in its `cog` build
+step for 4+ hours; `sukumo`/`ainan` (宿毛/愛南, 2024 Bungo Strait
+earthquake) are running probe/download/georef/cog now.
 
-**Disk space: was a real constraint, now has a wide margin (D20).**
-With 6 `cogenerate` layers building in parallel, 460GB volume was down
-to ~51-59GB free 2026-07-31 (`tiles/20240102noto_0405_0426do/` alone
-28GB; `gdal_translate -of COG` briefly needs source tiles + a
-`.tif.building` temp file simultaneously, so noto's COG-build step
-alone could plausibly have peaked near ~80GB). Two things fixed this:
+**Priority temporarily changed, 2026-07-31**: Hidenori asked to
+prioritize by *newest disaster event* instead of spatial extent for a
+while. `candidates.py` now supports both: `--sort-by extent` (default,
+municipality-count proxy) or `--sort-by date` (newest leading-`YYYYMMDD`
+first -- an event date, not the stricter capture-date fragment D4
+uses for STAC `datetime`; covers 178/182 current candidates, a few
+volcano-monitoring-style IDs without a leading date sort last rather
+than erroring). Use `--sort-by date` for "what's next" until told
+otherwise. Note while picking: some `ichiran.html`-matched entries
+turn out to be non-photo products (e.g. `..._dansaizu` = 段彩図, a
+color-relief/hazard map, not aerial imagery -- caught by checking
+`layers-martin`'s catalog `name` field for "作成" instead of "撮影"
+before queuing one) -- skip those, this pipeline is for aerial photo
+ortho only.
 
-1. **`cogenerate`'s own D11-safe cleanup, now formalized as D20 +
-   `Justfile` recipes** (`verify` / `cleanup-tiles` / `cleanup-cog`,
-   not just ad hoc `rm -rf`): `verify` confirms `out/<layer>.tif`'s
-   size matches Source Cooperative's `head-object` before anything is
-   deleted; `cleanup-tiles` then removes `tiles/<layer>/`;
-   `cleanup-cog` additionally removes `out/<layer>.tif` itself, but
-   only once that layer's STAC Item (`docs/items/<layer>.json`, D19)
-   already exists to permanently record its checksum/size. Applied to
-   the 3 fully-settled layers (kumamoto_yatsushiro, wajima, nichinan):
-   **both** `tiles/` and `out/*.tif` removed for all 3 (their STAC
-   Items already existed from earlier this session). **Never** run
-   `cleanup-tiles`/`clean` on a layer still mid-download/rebuild --
-   `download.py`'s incremental skip-if-present (D11) needs `tiles/`
-   there.
-2. **Investigated and cleaned up `~/photosynthesis`** (a separate,
-   already-complete project -- the Mapterhorn/Freetown drone-orthophoto
-   pipeline, "status: complete and live" per its own `HANDOVER.md` since
-   2026-07-14) at Hidenori's request, since it turned out to be the
-   single largest thing on the whole machine (163GB of 315GB in
-   `~/`). Read its `HANDOVER.md`/`README.md`/`DIRECTORY_STRUCTURE.md`
-   first rather than guessing. Freed **~150GB**: `pmtiles-store/`
-   (13GB, pipeline's own README explicitly sanctions removing this
-   once not needed), `bundle-store/6-29-30.pmtiles` (12.76GB, a
-   pre-merge component already fully contained in the already-uploaded
-   `freetown-mapterhorn.pmtiles`), a stale 14GB partial download in
-   `src/` superseded by the real 118GB source in `source-store/`
-   (confirmed by file size/date mismatch, not assumed), and -- Hidenori's
-   explicit call, after confirming via OAM's search API that the
-   original hosting URL (`oin-hotosm-temp.s3...`) still resolves with
-   HTTP 200 -- the 110GB original source COG itself. Verified nothing
-   else in `bundle-store/` was touched (`freetown-mapterhorn.pmtiles`,
-   the actual live deliverable, and tiny `planet.pmtiles` both intact).
+**Total candidate pool**: `candidates.py` finds **194** real
+disaster-response layers in `ichiran.html` (out of 1865 total catalog
+entries) -- 14 done, ~180 remaining as distinct layer IDs. Worth
+knowing before treating that as 180 independent targets: ~96 of them
+sit in 27 groups sharing identical 提供範囲 text (same district,
+different capture dates/variants) -- some are true near-duplicates
+(e.g. 3 remaining `sagachiku` variants of the one already published),
+but most are repeat volcano-monitoring captures (西之島, 新燃岳,
+草津白根山, etc.) that are legitimately separate observations, not
+redundant. No policy decided yet on how to treat those -- ask Hidenori
+if/when they become the next thing to prioritize.
 
-**Net result: 460GB volume now at ~220GB free**, comfortable for
-noto's COG build and everything else currently in flight. The
-persistent disk-space monitor (warns <25GB, critical <10GB, started
-earlier this session) is still running as a safety net.
+**Tooling built up this session, still current**:
+- `src/cogenerate/candidates.py` -- "what's next" ranking (extent or
+  date), replaces one-off manual analysis.
+- `src/cogenerate/stac_item.py` / `stac_catalog.py` (D19) -- STAC
+  1.0.0 generation, `oam-starc`-aligned schema, remote-capable (D21:
+  works even after `out/<layer>.tif` is gone, and uses the correct
+  `data.source.coop` data endpoint, not the `source.coop` web-UI page
+  every earlier Item had wrong).
+- `Justfile`'s `verify`/`cleanup-tiles`/`cleanup-cog` (D20) -- the
+  standard per-layer disk-reclaim sequence once a layer is confirmed
+  live on Source Cooperative.
+- `georef.py`'s hand-written VRT (D22) -- ~68x faster than the
+  original per-tile `gdal_translate` subprocess; `discover_tiles()`
+  also had a real bug fixed the same session (crashed on D12's
+  `.cleaned.png` leftover sidecars).
+- A persistent disk-space monitor (warns <25GB, critical <10GB) is
+  still running as a safety net; 460GB volume currently comfortable
+  (~200GB free as of the last check, after also reclaiming ~150GB from
+  the unrelated `~/photosynthesis` project this session, D20).
 
-**Follow-up needed once amakusa/yatsushirohigashi/yatsushironishi's
-rebuilds finish and re-upload**: their `docs/items/*.json` STAC Items
-still describe the *old, stale* COGs (wrong checksum/size) -- re-run
-`just stac` for each after its `upload` to refresh the Item (and
-`stac-catalog`) before trusting `cleanup-cog`'s "Item already exists"
-check for them specifically.
-
-**D21, same session**: Hidenori asked directly whether the tooling
-actually copes with Source Cooperative being the master copy (given
-D20 now deletes `out/*.tif`), not just whether the *policy* said so.
-Audit found two real bugs, both fixed and validated:
-- Every STAC Item generated so far had the **wrong asset `href`**:
-  `https://source.coop/...` is the human-browsable product *page*
-  (HTML), not something GDAL/a STAC client can open --
-  `https://data.source.coop/...` is the real `image/tiff` endpoint
-  (confirmed live: `Accept-Ranges: bytes`, opens fine via `gdalinfo
-  -json /vsicurl/...`). Not a D20 side-effect -- wrong from the very
-  first Item, D20 just forced actually checking.
-- `stac_item.py` had no way to regenerate an Item once `out/<layer>.tif`
-  was gone -- fixed with a remote fallback (`/vsicurl/` for
-  geometry/tags, HTTP HEAD for size, checksum carried forward from
-  `--previous-item` rather than re-hashed). `just verify` similarly no
-  longer needs the local file (falls back to the STAC Item's recorded
-  size) and dropped its AWS-credential dependency (plain public HTTPS
-  HEAD on `data.source.coop` instead of authenticated `head-object`).
-
-All 6 already-published layers' Items regenerated with the corrected
-URL and re-validated (6/6 valid); 3 of them (kumamoto_yatsushiro,
-wajima, nichinan, whose `out/*.tif` was already cleaned up) exercised
-the new remote-fallback path for real -- confirmed identical checksums
-carried forward, not re-downloaded. Full rationale: DECISIONS.md D21.
-
-**6 layers published on Source Cooperative** (`s3://smartmaps/cogenerate/`,
-https://source.coop/smartmaps/cogenerate): `20260729kumamoto_yatsushiro_0729do_sokuho`,
-`20250815rain_amakusa_0815do_sokuho`, `20250815rain_yatsushirohigashi_0816do_sokuho`,
-`20250815rain_yatsushironishi_0816do_sokuho`, `20240923rain_wajima_0923do_sokuho`,
-`20240809hyuganada_nichinan_0809do_sokuho`. Plus `README.md` (D14).
-
-**3 of those 6 are confirmed STALE/INCOMPLETE** -- FORCE=1 re-probed
-this session (D17/D18 landed after their original probe): `amakusa`
-23,767 -> **28,019** confirmed z18 tiles (+17.9%), `yatsushirohigashi`
-2,276 -> **2,909** (+27.8%), `yatsushironishi` 14,896 -> **35,256**
-(**+136.7%**, more than double). Same missing-northern/sibling-cell
-bug D17/D18 fixed for kumamoto_yatsushiro, just not yet applied to
-these 3's *published* artifacts. **Rebuild (download/georef/cog) +
-re-upload in progress now** -- Hidenori approved uploading each as it
-finishes without asking again this session (standing approval for
-*this batch*, not a blanket policy going forward -- still confirm
-before publishing layers outside it).
-
-**Next-batch layers, picked from `layers-martin`'s (corrected count:
-194, see `candidates.py` below) catalog** by `ichiran.html`
-municipality-count proxy -- **all now building in parallel** with the
-3 stale-layer rebuilds above, per Hidenori's explicit go-ahead (was
-sequential earlier this session; noto turned out far larger than
-expected, ~12.7h estimated for its `georef` step alone at the pace
-observed, not worth blocking everything else on):
-
-| Layer | Area | Municipalities | Pipeline status |
-|---|---|---|---|
-| `20240102noto_0405_0426do` | 能登地区 (2024 Noto earthquake), Ishikawa + Toyama | 19 | probe done (**270,378** confirmed z18 tiles -- ~8.4x kumamoto_yatsushiro's 32,016), `georef` in progress (slow -- see above) |
-| `20191012typhoon19_tamagawa_1013do` | 多摩川地区 (2019 Typhoon 19), Tokyo + Kanagawa | 15 | running (seed 909,403 @ z10) |
-| `20190828kyusyu_sagachiku_0830do` | 佐賀地区 (2019 Kyushu rain), Saga | 10 | running (seed 882,411 @ z10); ichiran.html's データソース text calls this one "佐賀地区一部" (partial) despite the h4 title saying "佐賀地区" -- sanity-check extent against the 3 sibling variants (`0831do`, `0830do_sokuho`, `0831do_sokuho`) if the result looks suspiciously small |
-
-Upload for these 3 (once each finishes locally) is covered by the same
-standing approval as the stale-layer rebuilds above.
-
-**`src/cogenerate/candidates.py` added this session**: ranks
-not-yet-published layers by the same municipality-count proxy, sourced
-from which catalog IDs actually have a real ichiran.html
-disaster-response entry (not an ID-suffix regex, which both false-
-positived on unrelated layers and undercounted -- corrected total is
-**194** real layers, not the ~74-75 an ID-regex guess gave). Run `uv
-run python -m cogenerate.candidates --top N` to re-derive "what's
-next" instead of repeating this session's one-off analysis.
-
-**STAC catalog implementation landed this session (D6 resolved, D19
-added)**: `src/cogenerate/stac_item.py` + `stac_catalog.py`, schema
-modeled on sibling repo `optgeo/oam-starc` (found this session -- see
-D6/D19 for why). `just stac-item` / `just stac-catalog` / `just stac` /
-`just stac-validate` wired in `Justfile`. Ran for all 6 already-
-published layers: `docs/items/*.json` (6 files) + `docs/catalog.json`,
-all validated 2026-07-31 against STAC 1.0.0 via `stac-valid`'s
-`stac-validator` CLI (added as a `dev` extra in `pyproject.toml` --
-note the PyPI package renamed from `stac-validator` to `stac-valid`,
-the old name now just prints an upgrade notice). **GitHub Pages is now
-live**: Hidenori approved enabling it, `main`/`/docs` served via `gh
-api -X POST repos/optgeo/cogenerate/pages`, confirmed 2026-07-31 --
-`https://optgeo.github.io/cogenerate/catalog.json` (8 links, 6 `rel:
-item`) and each `items/<layer>.json` return 200. Still open, needs
-Hidenori: actually contacting HOTOSM/OAM now that a real catalog is
-publicly reachable (D6).
-
-Nothing else is currently blocked on Hidenori.
-
-### Multi-layer test-run detail (probe/download/georef/cog all done for all 5)
-
-| Layer | Area | probe | download | georef | cog |
-|---|---|---|---|---|---|
-| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed, pre-D17/D18) | done | done (D12 triggered once, real) | **done, D15 applied** |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed, pre-D17/D18) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed, pre-D17/D18) | done | done (0 D12 triggers) | **done, D15 applied** |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (7m31s) |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | done (D17/D18: 3 minzoom tiles, 25,711 confirmed) | done | done (0 D12 triggers, 1h07m) | **done, D15 applied** (9m33s) |
-
-Note: the first 3 layers (amakusa, yatsushirohigashi, yatsushironishi)
-were probed *before* D17/D18 landed -- their single-seed-only counts
-are unverified against the flood-fill/grid fix. Low risk (small,
-single-district layers, less likely to straddle a minzoom boundary
-than the elongated kumamoto_yatsushiro coastline was), but if any of
-their published COGs are later found to have a similar missing-edge
-problem, `FORCE=1` re-probe them the same way kumamoto_yatsushiro was
-fixed.
-
-Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
-z10) are recorded in this file's "multi-layer run" entry further down
--- re-derive or re-scrape if this file somehow loses them, don't guess.
-Given D17, treat these as the *starting* seed only -- the flood-fill
-will find any additional minzoom tiles automatically now, no manual
-neighbor-guessing needed.
-
-Nothing is currently blocked on Hidenori. Open decisions that will
-eventually need him: D6 (OAM ingestion path) before real OAM
-ingestion; whether to publish layers 2-5 to Source Cooperative once
-they're built.
+**Still open, needs Hidenori**: actually contacting HOTOSM/OAM now
+that a real, public STAC catalog exists (D6) -- not urgent, no one's
+asked to move on it yet.
 
 ## 2026-07-31 (new session, continued further) -- 3 large layers picked, STAC catalog implemented
 
