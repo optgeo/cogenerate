@@ -35,6 +35,23 @@ whole pipeline stalling. Check `aws s3api head-object --bucket
 smartmaps --key cogenerate/README.md --profile source-coop --query
 LastModified --output text` if resuming and unsure of current state.
 
+**noto's main COG finished, 2026-08-01 ~05:51** -- `20240102noto_0405_0426do.tif`,
+48,647,237,551 bytes, `LAYOUT=COG`/`NoData=0` both confirmed via
+`gdalinfo`. This is the layer this session's "do this first" resume
+instructions were originally about; it's now built and sanity-checked
+but **not yet uploaded** (credentials still expired). Along with all
+the noto sub-district layers built while waiting (1/2, 1/5, 1/11,
+1/14, 1/17-captured batches -- `wazimanishi_0111do`, `anamizu_0111do`,
+`suzu_0105do`, `wazimanaka_0105do`, `anamizu_0105do`, `nanao_0105do`,
+`suzu_0102do`, `wazimanaka_0102do`, `wazimahigashi_0102do`, plus
+`anamizu_0117do`/`anamizu_0114do`/`wazimanaka_0111do` from earlier),
+**13 fully-built, verified-locally COGs are sitting in `out/` waiting
+on `upload`** the moment `source-coop login` is refreshed -- run each
+through `LAYER=<id> just upload` then the normal
+verify->stac->cleanup->commit sequence. Disk at 123GB free as of this
+note (noto's COG alone is ~48.6GB) -- comfortable, but don't let it
+run unattended past this backlog without checking again.
+
 ### Do this first when resuming
 
 1. **Check `source-coop` credentials** -- they expire on their own
