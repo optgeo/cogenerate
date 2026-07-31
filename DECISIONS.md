@@ -31,6 +31,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D12](#d12-nodata-via-pure-black-pixels-treat-as-transparent-not-backfilled) | NODATA via pure-black pixels: treat as transparent, not backfilled | Accepted | 2026-07-31 |
 | [D13](#d13-cog-internal-format-vs-oams-ingestion-profile) | COG internal format vs. OAM's ingestion profile | Accepted | 2026-07-31 |
 | [D14](#d14-a-separate-readmemd-for-the-source-cooperative-product-itself) | A separate README.md for the Source Cooperative product itself | Accepted | 2026-07-31 |
+| [D15](#d15-explicit-a_nodata-0-and-embedded-metadata-on-the-cog) | Explicit `-a_nodata 0` and embedded metadata on the COG | Accepted | 2026-07-31 |
 
 ---
 
@@ -468,3 +469,64 @@ catalog instead.
 provisional-attribution handling or D12's NODATA behavior changes, but
 otherwise should stay stable -- it describes the dataset's nature, not
 its current contents.
+
+## D15: Explicit `-a_nodata 0` and embedded metadata on the COG
+
+**Status**: Accepted
+
+**Context**: Hidenori reviewed the published
+`20260729kumamoto_yatsushiro_0729do_sokuho.tif` on Source Cooperative's
+own COG previewer: "auto (from COG)" nodata handling rendered nodata
+regions as solid black; manually specifying nodata value `0` in the
+previewer rendered them cleanly transparent. Investigated why:
+
+- Checked pixel content directly. Within an individual source PNG, a
+  tile's own transparent (alpha=0) padding has RGB `(255,255,255)`
+  (white) -- 0 counterexamples in a 400-tile / ~490k-pixel sample.
+- But at the **final mosaic level** (sampled from the actual published
+  COG's coarsest overview, ~245k px), every alpha=0 pixel has RGB
+  `(0,0,0)` (black) -- 100% match, 0 counterexamples. The much larger
+  share of nodata area is `gdalbuildvrt`'s own default fill for
+  bounding-rectangle gaps with no confirmed source tile at all (most
+  of the ~56% of the bbox outside the coverage polygon), which GDAL
+  fills with `(0,0,0,0)` by default -- this dominates over the smaller
+  in-tile white padding.
+- So: our COG's actual nodata color *is* black, and the only mechanism
+  marking it as "no data" was the alpha band (`ColorInterp=Alpha`,
+  `Mask Flags: PER_DATASET ALPHA`) -- no classic `GDAL_NODATA` tag was
+  ever set (confirmed via `gdalinfo`: no "NoData Value" line existed
+  on any band before this fix). Tools that check the classic NODATA
+  tag rather than inspecting the alpha band/mask (apparently including
+  Source Cooperative's own "auto" previewer mode) had nothing to go
+  on, and evidently render alpha=0 as opaque black rather than
+  transparent.
+
+**Decision**: Add `-a_nodata 0` to the `cog` recipe's `gdal_translate`
+call, on top of (not instead of) keeping the real alpha band. Verified
+this is **safe, not just convenient**: D12 already guarantees no
+genuine photo content reaches this step as opaque `(0,0,0)` (pure
+black pixels are cleaned to transparent during georeferencing), so
+declaring `0` as NODATA can't misclassify real dark photo content.
+GDAL warns `Raster band 1 has several conflicting mask sources ...
+Only the nodata value will be taken into account` when both an alpha
+band and `-a_nodata` are present -- tested this doesn't corrupt
+anything: `ColorInterp=Alpha` and the actual alpha byte values on band
+4 are preserved untouched; the warning just means GDAL's own reporting
+of *which* masking mechanism is authoritative shifts toward the
+simpler nodata value, which is exactly the behavior needed here.
+
+Also added embedded self-describing metadata (`-mo` tags) while
+touching this recipe, since the file currently had none beyond the
+default `AREA_OR_POINT=Area` -- worth having even before `stac_item.py`
+exists (D6), since a COG can travel (get downloaded, re-shared)
+separately from any STAC catalog entry:
+`TIFFTAG_IMAGEDESCRIPTION`, `TIFFTAG_SOFTWARE`, `TIFFTAG_COPYRIGHT`
+(attribution text matching D9/`source-coop/README.md`'s wording),
+and custom `LAYER_ID` / `SOURCE_URL` / `PIPELINE` tags for
+traceability back to GSI's own tile server and this repo.
+
+**Consequences**: All layers processed after this change get correct
+nodata + embedded metadata automatically. `20260729kumamoto_yatsushiro_0729do_sokuho.tif`
+was already built and uploaded *before* this fix -- needs a `FORCE=1
+just cog` rebuild and re-upload to pick it up (tracked in
+`HANDOVER.md`, not done automatically by this decision alone).

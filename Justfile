@@ -85,11 +85,29 @@ cog:
         # practice) never leaves a truncated file at $dst that a later
         # run's -nt skip-check would wrongly trust as done.
         rm -f "$tmp"
+        # -a_nodata 0: nodata regions (both in-tile transparent padding
+        # and mosaic gaps outside any confirmed tile) render as opaque
+        # black to viewers that don't respect the alpha band -- observed
+        # directly on Source Cooperative's own COG previewer (DECISIONS.md
+        # D15). Declaring NODATA=0 explicitly fixes that for such tools,
+        # on top of (not instead of) the real alpha band, which stays
+        # correct for alpha-aware tools (QGIS etc.). Safe here because
+        # D12 already guarantees no genuine photo content is (0,0,0) by
+        # the time this step runs.
+        # -mo tags: self-describing metadata that travels with the file
+        # even if someone only has the .tif (no STAC item yet -- D6).
         gdal_translate -of COG \
             -co COMPRESS=DEFLATE \
             -co OVERVIEW_RESAMPLING=AVERAGE \
             -co BLOCKSIZE=512 \
             -co BIGTIFF=YES \
+            -a_nodata 0 \
+            -mo TIFFTAG_IMAGEDESCRIPTION="GSI disaster-response ortho imagery: {{layer}}" \
+            -mo TIFFTAG_SOFTWARE="optgeo/cogenerate" \
+            -mo TIFFTAG_COPYRIGHT="Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html" \
+            -mo LAYER_ID="{{layer}}" \
+            -mo SOURCE_URL="https://cyberjapandata.gsi.go.jp/xyz/{{layer}}/{z}/{x}/{y}.png" \
+            -mo PIPELINE="https://github.com/optgeo/cogenerate" \
             "$src" "$tmp"
         mv "$tmp" "$dst"
     fi
