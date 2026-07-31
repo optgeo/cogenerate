@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20190618yamagata_tsuruokamurakami_0620do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20190618yamagata_tsuruokamurakami_0620do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20190704_kagoshima_chuou_0704do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20190704_kagoshima_chuou_0704do"
