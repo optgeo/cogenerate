@@ -71,6 +71,18 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20220119_nishinoshima_dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20220119_nishinoshima_dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20230202_nishinoshima_dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20230202_nishinoshima_dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240102_noto_anamizu_0105do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102_noto_anamizu_0105do"
