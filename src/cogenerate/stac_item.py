@@ -224,17 +224,35 @@ def parse_capture_date(layer_id: str) -> str:
     """Capture date embedded in the layer ID (DECISIONS.md D4): year
     from the ID's leading 4 digits, month/day from its last `_MMDDdo`
     fragment. Covers every `_do`/`_do_sokuho`/`dol`/`doh`-style layer
-    ID seen in layers-martin's catalog census."""
+    ID seen in layers-martin's catalog census.
+
+    Some `dol`-suffixed IDs (e.g. `20230202_nishinoshima_dol`, volcano
+    monitoring captures) have no separate `_MMDDdo` fragment at all --
+    the full date is the leading 8 digits themselves, caught live
+    2026-08-01 when the regex-only version raised on these. Fall back
+    to parsing the leading `YYYYMMDD` directly in that case."""
     year = layer_id[:4]
     if not year.isdigit():
         raise ValueError(f"layer ID {layer_id!r} doesn't start with a 4-digit year")
     match = None
     for m in re.finditer(r"(?:^|_)(\d{2})(\d{2})do(?:_|$)", layer_id):
         match = m  # take the last match: closest to the "do" suffix
-    if match is None:
-        raise ValueError(f"no _MMDDdo capture-date fragment found in {layer_id!r}")
-    month, day = match.group(1), match.group(2)
-    return f"{year}-{month}-{day}T00:00:00Z"
+    if match is not None:
+        month, day = match.group(1), match.group(2)
+        return f"{year}-{month}-{day}T00:00:00Z"
+    if layer_id[:8].isdigit():
+        month, day = layer_id[4:6], layer_id[6:8]
+        if month == "00" or day == "00":
+            raise ValueError(
+                f"layer ID {layer_id!r} has a leading YYYYMMDD with a placeholder "
+                f"month/day ({month}/{day}) -- likely an approximate historical date "
+                "(e.g. GSI's own '0000' for an unknown month/day within a year); "
+                "needs a deliberate decision on how to represent that in STAC "
+                "(start_datetime/end_datetime range vs. a synthesized date), not a "
+                "silently-wrong single `datetime`"
+            )
+        return f"{year}-{month}-{day}T00:00:00Z"
+    raise ValueError(f"no _MMDDdo capture-date fragment found in {layer_id!r}")
 
 
 @app.command()

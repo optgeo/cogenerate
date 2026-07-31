@@ -33,10 +33,23 @@ this way than D4's stricter `_MMDDdo`-suffix pattern would allow: only
 (a couple of volcano-monitoring layers, `kuchinoerabured`, `rinya`) --
 those sort last under `date` mode rather than erroring.
 
+`--keyword` (e.g. `--keyword 広島市`) restricts to candidates whose
+提供範囲 coverage text contains that substring, ranked the same way
+(extent or date) within that subset -- added 2026-08-01 to temporarily
+prioritize Hiroshima-area layers ahead of FOSS4G 2026 Hiroshima, per
+Hidenori. Not a separate ranking mode: same sort, just pre-filtered.
+**It's a plain substring match, not a real place/boundary lookup** --
+confirmed live that `広島市` also matches 北海道's `北広島市`
+(Kitahiroshima, Hokkaido -- genuinely named after settlers from
+Hiroshima prefecture, but not the city FOSS4G cares about here).
+Eyeball the result table before queuing, same as the existing
+撮影-vs-作成 check.
+
 Usage:
     uv run python -m cogenerate.candidates --top 10
     uv run python -m cogenerate.candidates --top 10 --sort-by date
     uv run python -m cogenerate.candidates --top 10 --json
+    uv run python -m cogenerate.candidates --top 10 --sort-by date --keyword 広島
 """
 
 from __future__ import annotations
@@ -130,11 +143,15 @@ def main(
     include_published: bool = typer.Option(
         False, help="Include layers already on the live STAC catalog (default: excluded)"
     ),
+    keyword: str = typer.Option(
+        "", help="Only rank candidates whose 提供範囲 coverage text contains this substring (e.g. 広島)"
+    ),
     as_json: bool = typer.Option(False, "--json", help="Print JSON instead of a table"),
 ):
     """Rank not-yet-published `_do`/`_do_sokuho`-style layers by a
     municipality-count proxy for spatial extent, or by newest event
-    date first (--sort-by date)."""
+    date first (--sort-by date). --keyword pre-filters to candidates
+    whose coverage text matches before ranking."""
     if sort_by not in ("extent", "date"):
         err.print(f"[red]error[/red] --sort-by must be 'extent' or 'date', got {sort_by!r}")
         raise typer.Exit(1)
@@ -152,6 +169,9 @@ def main(
     )
 
     candidates = [(lid, text) for lid, text in coverage.items() if lid not in published]
+    if keyword:
+        candidates = [(lid, text) for lid, text in candidates if keyword in text]
+        err.print(f"[green]filtered[/green] to {len(candidates)} candidate(s) matching {keyword!r}")
     if sort_by == "date":
         ranked = sorted(
             ((lid, text, extract_event_date(lid)) for lid, text in candidates),
@@ -171,15 +191,16 @@ def main(
                           ensure_ascii=False, indent=2))
         return
 
+    keyword_suffix = f" matching {keyword!r}" if keyword else ""
     if sort_by == "date":
-        table = Table(title=f"Top {top} unpublished layers, newest event first")
+        table = Table(title=f"Top {top} unpublished layers{keyword_suffix}, newest event first")
         table.add_column("Layer ID")
         table.add_column("Event date", justify="right")
         table.add_column("Coverage")
         for lid, text, event_date in ranked:
             table.add_row(lid, event_date or "?", text[:80])
     else:
-        table = Table(title=f"Top {top} unpublished layers by municipality count (spatial-extent proxy)")
+        table = Table(title=f"Top {top} unpublished layers{keyword_suffix} by municipality count (spatial-extent proxy)")
         table.add_column("Layer ID")
         table.add_column("Munis", justify="right")
         table.add_column("Coverage")
