@@ -30,6 +30,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D11](#d11-skip-already-done-work-by-default-force1-to-redo-it) | Skip already-done work by default; FORCE=1 to redo it | Accepted | 2026-07-31 |
 | [D12](#d12-nodata-via-pure-black-pixels-treat-as-transparent-not-backfilled) | NODATA via pure-black pixels: treat as transparent, not backfilled | Accepted | 2026-07-31 |
 | [D13](#d13-cog-internal-format-vs-oams-ingestion-profile) | COG internal format vs. OAM's ingestion profile | Accepted | 2026-07-31 |
+| [D14](#d14-a-separate-readmemd-for-the-source-cooperative-product-itself) | A separate README.md for the Source Cooperative product itself | Accepted | 2026-07-31 |
 
 ---
 
@@ -423,3 +424,30 @@ OAM's own pipeline already solves.
 **Consequences**: Nothing blocks handing this COG to OAM on format
 grounds; D6 (account/token access) remains the only real gate on
 actual ingestion.
+
+## D14: A separate README.md for the Source Cooperative product itself
+
+**Status**: Accepted
+
+**Context**: This repo's `README.md` is for people working on the
+pipeline code (`git clone`, `uv sync`, `just run`). Source Cooperative
+products are plain S3 buckets (per D10) -- anyone browsing or
+`aws s3 sync`-ing the `smartmaps/cogenerate` product directly, without
+ever visiting GitHub, needs a description of the *data*, not the code:
+what it is, GSI's attribution requirement, the NODATA convention (D12),
+and the D9 provisional-attribution caveat for very new layers.
+
+**Decision**: `source-coop/README.md` in this repo is the file that
+gets uploaded to the product root on Source Cooperative (per D10's
+upload path, `smartmaps/cogenerate/`) -- data-facing documentation,
+kept separate from the repo root's engineering-facing `README.md`.
+Deliberately does **not** hardcode a layer list or count, having
+already been burned twice this session (D7, and the `ichiran.html`
+finding in D9) by numbers/lists that go stale between sessions --
+points at the product's own file listing and the (future) static STAC
+catalog instead.
+
+**Consequences**: Needs to be re-read for accuracy whenever D9's
+provisional-attribution handling or D12's NODATA behavior changes, but
+otherwise should stay stable -- it describes the dataset's nature, not
+its current contents.
