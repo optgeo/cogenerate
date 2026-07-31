@@ -31,8 +31,8 @@ Cooperative upload -- local COGs only, unless/until he says otherwise):
 | Layer | Area | probe | download | georef | cog |
 |---|---|---|---|---|---|
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | in progress | -- |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | not started | -- | -- | -- |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | in progress | -- | -- |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | not started | -- | -- | -- |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
 
