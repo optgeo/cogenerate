@@ -5,6 +5,47 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## Current status (read this first, then the dated entries below for detail)
+
+**Keep this section current** -- update it every time status changes,
+don't let it drift while only appending dated entries below.
+
+Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
+https://source.coop/smartmaps/cogenerate):
+- `README.md` (D14)
+- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently being
+  rebuilt with `FORCE=1 just cog`** to pick up D15 (nodata + metadata
+  fix); the currently-live copy predates D15 and still has the
+  black-nodata bug Hidenori found. Re-upload (`LAYER=... just upload`)
+  as soon as the rebuild finishes, and note the new build time /
+  gdalinfo result here once done.
+
+Multi-layer test run (Hidenori's request: prioritize new-disaster /
+Kumamoto-area layers while he's away; not approved for Source
+Cooperative upload -- local COGs only, unless/until he says otherwise):
+
+| Layer | Area | probe | download | georef | cog |
+|---|---|---|---|---|---|
+| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | not started | -- | -- | -- |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | not started | -- | -- | -- |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | not started | -- | -- | -- |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
+
+Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
+z10) are recorded in this file's "multi-layer run" entry further down
+-- re-derive or re-scrape if this file somehow loses them, don't guess.
+
+**Next action**: once the kumamoto_yatsushiro rebuild+reupload is
+done, continue down the table above in order --
+`LAYER=<id> SEED_X=<x> SEED_Y=<y> just run` for each (the `cog` recipe
+already has D15's fix by default now, no FORCE needed for new layers).
+
+Nothing is currently blocked on Hidenori. Open decisions that will
+eventually need him: D6 (OAM ingestion path) before real OAM
+ingestion; whether to publish layers 2-5 to Source Cooperative once
+they're built.
+
 ## 2026-07-31 (new session, continued) -- D12 triggers for real, D15 fix applied
 
 `20250815rain_amakusa_0815do_sokuho`'s `georef` finished (1h00m42s for
@@ -344,23 +385,18 @@ waiting idle:
 
 ### If resuming from a fresh session (e.g. after `/clear`)
 
-Read this file's latest entry, then `DECISIONS.md` for why anything
-here looks the way it does. Nothing downstream of `just download` has
-been verified yet as of this writing. Say something like:
+**Superseded by the "Current status" section at the very top of this
+file** -- that's the one kept up to date; this historical entry is
+left as-is below for the record of what the situation looked like on
+2026-07-30, but don't follow its now-stale "next steps" over the top
+section's.
 
-> `/Users/hfu/cogenerate` の作業を続けて。HANDOVER.md の最新エントリと
-> DECISIONS.md を読んで、`just georef` の完了確認と `just cog` の実行、
-> gdalinfo での検証、RGB/RGBA バンド数チェック（georef.py の
-> UNTESTED RISK コメント参照）から再開して。
+A prompt like this after `/clear` works well in general (adjust the
+specifics to match whatever "Current status" says at the time):
 
-which points the fresh session at both files and names the exact next
-steps: confirm `georef` finished (`tiles/<layer>/` should hold one
-`.vrt` per source PNG; the merged mosaic lands at `out/<layer>.vrt`),
-run `just cog`, inspect the result with `gdalinfo`, and specifically
-check the RGB-vs-RGBA band-count risk `georef.py` flags in its module
-docstring. After that, `DECISIONS.md`'s two **Open** entries (D4: STAC
-`datetime` source; D6: OAM ingestion path) still need Hidenori's call
-before `stac_item.py` can be started.
+> `/Users/hfu/cogenerate` の作業を続けて。HANDOVER.md の "Current
+> status" セクションと DECISIONS.md を読んで、そこに書かれている
+> Next action から再開して。
 
 ## 2026-07-30 (later still) -- first real run, from Claude Code on the Mac
 
