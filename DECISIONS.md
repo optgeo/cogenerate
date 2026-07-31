@@ -32,6 +32,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D13](#d13-cog-internal-format-vs-oams-ingestion-profile) | COG internal format vs. OAM's ingestion profile | Accepted | 2026-07-31 |
 | [D14](#d14-a-separate-readmemd-for-the-source-cooperative-product-itself) | A separate README.md for the Source Cooperative product itself | Accepted | 2026-07-31 |
 | [D15](#d15-explicit-a_nodata-0-and-embedded-metadata-on-the-cog) | Explicit `-a_nodata 0` and embedded metadata on the COG | Accepted | 2026-07-31 |
+| [D16](#d16-pixel-values-are-untouched-a-brightness-difference-vs-地理院地図-is-the-previewers-not-ours) | Pixel values are untouched: a brightness difference vs. 地理院地図 is the previewer's, not ours | Investigated, no action | 2026-07-31 |
 
 ---
 
@@ -530,3 +531,37 @@ nodata + embedded metadata automatically. `20260729kumamoto_yatsushiro_0729do_so
 was already built and uploaded *before* this fix -- needs a `FORCE=1
 just cog` rebuild and re-upload to pick it up (tracked in
 `HANDOVER.md`, not done automatically by this decision alone).
+
+## D16: Pixel values are untouched: a brightness difference vs. 地理院地図 is the previewer's, not ours
+
+**Status**: Investigated, no action
+
+**Context**: Hidenori noticed the COG looks brighter on Source
+Cooperative's own previewer than the same imagery does on GSI's own
+地理院地図 viewer. Worth ruling out whether our pipeline (georeferencing,
+COG creation, or overview generation) alters pixel values before
+assuming it's a display-side effect.
+
+**Investigation, 2026-07-31**: fetched one real source tile directly
+from `cyberjapandata.gsi.go.jp` (z18, `20260729kumamoto_yatsushiro_0729do_sokuho`)
+and compared its RGB statistics against the same geographic area
+extracted from the published COG:
+- Native resolution: **identical** (R/G/B min/max/mean match to the
+  decimal -- e.g. R min 35, max 216, mean 71.635...).
+- Coarsest overview level (`AVERAGE`-resampled, per D2/D5): R/G/B
+  means shift by <1% (71.6->72.1, 87.5->88.0, 82.0->82.4) -- not
+  visually meaningful, and not a "brighter" bias (some channels moved
+  up, none dramatically).
+
+**Conclusion**: this pipeline's output is pixel-faithful to GSI's
+source imagery at both native resolution and in COG overviews. The
+brightness difference Hidenori observed is a rendering effect on
+Source Cooperative's own COG previewer (likely an automatic
+contrast/percentile stretch or gamma handling applied at display
+time, not something in the file itself) -- not a data problem, and
+not something to fix in `cogenerate`.
+
+**Consequences**: None for this pipeline. If this becomes a recurring
+complaint from data consumers, it'd be a Source Cooperative
+previewer-configuration question, not a reason to alter COG generation
+here.

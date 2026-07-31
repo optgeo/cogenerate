@@ -13,12 +13,16 @@ don't let it drift while only appending dated entries below.
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate):
 - `README.md` (D14)
-- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently being
-  rebuilt with `FORCE=1 just cog`** to pick up D15 (nodata + metadata
-  fix); the currently-live copy predates D15 and still has the
-  black-nodata bug Hidenori found. Re-upload (`LAYER=... just upload`)
-  as soon as the rebuild finishes, and note the new build time /
-  gdalinfo result here once done.
+- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **rebuilt with
+  D15's fix and re-uploaded**, done (rebuild: 11m19s; re-upload
+  confirmed via `aws s3api head-object`, `LastModified`
+  2026-07-31T01:34:14Z). Fully current.
+
+Verified separately (D16): a brightness difference Hidenori noticed
+between this COG's Source Cooperative preview and 地理院地図's own
+viewer is the previewer's rendering, not our data -- pixel values
+match GSI's original tiles exactly at native res and within <1% at
+the coarsest overview. No action needed.
 
 Multi-layer test run (Hidenori's request: prioritize new-disaster /
 Kumamoto-area layers while he's away; not approved for Source
@@ -27,7 +31,7 @@ Cooperative upload -- local COGs only, unless/until he says otherwise):
 | Layer | Area | probe | download | georef | cog |
 |---|---|---|---|---|---|
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | not started | -- | -- | -- |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | in progress | -- |
 | `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | not started | -- | -- | -- |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | not started | -- | -- | -- |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
@@ -36,8 +40,7 @@ Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
 z10) are recorded in this file's "multi-layer run" entry further down
 -- re-derive or re-scrape if this file somehow loses them, don't guess.
 
-**Next action**: once the kumamoto_yatsushiro rebuild+reupload is
-done, continue down the table above in order --
+**Next action**: continue down the table above in order --
 `LAYER=<id> SEED_X=<x> SEED_Y=<y> just run` for each (the `cog` recipe
 already has D15's fix by default now, no FORCE needed for new layers).
 
