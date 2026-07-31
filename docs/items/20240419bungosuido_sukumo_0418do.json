@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240419bungosuido_sukumo_0418do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          132.6118469,
+          33.0109667
+        ],
+        [
+          132.6118469,
+          32.8772805
+        ],
+        [
+          132.8617859,
+          32.8772805
+        ],
+        [
+          132.8617859,
+          33.0109667
+        ],
+        [
+          132.6118469,
+          33.0109667
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    132.6118469,
+    32.8772805,
+    132.8617859,
+    33.0109667
+  ],
+  "properties": {
+    "datetime": "2024-04-18T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240419bungosuido_sukumo_0418do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240419bungosuido_sukumo_0418do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240419bungosuido_sukumo_0418do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240419bungosuido_sukumo_0418do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20240419bungosuido_sukumo_0418do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240419bungosuido_sukumo_0418do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 2040640289,
+      "file:checksum_sha256": "eff96f9096480ae92fe1c51995015a0e0c383cf33cc42cf9a56c05fe91451f27"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240419bungosuido_sukumo_0418do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
