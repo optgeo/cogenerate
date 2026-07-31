@@ -9,95 +9,117 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-07-31 (three times now -- was 200+ lines of
-accumulated, increasingly-stale narrative from D17 through D22) --
-older detail lives only in the dated entries below now, not duplicated
-here.
+section was rewritten 2026-08-01 (fourth time -- see git history for
+earlier versions) -- older detail lives only in the dated entries
+below now, not duplicated here.
 
-**Standing directive from Hidenori, 2026-07-31 ~23:00**: he'll be
-unreachable for ~8h and explicitly said not to stop the pipeline for
-decisions during that window -- keep the build/upload/verify/stac/
-cleanup/commit loop running autonomously, including the `upload`
-publish step, without waiting for per-layer approval. This supersedes
-the earlier "ask before upload" caution below for the duration of that
-window. Still exercise judgment on anything outside the established
-pattern (a genuinely new kind of decision, a destructive/irreversible
-action outside this loop, disk/credential problems that need a human).
+**Standing directive from Hidenori, 2026-07-31 ~23:00, still active**:
+he's away for a stretch and explicitly said not to stop the pipeline
+for decisions -- keep the build/upload/verify/stac/cleanup/commit loop
+running autonomously, including the `upload` publish step, without
+waiting for per-layer approval. Still exercise judgment on anything
+outside the established pattern (a genuinely new kind of decision, a
+destructive/irreversible action outside this loop, disk/credential
+problems that need a human).
 
-**`source-coop` credentials expired again, 2026-08-01 ~00:2x** (mid
-`anamizu_0117do` upload) -- per the existing rule, this needs Hidenori
-to run `source-coop login` personally, not worked around. Since he's
-in the unreachable window, the loop kept going on everything that
-doesn't need the credential (probe/download/georef/cog for the
-remaining noto sub-district layers) so finished COGs queue up locally
-for `upload` the moment credentials are refreshed, rather than the
-whole pipeline stalling. Check `aws s3api head-object --bucket
-smartmaps --key cogenerate/README.md --profile source-coop --query
-LastModified --output text` if resuming and unsure of current state.
+**Progress tracking, requested by Hidenori 2026-08-01**: report layer
+counts as a fraction of the candidate pool whenever giving a status
+update, not just an absolute count -- `candidates.py`'s own summary
+line (`--top 1 --sort-by date`, read the stderr "N already published"
+line) gives the numerator; the pool total (currently 194, re-run to
+confirm since it drifts) is the denominator. As of this rewrite:
+**22 published / 194 pool (~11%)**, another 13 layers built and
+mid-upload (will bring it to 35/194, ~18%), plus 1 more
+(`20210705oame_0706do`) building now. Note the 194 figure is the raw
+tool output and includes a handful of non-photo false positives
+(`_dansaizu`/`_shinsui` suffixes = 段彩図/浸水図 hazard maps, not
+aerial photos) that get skipped by hand as they're encountered --
+treat it as the working denominator, not a mathematically clean one.
+
+**Concurrency pattern going forward**: run one `upload` (network-bound,
+slow for big layers -- noto's 45GB took ~25min) *and* one build-chain
+step (probe/download/georef/cog, CPU or network bound, doesn't touch
+`source-coop`) at the same time rather than serializing everything --
+they don't contend for the same resource. Keep an eye on concurrent
+`gdal_translate` count (`ps aux | grep gdal_translate`) if queuing more
+than ~3-4 builds at once; 8 cores on this machine, COG builds get
+CPU-hungry on large layers.
+
+**STAC catalog freshness**: `just stac` (= `stac-item` + `stac-catalog`)
+regenerates `docs/catalog.json` from *all* Items in `docs/items/`, so
+it's already fully rebuilt every time any single layer publishes --
+nothing is silently stale between publishes. What Hidenori's asking
+for is just: don't let a big batch's worth of finished layers sit
+un-published (no Item, not in the catalog) for too long while chasing
+the next build -- run the verify->stac->cleanup->commit tail promptly
+once a layer's `upload` finishes, rather than letting 10+ uploaded
+layers accumulate with no STAC Item yet. `just stac-validate` after
+each `stac` catches schema drift immediately rather than in a batch.
+
+**`source-coop` credentials**: expired repeatedly this session (~4
+times in the original scaffolding session, once more around
+2026-08-01 00:2x mid-`anamizu_0117do` upload). Hidenori re-ran
+`source-coop login` as of ~06:2x and it's confirmed working again
+(`head-object` on `README.md` succeeds). If it expires again and
+Hidenori is unreachable: don't work around it, keep the credential-free
+build steps going (probe/download/georef/cog) so finished COGs queue
+in `out/` for `upload` the moment it's refreshed, same as this session
+already did once successfully.
 
 **noto's main COG finished, 2026-08-01 ~05:51** -- `20240102noto_0405_0426do.tif`,
-48,647,237,551 bytes, `LAYOUT=COG`/`NoData=0` both confirmed via
-`gdalinfo`. This is the layer this session's "do this first" resume
-instructions were originally about; it's now built and sanity-checked
-but **not yet uploaded** (credentials still expired). Along with all
-the noto sub-district layers built while waiting (1/2, 1/5, 1/11,
-1/14, 1/17-captured batches -- `wazimanishi_0111do`, `anamizu_0111do`,
-`suzu_0105do`, `wazimanaka_0105do`, `anamizu_0105do`, `nanao_0105do`,
-`suzu_0102do`, `wazimanaka_0102do`, `wazimahigashi_0102do`, plus
-`anamizu_0117do`/`anamizu_0114do`/`wazimanaka_0111do` from earlier),
-**13 fully-built, verified-locally COGs are sitting in `out/` waiting
-on `upload`** the moment `source-coop login` is refreshed -- run each
-through `LAYER=<id> just upload` then the normal
-verify->stac->cleanup->commit sequence. Disk at 123GB free as of this
-note (noto's COG alone is ~48.6GB) -- comfortable, but don't let it
-run unattended past this backlog without checking again.
+48,647,237,551 bytes, `LAYOUT=COG`/`NoData=0` confirmed via `gdalinfo`.
+This was the layer the "do this first" resume instructions were
+originally about (see D22-era entries below); it's now uploading
+(45.3GB, in progress as of this rewrite).
 
 ### Do this first when resuming
 
-1. **Check `source-coop` credentials** -- they expire on their own
-   (session TTL, has happened ~4 times this session already) with no
-   warning until an `upload`/`aws s3api` call fails with "Cached
-   credentials have expired." If so, ask Hidenori to run `source-coop
-   login` (he handles this personally each time -- don't try to work
-   around it). Verify with `aws s3api head-object --bucket smartmaps
-   --key cogenerate/README.md --profile source-coop --query
-   LastModified --output text`.
-2. **`wajimatobu`/`wajimaseibu` are done** (see dated entry below) --
-   both uploaded, verified, STAC published, cleaned up, committed+pushed
-   (`71a38dc`). 18 layers live now.
-3. **`noto`'s first build attempt silently died** (no `gdal_translate`
-   process, `.tif.building` size static, never renamed to `.tif` --
-   most likely killed when the prior session ended, since it was
-   started via a plain backgrounded shell rather than a tracked
-   background task). Restarted properly via the harness's tracked
-   background-task mechanism this time (task id `bmp4gm1e8`) so it
-   should survive a session boundary. If you're resuming and don't see
-   that task's completion notification: `ps aux | grep gdal_translate`
-   to check if it's still alive; if dead again with `.tif.building`
-   present but static, delete the stale `.tif.building` +
-   `.tif.building.ovr.tmp` and re-run `LAYER=20240102noto_0405_0426do
-   just cog` (in background, tracked). Once it finishes: `gdalinfo`
-   sanity check (`LAYOUT=COG`, `NoData Value=0`), then upload (now
-   authorized, see standing directive above) -> verify -> stac ->
-   stac-validate -> cleanup-tiles -> cleanup-cog -> commit+push.
-4. **Then keep going**: `uv run python -m cogenerate.candidates --top
-   10 --sort-by date` for what's next (see "Priority" below), same
-   build/verify/upload/stac/cleanup loop, autonomously per the standing
-   directive.
+1. **Check `source-coop` credentials**: `aws s3api head-object --bucket
+   smartmaps --key cogenerate/README.md --profile source-coop --query
+   LastModified --output text`. If expired, ask Hidenori to run
+   `source-coop login` -- he handles this personally, don't work around
+   it. Meanwhile keep credential-free build steps going.
+2. **Check what's mid-flight**: `ps aux | grep gdal_translate` for
+   active builds, and check for any `.tif` in `out/` newer than its
+   `.vrt` that hasn't been through `upload` yet -- those are
+   built-but-unpublished and should go through
+   upload->verify->stac->cleanup->commit next.
+3. **Then keep going**: `uv run python -m cogenerate.candidates --top
+   10 --sort-by date --json` for what's next (check `layers-martin`'s
+   catalog `name` field per candidate for "撮影" not "作成" before
+   queuing -- see the false-positive note above). Run one upload +
+   one build-chain step concurrently per the pattern above. Report
+   progress as `published/pool` when giving status updates.
 
 ### What's published
 
-**18 layers** live on Source Cooperative + the STAC catalog
+**22 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages):
 `kumamoto_yatsushiro`, `amakusa`, `yatsushirohigashi`, `yatsushironishi`
-(original 6, all 3 of these rebuilt this session for the D17/D18 gap),
-`wajima`, `nichinan`, `tamagawa`, `sagachiku`, `kagoshima_soo`,
-`chikumagawa`, `tokigawa`, `nakagawa`, `kujigawa`, `marumori`, `sukumo`,
-`ainan`, `wajimatobu`, `wajimaseibu`. Each followed the same settled
-lifecycle: build locally -> `upload` (per-layer approval up through
-`ainan`; autonomous per the standing directive from `wajimatobu`
-onward) -> `just verify` -> `just stac` -> `stac-validate` ->
-`cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
+(original 6), `wajima`, `nichinan`, `tamagawa`, `sagachiku`,
+`kagoshima_soo`, `chikumagawa`, `tokigawa`, `nakagawa`, `kujigawa`,
+`marumori`, `sukumo`, `ainan`, `wajimatobu`, `wajimaseibu`,
+`noto_wazimanishi_0117do`, `noto_nanao_0117do`, `noto_suzu_0114do`,
+`noto_wazimahigashi_0114do`. Each followed the same settled lifecycle:
+build locally -> `upload` (autonomous per the standing directive) ->
+`just verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
+`cleanup-cog` (D20) -> commit+push `docs/`.
+
+**In flight, 2026-08-01**: 13 more noto-batch layers built and
+verified locally, uploading/publishing now (noto main +
+`anamizu_0117do`/`_0114do`/`_0111do`, `wazimanaka_0111do`/`_0105do`/`_0102do`,
+`wazimanishi_0111do`, `suzu_0105do`/`_0102do`, `anamizu_0105do`,
+`nanao_0105do`, `wazimahigashi_0102do`) -- these cover the 1/2, 1/5,
+1/11, 1/14, 1/17-captured sub-district batches from the Jan 2024 Noto
+earthquake response, each confirmed as a distinct real capture (not a
+duplicate) via `layers-martin`'s per-layer capture date. Plus
+`20210705oame_0706do` (熱海伊豆山地区, Atami Izusan mudslide disaster,
+2021-07-06) and `20230202_nishinoshima_dol` (西之島付近噴火活動,
+2023-02-02) both fully built and sanity-checked, queued for upload
+once noto's finishes -- the first two non-noto layers picked up
+alongside the upload backlog, run concurrently with noto's `upload`
+per Hidenori's request not to leave build capacity idle while
+uploading.
 
 **Priority temporarily changed, 2026-07-31**: Hidenori asked to
 prioritize by *newest disaster event* instead of spatial extent for a
