@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20140830dol",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          132.4484253,
+          34.5868669
+        ],
+        [
+          132.4484253,
+          34.4771279
+        ],
+        [
+          132.5926208,
+          34.4771279
+        ],
+        [
+          132.5926208,
+          34.5868669
+        ],
+        [
+          132.4484253,
+          34.5868669
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    132.4484253,
+    34.4771279,
+    132.5926208,
+    34.5868669
+  ],
+  "properties": {
+    "datetime": "2014-08-30T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20140830dol",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20140830dol",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20140830dol/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20140830dol.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20140830dol.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20140830dol",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 560563966,
+      "file:checksum_sha256": "14a7981c1b6276cd07098fa8bd25c3fc8daa94b4275ee3becc0b81986270ae34"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20140830dol.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
