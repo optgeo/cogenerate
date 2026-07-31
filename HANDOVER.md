@@ -69,7 +69,12 @@ conflict):
 | `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
 | `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (7m31s) |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | in progress (D17/D18-enabled) | -- | -- | -- |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | done (D17/D18: 3 minzoom tiles, 25,711 confirmed) | done | in progress | -- |
+
+**This is the last layer of the 5-layer test run.** Once its `cog`
+finishes, all 5 are done locally (none uploaded to Source Cooperative
+except kumamoto_yatsushiro, per Hidenori's original instruction --
+ask him before publishing layers 2-5).
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
 z10) are recorded in this file's "multi-layer run" entry further down
