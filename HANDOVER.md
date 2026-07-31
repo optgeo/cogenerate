@@ -9,26 +9,55 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was fully rewritten 2026-07-31 (was 200+ lines of accumulated,
-increasingly-stale narrative from D17 through D22) -- older detail
-lives only in the dated entries below now, not duplicated here.
+section was rewritten 2026-07-31 (twice -- was 200+ lines of
+accumulated, increasingly-stale narrative from D17 through D22) --
+older detail lives only in the dated entries below now, not duplicated
+here. **Session was `/clear`-ed right after this update** -- if you're
+reading this cold, this *is* the handover, not a summary of one.
 
-**14 layers published** on Source Cooperative + the STAC catalog
-(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages
-live): the original 6 (kumamoto_yatsushiro, amakusa, yatsushirohigashi,
-yatsushironishi -- all 3 rebuilt this session, D17/D18 gap, see below
--- wajima, nichinan) plus 8 new ones added this session (tamagawa,
-sagachiku, kagoshima_soo, chikumagawa, tokigawa, nakagawa, kujigawa,
-marumori). Each followed the same settled lifecycle: build locally ->
+### Do this first when resuming
+
+1. **Check `source-coop` credentials** -- they expire on their own
+   (session TTL, has happened ~4 times this session already) with no
+   warning until an `upload`/`aws s3api` call fails with "Cached
+   credentials have expired." If so, ask Hidenori to run `source-coop
+   login` (he handles this personally each time -- don't try to work
+   around it). Verify with `aws s3api head-object --bucket smartmaps
+   --key cogenerate/README.md --profile source-coop --query
+   LastModified --output text`.
+2. **Retry the 2 uploads that failed right before this handover**:
+   `wajimatobu` and `wajimaseibu` (輪島東部/西部, both 2024-09-24,
+   distinct capture from the already-published main `wajima` 9/23
+   layer) are fully built and verified locally (`out/20240923rain_wajimatobu_0924do_sokuho.tif`,
+   `out/20240923rain_wajimaseibu_0924do_sokuho.tif`) -- Hidenori
+   already approved uploading both, this is just re-running `LAYER=...
+   just upload` for each once credentials work, then the normal
+   `verify` -> `stac` -> `stac-validate` -> `cleanup-tiles` ->
+   `cleanup-cog` -> commit+push sequence.
+3. **Check on `noto`**: `ps aux | grep gdal_translate` -- its `cog`
+   build (`out/20240102noto_0405_0426do.tif.building`) had been running
+   5+ hours as of this handover (by far the largest layer built so
+   far, 270,378 z18 tiles across 19 municipalities/2 prefectures) and
+   was still actively burning CPU, not stuck. If it's finished: `gdalinfo`
+   sanity check (`LAYOUT=COG`, `NoData Value=0`), then the same
+   verify->stac->cleanup->commit sequence (ask before `upload`, this
+   one was never pre-approved like the D17/D18 rebuild batch was).
+4. **Then keep going**: `uv run python -m cogenerate.candidates --top
+   10 --sort-by date` for what's next (see "Priority" below), same
+   build/verify/stac/cleanup loop.
+
+### What's published
+
+**16 layers** live on Source Cooperative + the STAC catalog
+(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages):
+`kumamoto_yatsushiro`, `amakusa`, `yatsushirohigashi`, `yatsushironishi`
+(original 6, all 3 of these rebuilt this session for the D17/D18 gap),
+`wajima`, `nichinan`, `tamagawa`, `sagachiku`, `kagoshima_soo`,
+`chikumagawa`, `tokigawa`, `nakagawa`, `kujigawa`, `marumori`, `sukumo`,
+`ainan`. Each followed the same settled lifecycle: build locally ->
 ask Hidenori before `upload` (except the D17/D18 rebuild batch, which
 had standing approval) -> `just verify` -> `just stac` -> `stac-validate`
 -> `cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
-
-**In flight right now**: `noto` (能登, 2024 earthquake, 19
-municipalities across Ishikawa+Toyama -- by far the largest layer this
-pipeline has built, 270,378 z18 tiles) has been in its `cog` build
-step for 4+ hours; `sukumo`/`ainan` (宿毛/愛南, 2024 Bungo Strait
-earthquake) are running probe/download/georef/cog now.
 
 **Priority temporarily changed, 2026-07-31**: Hidenori asked to
 prioritize by *newest disaster event* instead of spatial extent for a
@@ -38,24 +67,31 @@ first -- an event date, not the stricter capture-date fragment D4
 uses for STAC `datetime`; covers 178/182 current candidates, a few
 volcano-monitoring-style IDs without a leading date sort last rather
 than erroring). Use `--sort-by date` for "what's next" until told
-otherwise. Note while picking: some `ichiran.html`-matched entries
-turn out to be non-photo products (e.g. `..._dansaizu` = 段彩図, a
-color-relief/hazard map, not aerial imagery -- caught by checking
-`layers-martin`'s catalog `name` field for "作成" instead of "撮影"
-before queuing one) -- skip those, this pipeline is for aerial photo
-ortho only.
+otherwise. Note while picking:
+- Some `ichiran.html`-matched entries turn out to be non-photo
+  products (e.g. `..._dansaizu` = 段彩図, a color-relief/hazard map,
+  not aerial imagery -- caught by checking `layers-martin`'s catalog
+  `name` field for "作成" instead of "撮影" before queuing one) --
+  skip those, this pipeline is for aerial photo ortho only.
+- A same-prefecture/city sub-district entry with a *different* capture
+  date than an already-published layer (like `wajimatobu`/`wajimaseibu`
+  vs. the already-published `wajima`) is real additional coverage, not
+  a duplicate -- checked `layers-martin`'s `name` field's capture date
+  to confirm before queuing.
 
-**Total candidate pool**: `candidates.py` finds **194** real
+**Total candidate pool**: `candidates.py` found **194** real
 disaster-response layers in `ichiran.html` (out of 1865 total catalog
-entries) -- 14 done, ~180 remaining as distinct layer IDs. Worth
-knowing before treating that as 180 independent targets: ~96 of them
-sit in 27 groups sharing identical 提供範囲 text (same district,
-different capture dates/variants) -- some are true near-duplicates
-(e.g. 3 remaining `sagachiku` variants of the one already published),
-but most are repeat volcano-monitoring captures (西之島, 新燃岳,
-草津白根山, etc.) that are legitimately separate observations, not
-redundant. No policy decided yet on how to treat those -- ask Hidenori
-if/when they become the next thing to prioritize.
+entries) as of this session -- 16 done, ~178 remaining as distinct
+layer IDs (re-run the tool rather than trusting this number, it'll
+have moved). Worth knowing before treating that as N independent
+targets: ~96 sit in 27 groups sharing identical 提供範囲 text (same
+district, different capture dates/variants) -- some are true
+near-duplicates (e.g. the 3 remaining `sagachiku` variants of the one
+already published), but most are repeat volcano-monitoring captures
+(西之島, 新燃岳, 草津白根山, etc.) that are legitimately separate
+observations, not redundant. No policy decided yet on how to treat
+those -- ask Hidenori if/when they become the next thing to
+prioritize.
 
 **Tooling built up this session, still current**:
 - `src/cogenerate/candidates.py` -- "what's next" ranking (extent or
@@ -72,10 +108,13 @@ if/when they become the next thing to prioritize.
   original per-tile `gdal_translate` subprocess; `discover_tiles()`
   also had a real bug fixed the same session (crashed on D12's
   `.cleaned.png` leftover sidecars).
-- A persistent disk-space monitor (warns <25GB, critical <10GB) is
-  still running as a safety net; 460GB volume currently comfortable
-  (~200GB free as of the last check, after also reclaiming ~150GB from
-  the unrelated `~/photosynthesis` project this session, D20).
+- A persistent disk-space monitor (warns <25GB, critical <10GB) was
+  running as a safety net for this session -- **tied to the now-`/clear`-ed
+  session, won't carry over**; consider starting a fresh one if disk
+  becomes a concern again (it was, once, this session -- D20 -- but
+  460GB volume is comfortable right now, ~187GB free as of this
+  handover, after also reclaiming ~150GB from the unrelated
+  `~/photosynthesis` project this session).
 
 **Still open, needs Hidenori**: actually contacting HOTOSM/OAM now
 that a real, public STAC catalog exists (D6) -- not urgent, no one's
