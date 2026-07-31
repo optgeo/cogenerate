@@ -42,32 +42,26 @@ urgent for the 5 test-run layers below (probed *after* D17/D18 landed,
 so already correct -- see per-layer minzoom-tile counts in the table).
 
 **All 5 pipeline stages (probe/download/georef/cog) are done locally
-for all 6 layers now** (kumamoto_yatsushiro + the 5-layer test run).
-Hidenori has now approved publishing the test-run layers too (COG
-metadata design -- D15 -- has stabilized), superseding the earlier
-"local only" instruction. **Uploading all 6 to Source Cooperative
-now**:
+for all 6 layers, and all 6 are now uploaded to Source Cooperative.**
+Hidenori approved publishing the test-run layers too (COG metadata
+design -- D15 -- has stabilized), superseding the earlier "local only"
+instruction. **This upload effort is complete**:
 
 | Layer | Area | Upload status |
 |---|---|---|
 | `20260729kumamoto_yatsushiro_0729do_sokuho` | 八代, Kumamoto (D17/D18 rebuild) | **done**, confirmed live 2026-07-31T02:58:16Z, 6,422,996,048 bytes |
-| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **done** -- second attempt succeeded after Hidenori re-ran `source-coop login` |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **done** |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | **uploading now** |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | queued next |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | queued next (last one) |
+| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **done**, confirmed live 2026-07-31T05:45:01Z, 4,562,555,514 bytes -- second attempt succeeded after Hidenori re-ran `source-coop login` |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **done**, confirmed live 2026-07-31T05:48:03Z, 409,611,024 bytes |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | **done**, confirmed live 2026-07-31T05:50:06Z, 2,885,369,099 bytes |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | **done**, confirmed live 2026-07-31T05:53:09Z, 3,718,713,191 bytes |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | **done**, confirmed live 2026-07-31T05:56:27Z, 4,953,928,578 bytes |
 
-**If credentials are expired when picking this up**: `source-coop
-login` needs Hidenori (browser OAuth, D10) -- ask him, don't try to
-work around it. Once fresh, `LAYER=<id> just upload` per remaining row
-above, in order (safe/idempotent to re-run even if one was mid-flight
-when this session ended). Verify each with `aws s3api head-object
---bucket smartmaps --key cogenerate/<id>.tif --profile source-coop
---query '{LastModified:LastModified,Size:ContentLength}'` --
-`LastModified` should read 2026-07-31 once done. **Once all 6 rows
-above say done, this whole upload effort is complete** -- nothing else
-is queued behind it except the general backlog (D6 OAM, `stac_item.py`,
-publishing the other ~68 layers cataloged in `layers-martin`).
+All 6 verified together via `aws s3api list-objects-v2 --bucket
+smartmaps --prefix cogenerate/ --profile source-coop` in the same
+session that finished the uploads -- no re-verification needed unless
+something changes. **Nothing else is queued behind this** except the
+general backlog (D6 OAM, `stac_item.py`, publishing the other ~68
+layers cataloged in `layers-martin`).
 
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate): `README.md` (D14), plus the
@@ -109,6 +103,28 @@ Nothing is currently blocked on Hidenori. Open decisions that will
 eventually need him: D6 (OAM ingestion path) before real OAM
 ingestion; whether to publish layers 2-5 to Source Cooperative once
 they're built.
+
+## 2026-07-31 (new session, picked up from handover) -- remaining 3 uploads finished
+
+Resumed from this file's "Current status" section, which listed
+`yatsushironishi` as uploading, `wajima` and `nichinan` as queued.
+`source-coop` credentials were still valid (no re-login needed --
+verified with a `head-object` probe before starting rather than
+assuming). Ran the 3 remaining `LAYER=<id> just upload` calls in
+sequence (each confirmed live via `aws s3api head-object` before
+starting the next):
+
+- `20250815rain_yatsushironishi_0816do_sokuho` -- confirmed live
+  2026-07-31T05:50:06Z, 2,885,369,099 bytes.
+- `20240923rain_wajima_0923do_sokuho` -- confirmed live
+  2026-07-31T05:53:09Z, 3,718,713,191 bytes.
+- `20240809hyuganada_nichinan_0809do_sokuho` -- confirmed live
+  2026-07-31T05:56:27Z, 4,953,928,578 bytes.
+
+Cross-checked all 6 objects together with `aws s3api list-objects-v2
+--bucket smartmaps --prefix cogenerate/ --profile source-coop`.
+**All 6 layers from the multi-layer test run + kumamoto_yatsushiro are
+now live on Source Cooperative -- this upload effort is complete.**
 
 ## 2026-07-31 (new session, continued) -- D12 triggers for real, D15 fix applied
 
