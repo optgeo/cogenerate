@@ -46,11 +46,13 @@ published layers: `docs/items/*.json` (6 files) + `docs/catalog.json`,
 all validated 2026-07-31 against STAC 1.0.0 via `stac-valid`'s
 `stac-validator` CLI (added as a `dev` extra in `pyproject.toml` --
 note the PyPI package renamed from `stac-validator` to `stac-valid`,
-the old name now just prints an upgrade notice). **GitHub Pages is
-NOT yet enabled for `optgeo/cogenerate`** (checked this session,
-`has_pages: false`) -- `docs/` is ready to serve once Hidenori turns
-it on; not done proactively (repo settings change). Still open, needs
-Hidenori: actually contacting HOTOSM/OAM once Pages is live (D6).
+the old name now just prints an upgrade notice). **GitHub Pages is now
+live**: Hidenori approved enabling it, `main`/`/docs` served via `gh
+api -X POST repos/optgeo/cogenerate/pages`, confirmed 2026-07-31 --
+`https://optgeo.github.io/cogenerate/catalog.json` (8 links, 6 `rel:
+item`) and each `items/<layer>.json` return 200. Still open, needs
+Hidenori: actually contacting HOTOSM/OAM now that a real catalog is
+publicly reachable (D6).
 
 Nothing else is currently blocked on Hidenori.
 
@@ -148,10 +150,20 @@ Ran `stac-item` + `stac-catalog` for all 6 already-published layers:
 6 Item JSON files + 1 catalog, all validated against STAC 1.0.0 via
 `stac-valid`'s `stac-validator validate`/`batch` commands -- 6/6 Items
 valid, catalog valid. `ruff check src/` clean on both new modules.
-GitHub Pages is off for `optgeo/cogenerate` (`has_pages: false`,
-checked via `gh api`) -- flagged to Hidenori rather than enabled
-proactively (repo settings change). D6 resolved to Accepted, D19
-added with the full schema rationale.
+D6 resolved to Accepted, D19 added with the full schema rationale.
+
+Flagged GitHub Pages being off to Hidenori (repo settings change, not
+enabled proactively); he approved it. Pushed the 2 pending local
+commits (STAC implementation + the earlier upload-completion update)
+to `origin/main` first (Pages needs `docs/` to exist on the remote
+branch it serves from), then enabled Pages via `gh api -X POST
+repos/optgeo/cogenerate/pages -f "source[branch]=main" -f
+"source[path]=/docs"`. Confirmed live within ~30s:
+`https://optgeo.github.io/cogenerate/catalog.json` returns 200 with 6
+`rel: item` links, each resolving to its own 200 Item JSON.
+**`cogenerate`'s static STAC catalog is now publicly reachable** --
+the remaining D6 step (actually contacting HOTOSM/OAM) can happen
+whenever Hidenori wants to.
 
 ## 2026-07-31 (new session, picked up from handover) -- remaining 3 uploads finished
 
