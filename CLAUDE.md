@@ -69,11 +69,19 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   DECISIONS.md D9 for the disaster-response principle this pipeline
   follows and what stays gated on `ichiran.html` regardless (attribution
   fields in published STAC items).
+- **GSI serves nothing below the documented minzoom (almost always 10)
+  for these layers** -- confirmed live (z9 down to z6 all 404 against a
+  tile known to have real z10 data). Don't try to search lower zooms
+  for a more reliable seed; see DECISIONS.md D18 for what actually
+  helps (a small tile grid *at* minzoom) and D17 for why a single seed
+  tile isn't enough by itself (it can only ever find coverage within
+  its own minzoom cell, never a sibling cell with real data).
 - 404s are not errors to fear: since we probe first and download second,
   an unexpected 404 during download is logged and skipped, not fatal.
   Gaps left by skipped tiles are legitimate nodata and are handled by the
   alpha channel (`gdalbuildvrt -addalpha`), not by synthesizing blank
-  tiles.
+  tiles. Pure-black pixels get the same treatment even *within* an
+  otherwise-present tile -- see DECISIONS.md D12.
 
 ## Toolchain conventions (DECISIONS.md D2)
 
@@ -95,17 +103,29 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   check the ichiran.html entry's 備考 (remarks) field per layer, subject
   to DECISIONS.md D9 (don't let this block COG *production*, only what
   you assert as final attribution).
+- **COGs get an explicit `-a_nodata 0` and embedded `-mo` provenance
+  metadata** (description, copyright/attribution text, layer ID, source
+  URL, pipeline URL) -- see DECISIONS.md D15 for why the alpha band
+  alone wasn't enough for every downstream viewer.
+- **Already-done work is skipped by default** across every stage
+  (`probe`/`download`/`georef`/`cog`); `FORCE=1` redoes it. See
+  DECISIONS.md D11 -- this makes reruns after an interruption, or after
+  a probe/recipe fix like D17/D18, cheap and mostly incremental instead
+  of starting over.
 
 ## Decisions and open questions
 
-Full ADR log: `DECISIONS.md`. Two entries are currently **Open** and
-block `stac_item.py` -- do not silently pick either, surface to
-Hidenori:
+Full ADR log: `DECISIONS.md` (18 entries as of 2026-07-31). One entry
+is currently **Open** and blocks `stac_item.py` -- do not silently
+pick it, surface to Hidenori:
 
-- **D4**: STAC item `datetime` source (capture-date fragment in the
-  layer ID vs. ichiran.html's 提供開始 publish date).
 - **D6**: OpenAerialMap ingestion path (API push vs. STAC harvest) --
-  unresearched.
+  unresearched, though D6 also has notes on OAM's roadmap direction
+  worth reading before assuming this needs a full token-flow
+  integration.
+
+(D4, STAC `datetime` source, was Open but Hidenori decided it
+2026-07-31 -- capture-date fragment, not ichiran.html's publish date.)
 
 ## Commands
 
@@ -116,7 +136,12 @@ just download                    # fetch confirmed tiles
 just georef                      # tile PNGs -> merged VRT (EPSG:3857)
 just cog                         # VRT -> COG (overviews generated here)
 just run                         # all of the above, one layer
+just upload                      # publish out/{{layer}}.tif to Source Cooperative (needs source-coop login done once, D10)
 just lint / just test
+
+# Useful env vars (all optional, see Justfile for full defaults):
+#   FORCE=1              redo work a stage would otherwise skip (D11)
+#   SEED_GRID_RADIUS=N   widen/narrow the initial seed-grid search (D18, default 2 = 5x5)
 ```
 
 ## Non-goals
