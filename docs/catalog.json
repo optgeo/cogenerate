@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_0405_0426do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_0405_0426do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240102noto_nanao_0117do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102noto_nanao_0117do"
