@@ -89,6 +89,18 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajimaseibu_0924do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240923rain_wajimaseibu_0924do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajimatobu_0924do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240923rain_wajimatobu_0924do_sokuho"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho"

@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240923rain_wajimatobu_0924do_sokuho",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          136.8951416,
+          37.533688
+        ],
+        [
+          136.8951416,
+          37.3614255
+        ],
+        [
+          137.250824,
+          37.3614255
+        ],
+        [
+          137.250824,
+          37.533688
+        ],
+        [
+          136.8951416,
+          37.533688
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    136.8951416,
+    37.3614255,
+    137.250824,
+    37.533688
+  ],
+  "properties": {
+    "datetime": "2024-09-24T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240923rain_wajimatobu_0924do_sokuho",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240923rain_wajimatobu_0924do_sokuho",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240923rain_wajimatobu_0924do_sokuho/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajimatobu_0924do_sokuho.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20240923rain_wajimatobu_0924do_sokuho.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240923rain_wajimatobu_0924do_sokuho",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 2614204383,
+      "file:checksum_sha256": "504d4d54ae1a6a9ecbfb532a336d362b145b0bfd78cffa666595c08bd1f2b988"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajimatobu_0924do_sokuho.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
