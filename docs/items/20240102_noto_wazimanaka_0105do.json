@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240102_noto_wazimanaka_0105do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          136.849823,
+          37.4606884
+        ],
+        [
+          136.849823,
+          37.2664029
+        ],
+        [
+          137.0269775,
+          37.2664029
+        ],
+        [
+          137.0269775,
+          37.4606884
+        ],
+        [
+          136.849823,
+          37.4606884
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    136.849823,
+    37.2664029,
+    137.0269775,
+    37.4606884
+  ],
+  "properties": {
+    "datetime": "2024-01-05T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240102_noto_wazimanaka_0105do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240102_noto_wazimanaka_0105do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240102_noto_wazimanaka_0105do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102_noto_wazimanaka_0105do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20240102_noto_wazimanaka_0105do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240102_noto_wazimanaka_0105do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 2998934070,
+      "file:checksum_sha256": "0070f6fd3dc27747057b069041a4d5650277d573792328c25c74b25c218ef5cf"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240102_noto_wazimanaka_0105do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
