@@ -38,6 +38,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D19](#d19-stac-item--catalog-schema-hand-built-json-matching-oam-starcs-conventions) | STAC Item/Catalog schema: hand-built JSON, matching `oam-starc`'s conventions | Accepted | 2026-07-31 |
 | [D20](#d20-local-storage-lifecycle-delete-tilesout-only-after-remote-is-the-verified-source-of-truth) | Local storage lifecycle: delete `tiles/`/`out/` only after remote is the verified source of truth | Accepted | 2026-07-31 |
 | [D21](#d21-tooling-must-actually-work-with-source-cooperative-as-the-master-copy-not-assume-outlayertif-is-still-there) | Tooling must actually work with Source Cooperative as the master copy, not assume `out/<layer>.tif` is still there | Accepted | 2026-07-31 |
+| [D22](#d22-georef-hand-write-per-tile-vrt-xml-in-python-instead-of-a-gdal_translate-subprocess) | `georef`: hand-write per-tile VRT XML in Python instead of a `gdal_translate` subprocess | Accepted | 2026-07-31 |
 
 ---
 
@@ -852,3 +853,53 @@ whether its local COG still exists, which is the normal state of
 affairs for most layers going forward (D20). `candidates.py` and
 `stac_catalog.py` were already remote/live-source-only (D7-style) and
 needed no changes.
+
+## D22: `georef`: hand-write per-tile VRT XML in Python instead of a `gdal_translate` subprocess
+
+**Status**: Accepted
+
+**Context**: Hidenori's own sense, 2026-07-31, that `georef` felt like
+the slow pipeline step, prompted actually measuring it rather than
+guessing. The original per-tile step spawned one `gdal_translate`
+subprocess per tile to produce a georeferenced VRT sidecar (D2's
+"GDAL via subprocess" rule, applied uniformly to every GDAL call in
+the pipeline at the time). Benchmarked on real, cold-cache noto tiles
+(not a repeated single cached file): **~250ms/tile**, essentially all
+process-spawn + GDAL-driver-registration overhead -- the actual output
+is a few hundred bytes of XML describing one full-tile source, no
+pixel data copy, nowhere near 250ms of real work. At noto's scale
+(270,378 tiles) that step alone projected to **~19 hours**.
+
+**Decision**: `georef.py`'s `clean_black_nodata()` already opens every
+tile with PIL (for D12's black-nodata check) -- extended it to also
+return the width/height/mode it already has in hand, and added
+`write_vrt()`, which hand-writes the identical single-source
+`VRTDataset` XML `gdal_translate` would have produced, directly in
+Python (no subprocess). Only handles plain `RGB`/`RGBA` PIL modes
+(the only two ever seen in this data source, per D2's original
+band-count note and a fresh 2026-07-31 check across 3 more, larger
+layers -- 100% RGBA, zero palette/grayscale tiles in any sample);
+falls back to the original `gdal_translate` subprocess for anything
+else, so an unanticipated mode degrades to the slow-but-GDAL-verified
+path instead of silently mis-describing band structure.
+
+**Verification**: benchmarked ~3.7ms/tile on the same real tiles (a
+**~68x** speedup) with `gdalinfo -checksum` confirming byte-identical
+per-band pixel checksums against `gdal_translate`'s own output, and
+`gdalbuildvrt` merging the hand-written VRTs identically. Applied live,
+mid-session, to two already-running layers (`noto`, `yatsushironishi`)
+by killing their in-flight `georef` processes and re-running `just
+run` -- safe only because D11's skip-if-`.vrt`-exists logic resumed
+from exactly where each left off rather than restarting; confirmed
+`yatsushironishi` (35,256 tiles, ~30% remaining) finished its
+remaining per-tile work in under a minute post-restart.
+
+**Consequences**: `gdalbuildvrt` (the mosaic merge) and the final
+`gdal_translate -of COG` build both stay subprocess calls, unchanged
+-- D2's rule still holds for anything that does real raster work
+(pixel resampling, compression, overview generation). This is narrowly
+scoped to the one step that was pure metadata generation being paid
+for at full subprocess cost. Revisit if a layer ever legitimately needs
+a non-RGB/RGBA tile (would silently fall back to the slow path,
+correctly but without comment -- watch the `cog` recipe's fallback
+count if `georef` unexpectedly stays slow for a specific layer).

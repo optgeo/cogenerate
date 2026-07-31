@@ -14,6 +14,21 @@ push) have been trimmed from here now that they're fully done and
 superseded -- full detail is preserved in the dated entries below if
 needed, nothing lost, just not repeated at the top anymore.
 
+**`georef` was the slow step -- Hidenori's hunch, confirmed and fixed
+(D22).** Benchmarked on real noto tiles: ~250ms/tile, almost entirely
+`gdal_translate` subprocess-spawn overhead for what's actually just a
+few hundred bytes of VRT XML (no pixel copy). Replaced with a
+hand-written VRT (reusing width/height/mode the D12 black-check step
+already has open) -- **~68x faster** (~3.7ms/tile), verified
+byte-identical pixel checksums against the old subprocess output.
+Restarted `noto` and `yatsushironishi`'s already-in-flight `georef`
+mid-session to benefit (safe: D11's skip-if-`.vrt`-exists logic
+resumed each from wherever it had gotten to, no wasted work) --
+`yatsushironishi` (35,256 tiles, ~30% remaining) finished in well under
+a minute post-restart, `noto` (270,378 tiles, was projected ~19h for
+this step alone) is now moving at a similar accelerated pace. Full
+rationale/verification: DECISIONS.md D22.
+
 **Disk space: was a real constraint, now has a wide margin (D20).**
 With 6 `cogenerate` layers building in parallel, 460GB volume was down
 to ~51-59GB free 2026-07-31 (`tiles/20240102noto_0405_0426do/` alone

@@ -18,8 +18,29 @@ Band counts: originally flagged as an untested risk (fully-interior
 tiles as RGB, boundary tiles as RGBA). Checked 2026-07-31 against
 20260729kumamoto_yatsushiro_0729do_sokuho: all 26,982 source PNGs are
 RGBA (PNG color_type=6), boundary and interior alike -- no mixing for
-this layer. Not proven true for every layer, but the specific failure
-mode didn't materialize here.
+this layer. Re-checked against 3 more, much larger layers the same
+session (noto/tamagawa/yatsushironishi, 200-tile random samples each):
+100% RGBA in every sample, no palette-mode or plain-RGB tiles seen
+anywhere. `write_vrt()` below still falls back to the slower
+`gdal_translate` subprocess for any tile whose PIL mode isn't `RGB`/
+`RGBA` specifically, so an actual palette-mode tile (should one ever
+show up) degrades to the old, GDAL-verified-correct path instead of
+silently mis-describing its bands.
+
+Per-tile VRT generation, performance (Hidenori asked 2026-07-31: georef
+felt like the slow step): the original approach spawned one
+`gdal_translate` subprocess per tile -- benchmarked at ~250ms/tile on
+real noto tiles (cold-cache PNGs, not a cached repeat of one file),
+completely process-spawn/GDAL-driver-init overhead for what a VRT
+sidecar actually needs (a few hundred bytes of XML, no pixel copy).
+Replaced with `write_vrt()`, which hand-writes that same XML directly
+in Python using facts already in hand from `clean_black_nodata()`'s
+already-open PIL image (width/height/band count) -- benchmarked at
+~3.7ms/tile on the same real tiles, a **~68x** speedup, verified
+byte-identical (`gdalinfo -checksum`) against `gdal_translate`'s own
+output and confirmed `gdalbuildvrt` merges it identically. For a
+270k-tile layer like noto, this is the difference between ~19 hours
+and ~17 minutes for this one step.
 
 NODATA via pure-black pixels (DECISIONS.md D12): GSI tiles sometimes
 encode "no data" as literal opaque black (0,0,0) rather than alpha=0 --
@@ -59,19 +80,67 @@ err = Console(stderr=True)
 ORIGIN_SHIFT = 2 * math.pi * 6378137 / 2.0  # 20037508.342789244
 
 
-def clean_black_nodata(src: Path) -> tuple[Path, bool]:
-    """Turn exact-(0,0,0) pixels transparent; returns (path, cleaned).
-    `path` is a cleaned copy if any black pixels were found, else `src`
-    unchanged (common case, no extra I/O). See DECISIONS.md D12."""
-    img = Image.open(src).convert("RGBA")
-    arr = np.array(img)
+VRT_BAND_COLORS = {"RGB": ("Red", "Green", "Blue"), "RGBA": ("Red", "Green", "Blue", "Alpha")}
+
+
+def clean_black_nodata(src: Path) -> tuple[Path, bool, int, int, str]:
+    """Turn exact-(0,0,0) pixels transparent; returns (path, cleaned,
+    width, height, mode). `path` is a cleaned copy (always RGBA) if any
+    black pixels were found, else `src` unchanged with its own original
+    mode (common case, no extra I/O) -- preserves DECISIONS.md D12's
+    original behavior of not forcing every untouched tile to RGBA."""
+    img = Image.open(src)
+    width, height = img.size
+    mode = img.mode
+    img_rgba = img.convert("RGBA")
+    arr = np.array(img_rgba)
     black = (arr[:, :, 0] == 0) & (arr[:, :, 1] == 0) & (arr[:, :, 2] == 0)
     if not black.any():
-        return src, False
+        return src, False, width, height, mode
     arr[black, 3] = 0
     cleaned = src.with_suffix(".cleaned.png")
     Image.fromarray(arr, "RGBA").save(cleaned)
-    return cleaned, True
+    return cleaned, True, width, height, "RGBA"
+
+
+def write_vrt(
+    src: Path, vrt_path: Path, width: int, height: int, mode: str,
+    ulx: float, uly: float, lrx: float, lry: float,
+) -> bool:
+    """Hand-write the same single-source georeferenced VRT
+    `gdal_translate -of VRT -a_srs EPSG:3857 -a_ullr ...` would produce,
+    skipping the ~250ms/tile subprocess-spawn+GDAL-init cost entirely
+    (see module docstring) -- verified byte-identical pixel checksums
+    against the subprocess's own output. Returns False (caller should
+    fall back to the subprocess) for any mode other than plain RGB/RGBA
+    -- palette or grayscale tiles haven't been seen in this data source
+    (checked across 4 layers this session) but this keeps an unexpected
+    one correct rather than silently wrong."""
+    band_colors = VRT_BAND_COLORS.get(mode)
+    if band_colors is None:
+        return False
+    xres = (lrx - ulx) / width
+    yres = (uly - lry) / height
+    bands_xml = "".join(
+        f"""
+  <VRTRasterBand dataType="Byte" band="{i + 1}">
+    <ColorInterp>{color}</ColorInterp>
+    <SimpleSource>
+      <SourceFilename relativeToVRT="1">{src.name}</SourceFilename>
+      <SourceBand>{i + 1}</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="{width}" ySize="{height}"/>
+      <DstRect xOff="0" yOff="0" xSize="{width}" ySize="{height}"/>
+    </SimpleSource>
+  </VRTRasterBand>"""
+        for i, color in enumerate(band_colors)
+    )
+    vrt_path.write_text(
+        f'<VRTDataset rasterXSize="{width}" rasterYSize="{height}">\n'
+        f"  <SRS>EPSG:3857</SRS>\n"
+        f"  <GeoTransform>{ulx}, {xres}, 0, {uly}, 0, {-yres}</GeoTransform>{bands_xml}\n"
+        f"</VRTDataset>\n"
+    )
+    return True
 
 
 def tile_bounds_3857(z: int, x: int, y: int) -> tuple[float, float, float, float]:
@@ -112,6 +181,7 @@ def main(
     vrt_paths: list[str] = []
     skipped = 0
     cleaned_count = 0
+    fallback_count = 0
     for z, x, y, src in track(tiles, description="georeferencing", console=err):
         vrt_path = src.with_suffix(".vrt")
         if vrt_path.exists() and not force:
@@ -119,21 +189,24 @@ def main(
             vrt_paths.append(str(vrt_path))
             continue
         ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
-        src_for_vrt, was_cleaned = clean_black_nodata(src)
+        src_for_vrt, was_cleaned, width, height, mode = clean_black_nodata(src)
         if was_cleaned:
             cleaned_count += 1
-        subprocess.run(
-            [
-                "gdal_translate",
-                "-of", "VRT",
-                "-a_srs", "EPSG:3857",
-                "-a_ullr", str(ulx), str(uly), str(lrx), str(lry),
-                str(src_for_vrt),
-                str(vrt_path),
-            ],
-            check=True,
-            capture_output=True,
-        )
+        wrote_fast = write_vrt(src_for_vrt, vrt_path, width, height, mode, ulx, uly, lrx, lry)
+        if not wrote_fast:
+            fallback_count += 1
+            subprocess.run(
+                [
+                    "gdal_translate",
+                    "-of", "VRT",
+                    "-a_srs", "EPSG:3857",
+                    "-a_ullr", str(ulx), str(uly), str(lrx), str(lry),
+                    str(src_for_vrt),
+                    str(vrt_path),
+                ],
+                check=True,
+                capture_output=True,
+            )
         vrt_paths.append(str(vrt_path))
 
     merged.parent.mkdir(parents=True, exist_ok=True)
@@ -150,7 +223,8 @@ def main(
     err.print(
         f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
         f"({skipped} per-tile .vrt already present, not regenerated; "
-        f"{cleaned_count} tiles had opaque-black pixels cleaned to transparent, D12)"
+        f"{cleaned_count} tiles had opaque-black pixels cleaned to transparent, D12; "
+        f"{fallback_count} needed the gdal_translate subprocess fallback -- non-RGB/RGBA mode)"
     )
 
 
