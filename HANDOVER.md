@@ -10,32 +10,40 @@ of looking for rationale here -- entries below link to the relevant
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below.
 
-**TOP PRIORITY right now (D17)**: Hidenori spotted missing northern
-coverage in `20260729kumamoto_yatsushiro_0729do_sokuho`'s published
-COG. Root cause found and fixed: `probe.py`'s single-seed quadtree
-descent could never discover a *sibling* minzoom tile with real data
-(only children of the seed). Added minzoom flood-fill
-(`expand_seeds_at_minzoom()`). Re-probed with `FORCE=1`: **found 3
-minzoom tiles (was 1), 32,016 confirmed z18 tiles (was 26,982, +5,034 /
-+18.7%)**. Currently re-downloading (D11 should make this incremental
--- only the ~5,034 new tiles need fetching). **Next steps in order**:
-`just download` (in progress) -> `just georef` (D11-incremental) ->
-`FORCE=1 just cog` (full rebuild needed, geometry changed) -> `just
-upload` (re-publish). Do this *before* resuming the layers-2-5 table
-below, per Hidenori's explicit priority.
+**TOP PRIORITY right now (D17/D18)**: Hidenori spotted missing
+northern coverage in `20260729kumamoto_yatsushiro_0729do_sokuho`'s
+published COG. Root cause found and fixed in two parts:
+- **D17**: `probe.py`'s single-seed quadtree descent could never
+  discover a *sibling* minzoom tile with real data (only children of
+  the seed). Fixed with a minzoom flood-fill (`expand_seeds_at_minzoom()`).
+  Re-probed with `FORCE=1`: **found 3 minzoom tiles (was 1), 32,016
+  confirmed z18 tiles (was 26,982, +5,034 / +18.7%)**.
+- **D18**: Hidenori then asked about making seed selection itself more
+  robust (tried lowering the seed's zoom -- confirmed GSI serves
+  nothing below z10 for these layers, so that specific idea doesn't
+  work). Implemented instead: a `(2r+1)x(2r+1)` grid of candidate
+  tiles at minzoom around each seed before flood-filling (default
+  radius 2 = 5x5, `SEED_GRID_RADIUS` to override). Validated with a
+  seed deliberately offset 2 tiles -- still found the real coverage.
+
+Re-download (D11-incremental, only ~5,034 new tiles) and re-georef
+(also incremental, 13m39s) both done. `FORCE=1 just cog` rebuild is
+**currently running** (new size 64000x76800, up from 61184x65536) --
+re-upload next once it finishes.
 
 Every other already-probed layer should eventually get a `FORCE=1`
 re-probe too, to check whether it was similarly incomplete -- not
 urgent for the in-progress test-run layers below (small, single-area
 layers, less likely to straddle a minzoom boundary, but not verified
-either).
+either). New probes (layer 4 onward) automatically get D17+D18's
+robustness with no changes needed on the caller's side.
 
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate):
 - `README.md` (D14)
 - `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently stale
-  w.r.t. D17** (still the D15-fixed-but-pre-D17 26,982-tile version).
-  Being rebuilt now, see above.
+  w.r.t. D17/D18** (still the D15-fixed-but-pre-D17 26,982-tile
+  version). Rebuild in progress, see above -- re-upload once it's done.
 
 Verified separately (D16): a brightness difference Hidenori noticed
 between this COG's Source Cooperative preview and 地理院地図's own
@@ -46,15 +54,15 @@ the coarsest overview. No action needed.
 Multi-layer test run (Hidenori's request: prioritize new-disaster /
 Kumamoto-area layers while he's away; not approved for Source
 Cooperative upload -- local COGs only, unless/until he says otherwise).
-**Paused after layer 2 to fix D17 first** -- resume here after the
-kumamoto_yatsushiro rebuild above is done:
+Resumed alongside the kumamoto_yatsushiro rebuild (independent, no
+conflict):
 
 | Layer | Area | probe | download | georef | cog |
 |---|---|---|---|---|---|
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
 | `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | in progress | -- |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | not started | -- | -- | -- |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | in progress (D17/D18-enabled) | -- | -- | -- |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
