@@ -44,3 +44,20 @@ just stac         # build/refresh this layer's STAC Item + the catalog (D19)
 (`just`'s recipe variables are read as environment variables -- set them
 *before* the recipe name, not after; `just run LAYER=...` fails with
 "justfile does not contain recipe `LAYER=...`".)
+
+## Static STAC catalog
+
+Every published layer gets a STAC 1.0.0 Item (`stac_item.py`) linked
+from a top-level Catalog (`stac_catalog.py`), served via GitHub Pages:
+
+- Catalog: https://optgeo.github.io/cogenerate/catalog.json
+- One Item: https://optgeo.github.io/cogenerate/items/20260729kumamoto_yatsushiro_0729do_sokuho.json
+
+View an Item in a STAC browser, e.g.
+[moregeo.it's](https://browser.moregeo.it/external/optgeo.github.io/cogenerate/items/20260729kumamoto_yatsushiro_0729do_sokuho.json?.asset=asset-imagery)
+(`?.asset=asset-imagery` selects the COG asset for preview).
+
+Schema/asset conventions are modeled on sibling repo
+[optgeo/oam-starc](https://github.com/optgeo/oam-starc) -- see
+`DECISIONS.md` D6/D19 for why, and for the eventual OpenAerialMap
+ingestion plan this catalog is meant to support.
