@@ -89,6 +89,31 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   disaster-response layers as of 2026-07-31, not the ~74-75 an
   ID-regex guess produces -- always re-run the tool rather than
   trusting a cached number.
+- **Before queuing a `candidates.py` result, check two things**: (1)
+  fetch `layers-martin`'s catalog `name` field for that layer ID and
+  confirm it says "撮影" (photographed) -- some `ichiran.html`-matched
+  entries are non-photo products (`_dansaizu` = 段彩図 color-relief
+  hazard map, `_shinsui` = 浸水図 inundation map); skip those, this
+  pipeline is for aerial photo ortho only. (2) A same-prefecture/city
+  sub-district entry with a *different* capture date than an
+  already-published layer (e.g. `wazimatobu`/`wazimaseibu` vs. the
+  already-published `wajima`, or the Noto earthquake response's
+  1/2/1/5/1/11/1/14/1/17-captured sub-district batches, all distinct
+  from each other and from the later comprehensive `noto_0405_0426do`)
+  is real additional coverage, not a duplicate -- the `name` field's
+  capture date confirms this before queuing.
+- **A source tile can be genuinely corrupt on GSI's own server**, not
+  just a bad local download -- confirmed live (2026-08-01,
+  `noto_nanao_0117do`) by re-fetching the same tile URL fresh via
+  `curl` and getting an identical corrupt PNG (`OSError: unrecognized
+  data stream contents` from Pillow, a truncated/broken zlib stream
+  inside an otherwise well-formed PNG header). `georef.py`'s
+  `discover_tiles()` globs whatever tile files actually exist on disk
+  (not the probe CSV), so the fix is just: delete the one corrupt tile
+  file and re-run `just georef` -- it's silently absent from the
+  mosaic rather than crashing the whole layer. Losing one 256px tile
+  out of tens of thousands is negligible; don't spend time trying to
+  repair the source PNG.
 - 404s are not errors to fear: since we probe first and download second,
   an unexpected 404 during download is logged and skipped, not fatal.
   Gaps left by skipped tiles are legitimate nodata and are handled by the
@@ -134,6 +159,55 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   local COG too. See DECISIONS.md D20 -- never delete a layer's
   `tiles/` while it's still mid-download/rebuild (D11's incremental
   skip-if-present logic needs it there).
+- **`source-coop` credentials expire on their own** (session TTL) with
+  no warning until an `upload`/`aws s3api` call fails with "Cached
+  credentials have expired. Run 'source-coop login' to refresh." This
+  is routine, not a bug -- happens repeatedly across a long session.
+  Verify with `aws s3api head-object --bucket smartmaps --key
+  cogenerate/README.md --profile source-coop --query LastModified
+  --output text`. **Never try to work around it** (no raw
+  `source-coop creds` calls either, see DECISIONS.md's incident note)
+  -- ask Hidenori to run `source-coop login`, he handles it personally
+  each time. While waiting, keep the credential-free pipeline stages
+  going (probe/download/georef/cog) so finished COGs queue in `out/`
+  for `upload` the moment it's refreshed, rather than the whole
+  pipeline stalling.
+- **Run one `upload` and one build-chain step concurrently, don't
+  serialize them** -- `upload` is network-bound (a large layer's
+  transfer can take 20-30+ minutes) while probe/download/georef/cog
+  are CPU- or GSI-network-bound; they don't contend for the same
+  resource, so idling one while the other runs wastes real time.
+  Requested explicitly by Hidenori, 2026-08-01. Watch concurrent
+  `gdal_translate` count (`ps aux | grep gdal_translate`) if queuing
+  more than ~3-4 builds at once on top of that -- COG builds get
+  CPU-hungry on large layers and this machine has 8 cores.
+- **Long-running steps (anything that can outlive a single tool call --
+  `cog` on a large layer especially) must run through the harness's
+  tracked background-task mechanism, not a loose backgrounded shell
+  (`command &`).** Confirmed the hard way, 2026-08-01: a `cog` build
+  started via plain `&` was silently killed when its owning session
+  ended, losing 5+ hours of work with no error, no `.tif` renamed, and
+  no process left to notice -- indistinguishable from "still running"
+  until you check `ps aux` and find nothing. A tracked background task
+  survives a session boundary and reports completion/failure properly.
+- **`just stac` (= `stac-item` + `stac-catalog`) already rebuilds
+  `docs/catalog.json` from *every* Item in `docs/items/` each time it
+  runs** -- the catalog is never stale between individual layer
+  publishes, there's no separate "periodically refresh the catalog"
+  step needed. What matters operationally is not letting a batch of
+  `upload`-completed layers sit unpublished (no STAC Item yet, not in
+  the catalog) while chasing the next build -- run the
+  `verify -> stac -> stac-validate -> cleanup -> commit` tail promptly
+  once each layer's `upload` finishes.
+- **When reporting pipeline status, give a `published/pool` fraction,
+  not just an absolute count** (requested by Hidenori, 2026-08-01) --
+  `uv run python -m cogenerate.candidates --top 1 --sort-by date`'s
+  stderr summary line has both numbers (published count from live
+  STAC catalog census, pool count from `ichiran.html`). Re-run rather
+  than trusting a cached fraction; the pool total drifts and a handful
+  of `_dansaizu`/`_shinsui`-suffixed non-photo entries are baked into
+  the raw pool count (see the candidate-filtering note above) so treat
+  it as the working denominator, not a mathematically exact one.
 
 ## Decisions and open questions
 
