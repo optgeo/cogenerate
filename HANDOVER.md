@@ -51,18 +51,23 @@ now**:
 | Layer | Area | Upload status |
 |---|---|---|
 | `20260729kumamoto_yatsushiro_0729do_sokuho` | 八代, Kumamoto (D17/D18 rebuild) | **done**, confirmed live 2026-07-31T02:58:16Z, 6,422,996,048 bytes |
-| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **retrying** -- first attempt hit expired session creds (same ~1.5h TTL issue as kumamoto's rebuild) |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | queued |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | queued |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | queued |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | queued |
+| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **done** -- second attempt succeeded after Hidenori re-ran `source-coop login` |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **uploading now** |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | queued next |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | queued next |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | queued next (last one) |
 
 **If credentials are expired when picking this up**: `source-coop
 login` needs Hidenori (browser OAuth, D10) -- ask him, don't try to
 work around it. Once fresh, `LAYER=<id> just upload` per remaining row
-above, in order. Verify each with `aws s3api head-object --bucket
-smartmaps --key cogenerate/<id>.tif --profile source-coop --query
-'{LastModified:LastModified,Size:ContentLength}'`.
+above, in order (safe/idempotent to re-run even if one was mid-flight
+when this session ended). Verify each with `aws s3api head-object
+--bucket smartmaps --key cogenerate/<id>.tif --profile source-coop
+--query '{LastModified:LastModified,Size:ContentLength}'` --
+`LastModified` should read 2026-07-31 once done. **Once all 6 rows
+above say done, this whole upload effort is complete** -- nothing else
+is queued behind it except the general backlog (D6 OAM, `stac_item.py`,
+publishing the other ~68 layers cataloged in `layers-martin`).
 
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate): `README.md` (D14), plus the
