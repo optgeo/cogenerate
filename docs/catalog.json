@@ -17,6 +17,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20140828dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20140828dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20140830dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20140830dol"
