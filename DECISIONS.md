@@ -903,3 +903,21 @@ for at full subprocess cost. Revisit if a layer ever legitimately needs
 a non-RGB/RGBA tile (would silently fall back to the slow path,
 correctly but without comment -- watch the `cog` recipe's fallback
 count if `georef` unexpectedly stays slow for a specific layer).
+
+**Unrelated pre-existing bug caught while re-running amakusa's rebuild
+the same session**: `discover_tiles()`'s glob (`*/*/*.{ext}`) also
+matched `clean_black_nodata()`'s own leftover `<y>.cleaned.<ext>`
+output from an *earlier* run (D12) -- `Path("106049.cleaned.png").stem`
+is `"106049.cleaned"`, not an int, so `int(p.stem)` crashed the whole
+`georef` step. Not a D22 side-effect -- this glob is original code,
+just never exercised against a directory containing a real `.cleaned`
+file until amakusa's rebuild (the first layer whose *first* build had
+actually triggered D12's cleaning, so the *second* build was also the
+first to re-scan a directory containing one). Fixed by skipping any
+`p.stem.endswith(".cleaned")` match in `discover_tiles()`. Caught the
+same day because the rebuild's `cog` step was correctly skipped
+(mtime-based, D11) when `georef` crashed rather than silently
+publishing stale output -- but it's worth noting the `run` recipe's
+final `echo "done: ..."` prints unconditionally, so a silent skip
+downstream of a crash isn't obviously distinguishable from a real
+success without checking the actual file mtime/size, as happened here.

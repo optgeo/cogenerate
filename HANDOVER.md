@@ -29,6 +29,24 @@ a minute post-restart, `noto` (270,378 tiles, was projected ~19h for
 this step alone) is now moving at a similar accelerated pace. Full
 rationale/verification: DECISIONS.md D22.
 
+**yatsushironishi rebuild complete end to end**: uploaded (after
+Hidenori re-ran `source-coop login`, credentials had expired), `just
+verify` confirmed (6,260,281,755 bytes), STAC Item + catalog refreshed,
+`tiles/`/`out/*.tif` cleaned up (D20). **amakusa's rebuild initially
+looked done but wasn't** -- its `georef` step silently crashed
+(`discover_tiles()` choked on a leftover `.cleaned.png` sidecar from
+D12, a pre-existing bug unrelated to D22, only now exercised) --
+caught because the file size/mtime didn't match what a real rebuild
+should have produced, not because anything printed an error near the
+end. Fixed (`discover_tiles()` now skips `.cleaned` sidecars) and
+amakusa's rebuild is redoing `georef`+`cog` now. **Lesson**: `just
+run`'s final `echo "done: ..."` always prints, even when an earlier
+step in the chain failed and a later step then correctly no-ops on
+stale mtimes -- don't trust that line alone, check the actual output
+file's size/mtime when a rebuild matters. yatsushirohigashi still
+needs the same upload+STAC-refresh+cleanup treatment (its `cog`
+finished earlier, untouched since).
+
 **Disk space: was a real constraint, now has a wide margin (D20).**
 With 6 `cogenerate` layers building in parallel, 460GB volume was down
 to ~51-59GB free 2026-07-31 (`tiles/20240102noto_0405_0426do/` alone

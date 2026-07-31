@@ -155,8 +155,16 @@ def tile_bounds_3857(z: int, x: int, y: int) -> tuple[float, float, float, float
 
 
 def discover_tiles(root: Path, ext: str) -> list[tuple[int, int, int, Path]]:
+    """Bug caught live 2026-07-31 re-running amakusa's rebuild: this glob
+    also matches `clean_black_nodata()`'s own `<y>.cleaned.<ext>` output
+    sidecars left over from an earlier run (D12) -- `Path.stem` on
+    `106049.cleaned.png` is `"106049.cleaned"`, not an int, crashing
+    `int(p.stem)` below. Those are outputs of this pipeline, not source
+    tiles to enumerate independently -- skip them."""
     tiles = []
     for p in root.glob(f"*/*/*.{ext}"):
+        if p.stem.endswith(".cleaned"):
+            continue
         y = int(p.stem)
         x = int(p.parent.name)
         z = int(p.parent.parent.name)
