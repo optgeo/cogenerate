@@ -2,10 +2,14 @@
 
 > Generator for COGs from GSI emergency-response aerial imagery
 
-Reassemble GSI (国土地理院) disaster-response XYZ tiles -- as surfaced by
-[hfu/layers-martin](https://github.com/hfu/layers-martin) -- into
-Cloud-Optimized GeoTIFFs, catalog them as static STAC, publish via
-Source Cooperative + GitHub Pages, and make them usable in OpenAerialMap.
+GSI (国土地理院) has a strong, decades-long track record of publishing
+new aerial imagery as ZXY tiles within days of a disaster -- as
+surfaced by [hfu/layers-martin](https://github.com/hfu/layers-martin).
+This project complements that with a distribution format suited to
+cloud-native GIS and ML workflows: reassemble the same imagery into
+Cloud-Optimized GeoTIFFs, catalog it as static STAC alongside the
+existing tiles, publish via Source Cooperative + GitHub Pages, and
+make it usable in OpenAerialMap.
 
 Part of the [optgeo](https://github.com/optgeo) "Adopt Geodata" family.
 
@@ -18,7 +22,19 @@ entry against `ichiran.html`'s actual disaster-response table
 structure rather than guessing from the ID string; don't trust a fixed
 number here, new layers are added whenever a new disaster response
 starts). The goal is to run all of them through this pipeline and get
-them into OpenAerialMap, not just the handful published so far.
+them into OpenAerialMap. **38/194 published as of 2026-08-01** --
+re-run `candidates.py` (its stderr summary line reports both numbers)
+rather than trusting this fraction, it moves often.
+
+The archive turns out to span further than expected: this year's
+Kumamoto/Noto-era disaster response back through 1947-48 and 1962
+reference imagery of Hiroshima (kept by GSI alongside its 2014
+landslide-disaster layers, for land-use comparison against the
+present day).
+
+Priority currently favors Hiroshima-area layers ahead of FOSS4G 2026
+Hiroshima (`candidates.py --keyword 広島市`) -- see `HANDOVER.md` for
+the live state of that push.
 
 ## Documentation map
 
