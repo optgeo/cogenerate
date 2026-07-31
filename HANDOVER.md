@@ -68,8 +68,8 @@ conflict):
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
 | `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
 | `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | in progress | -- |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | not started | -- | -- | -- |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (7m31s) |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | in progress (D17/D18-enabled) | -- | -- | -- |
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
 z10) are recorded in this file's "multi-layer run" entry further down
