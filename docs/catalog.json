@@ -137,6 +137,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_wazimanaka_0102do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_wazimanaka_0102do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240102noto_wazimanaka_0111do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102noto_wazimanaka_0111do"
