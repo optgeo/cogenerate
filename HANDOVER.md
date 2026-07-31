@@ -24,6 +24,17 @@ window. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
+**`source-coop` credentials expired again, 2026-08-01 ~00:2x** (mid
+`anamizu_0117do` upload) -- per the existing rule, this needs Hidenori
+to run `source-coop login` personally, not worked around. Since he's
+in the unreachable window, the loop kept going on everything that
+doesn't need the credential (probe/download/georef/cog for the
+remaining noto sub-district layers) so finished COGs queue up locally
+for `upload` the moment credentials are refreshed, rather than the
+whole pipeline stalling. Check `aws s3api head-object --bucket
+smartmaps --key cogenerate/README.md --profile source-coop --query
+LastModified --output text` if resuming and unsure of current state.
+
 ### Do this first when resuming
 
 1. **Check `source-coop` credentials** -- they expire on their own
