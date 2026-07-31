@@ -38,43 +38,60 @@ head-object`: `LastModified: 2026-07-31T02:58:16+00:00`, `Size:
 
 Every other already-probed layer should eventually get a `FORCE=1`
 re-probe too, to check whether it was similarly incomplete -- not
-urgent for the in-progress test-run layers below (small, single-area
-layers, less likely to straddle a minzoom boundary, but not verified
-either). New probes (layer 4 onward) automatically get D17+D18's
-robustness with no changes needed on the caller's side.
+urgent for the 5 test-run layers below (probed *after* D17/D18 landed,
+so already correct -- see per-layer minzoom-tile counts in the table).
+
+**All 5 pipeline stages (probe/download/georef/cog) are done locally
+for all 6 layers now** (kumamoto_yatsushiro + the 5-layer test run).
+Hidenori has now approved publishing the test-run layers too (COG
+metadata design -- D15 -- has stabilized), superseding the earlier
+"local only" instruction. **Uploading all 6 to Source Cooperative
+now**:
+
+| Layer | Area | Upload status |
+|---|---|---|
+| `20260729kumamoto_yatsushiro_0729do_sokuho` | 八代, Kumamoto (D17/D18 rebuild) | **done**, confirmed live 2026-07-31T02:58:16Z, 6,422,996,048 bytes |
+| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **retrying** -- first attempt hit expired session creds (same ~1.5h TTL issue as kumamoto's rebuild) |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | queued |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | queued |
+| `20240923rain_wajima_0923do_sokuho` | 輪島 | queued |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | queued |
+
+**If credentials are expired when picking this up**: `source-coop
+login` needs Hidenori (browser OAuth, D10) -- ask him, don't try to
+work around it. Once fresh, `LAYER=<id> just upload` per remaining row
+above, in order. Verify each with `aws s3api head-object --bucket
+smartmaps --key cogenerate/<id>.tif --profile source-coop --query
+'{LastModified:LastModified,Size:ContentLength}'`.
 
 Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
-https://source.coop/smartmaps/cogenerate):
-- `README.md` (D14)
-- `20260729kumamoto_yatsushiro_0729do_sokuho.tif` -- **currently stale
-  w.r.t. D17/D18** (still the D15-fixed-but-pre-D17 26,982-tile
-  version). Rebuilt locally, re-upload blocked on login refresh, see
-  above.
+https://source.coop/smartmaps/cogenerate): `README.md` (D14), plus the
+table above.
 
 Verified separately (D16): a brightness difference Hidenori noticed
-between this COG's Source Cooperative preview and 地理院地図's own
-viewer is the previewer's rendering, not our data -- pixel values
-match GSI's original tiles exactly at native res and within <1% at
-the coarsest overview. No action needed.
+between the kumamoto_yatsushiro COG's Source Cooperative preview and
+地理院地図's own viewer is the previewer's rendering, not our data --
+pixel values match GSI's original tiles exactly at native res and
+within <1% at the coarsest overview. No action needed.
 
-Multi-layer test run (Hidenori's request: prioritize new-disaster /
-Kumamoto-area layers while he's away; not approved for Source
-Cooperative upload -- local COGs only, unless/until he says otherwise).
-Resumed alongside the kumamoto_yatsushiro rebuild (independent, no
-conflict):
+### Multi-layer test-run detail (probe/download/georef/cog all done for all 5)
 
 | Layer | Area | probe | download | georef | cog |
 |---|---|---|---|---|---|
-| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed) | done | done (D12 triggered once, real) | **done, D15 applied** |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** |
+| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | done (23,767 confirmed, pre-D17/D18) | done | done (D12 triggered once, real) | **done, D15 applied** |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | done (2,276 confirmed, pre-D17/D18) | done | done (0 D12 triggers) | **done, D15 applied** (41s build) |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | done (14,896 confirmed, pre-D17/D18) | done | done (0 D12 triggers) | **done, D15 applied** |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | done (D17/D18: 4 minzoom tiles, 18,917 confirmed) | done | done (0 D12 triggers) | **done, D15 applied** (7m31s) |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | done (D17/D18: 3 minzoom tiles, 25,711 confirmed) | done | in progress | -- |
+| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | done (D17/D18: 3 minzoom tiles, 25,711 confirmed) | done | done (0 D12 triggers, 1h07m) | **done, D15 applied** (9m33s) |
 
-**This is the last layer of the 5-layer test run.** Once its `cog`
-finishes, all 5 are done locally (none uploaded to Source Cooperative
-except kumamoto_yatsushiro, per Hidenori's original instruction --
-ask him before publishing layers 2-5).
+Note: the first 3 layers (amakusa, yatsushirohigashi, yatsushironishi)
+were probed *before* D17/D18 landed -- their single-seed-only counts
+are unverified against the flood-fill/grid fix. Low risk (small,
+single-district layers, less likely to straddle a minzoom boundary
+than the elongated kumamoto_yatsushiro coastline was), but if any of
+their published COGs are later found to have a similar missing-edge
+problem, `FORCE=1` re-probe them the same way kumamoto_yatsushiro was
+fixed.
 
 Seed coordinates for all 5 (from `ichiran.html` tilejump, z15 ÷ 32 →
 z10) are recorded in this file's "multi-layer run" entry further down
