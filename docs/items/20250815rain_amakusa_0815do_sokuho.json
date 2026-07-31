@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20250815rain_amakusa_0815do_sokuho",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          130.1715088,
+          32.5468132
+        ],
+        [
+          130.1715088,
+          32.3625633
+        ],
+        [
+          130.4296875,
+          32.3625633
+        ],
+        [
+          130.4296875,
+          32.5468132
+        ],
+        [
+          130.1715088,
+          32.5468132
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    130.1715088,
+    32.3625633,
+    130.4296875,
+    32.5468132
+  ],
+  "properties": {
+    "datetime": "2025-08-15T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20250815rain_amakusa_0815do_sokuho",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20250815rain_amakusa_0815do_sokuho/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://source.coop/smartmaps/cogenerate/20250815rain_amakusa_0815do_sokuho.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 4562555514,
+      "file:checksum_sha256": "c0a0aa7d6c3b4680850ec14f0f3c607be96e47258e5d5365b0610815329249f5"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}

@@ -115,14 +115,13 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
 
 ## Decisions and open questions
 
-Full ADR log: `DECISIONS.md` (18 entries as of 2026-07-31). One entry
-is currently **Open** and blocks `stac_item.py` -- do not silently
-pick it, surface to Hidenori:
-
-- **D6**: OpenAerialMap ingestion path (API push vs. STAC harvest) --
-  unresearched, though D6 also has notes on OAM's roadmap direction
-  worth reading before assuming this needs a full token-flow
-  integration.
+Full ADR log: `DECISIONS.md` (19 entries as of 2026-07-31). No entry is
+currently Open -- D6 (OAM ingestion path) was resolved to Accepted:
+build a static STAC catalog first (schema in D19, matching sibling
+repo `optgeo/oam-starc`'s conventions), approach HOTOSM once it's real.
+Two things from D6/D19 still need Hidenori specifically, not something
+to just do silently: turning on GitHub Pages for `optgeo/cogenerate`
+(off as of 2026-07-31), and actually contacting HOTOSM/OAM.
 
 (D4, STAC `datetime` source, was Open but Hidenori decided it
 2026-07-31 -- capture-date fragment, not ichiran.html's publish date.)
@@ -137,6 +136,11 @@ just georef                      # tile PNGs -> merged VRT (EPSG:3857)
 just cog                         # VRT -> COG (overviews generated here)
 just run                         # all of the above, one layer
 just upload                      # publish out/{{layer}}.tif to Source Cooperative (needs source-coop login done once, D10)
+just stac-item                   # build docs/items/{{layer}}.json from the already-built, already-uploaded COG (D19)
+just stac-catalog                # rebuild docs/catalog.json from every docs/items/*.json so far
+just stac                        # stac-item + stac-catalog for one layer
+just stac-validate                # validate every Item + the catalog against the STAC spec (needs `uv sync --extra dev`)
+
 just lint / just test
 
 # Useful env vars (all optional, see Justfile for full defaults):

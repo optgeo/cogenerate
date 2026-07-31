@@ -22,7 +22,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D3](#d3-cc0-10-license) | CC0-1.0 license | Accepted | 2026-07-30 |
 | [D4](#d4-stac-datetime-source-capture-date-vs-publish-date) | STAC `datetime` source: capture date vs. publish date | Accepted | 2026-07-31 |
 | [D5](#d5-zoom-to-fetch-fixed-at-maxzoom18-cog-overviews-generated-locally) | Zoom-to-fetch fixed at maxzoom=18, COG overviews generated locally | Accepted | 2026-07-30 |
-| [D6](#d6-openaerialmap-ingestion-path-still-open-now-with-research-notes) | OpenAerialMap ingestion path: still open, now with research notes | Open | 2026-07-30 |
+| [D6](#d6-openaerialmap-ingestion-path-still-open-now-with-research-notes) | OpenAerialMap ingestion path: still open, now with research notes | Accepted | 2026-07-30 |
 | [D7](#d7-read-layers-martins-catalog-from-its-canonical-live-url-never-a-local-clone) | Read layers-martin's catalog from its canonical live URL, never a local clone | Accepted | 2026-07-31 |
 | [D8](#d8-language-policy-japanese-chat-english-repository) | Language policy: Japanese chat, English repository | Accepted | 2026-07-31 |
 | [D9](#d9-disaster-response-principle-build-what-the-tile-server-confirms-dont-block-on-gsis-own-catalog-page) | Disaster-response principle: build what the tile server confirms, don't block on GSI's own catalog page | Accepted | 2026-07-31 |
@@ -35,6 +35,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D16](#d16-pixel-values-are-untouched-a-brightness-difference-vs-地理院地図-is-the-previewers-not-ours) | Pixel values are untouched: a brightness difference vs. 地理院地図 is the previewer's, not ours | Investigated, no action | 2026-07-31 |
 | [D17](#d17-flood-fill-at-minzoom-a-single-seed-tile-can-miss-real-coverage-in-a-neighboring-cell) | Flood-fill at minzoom: a single seed tile can miss real coverage in a neighboring cell | Accepted | 2026-07-31 |
 | [D18](#d18-seed-grid-expansion-tolerate-an-imprecise-seed-not-a-lower-zoom) | Seed-grid expansion: tolerate an imprecise seed, not a lower zoom | Accepted | 2026-07-31 |
+| [D19](#d19-stac-item--catalog-schema-hand-built-json-matching-oam-starcs-conventions) | STAC Item/Catalog schema: hand-built JSON, matching `oam-starc`'s conventions | Accepted | 2026-07-31 |
 
 ---
 
@@ -155,7 +156,8 @@ layer surveyed as of this writing).
 
 ## D6: OpenAerialMap ingestion path: still open, now with research notes
 
-**Status**: Open
+**Status**: Accepted (2026-07-31: option (a) below is now underway --
+see D19 for the concrete STAC Item/Catalog schema)
 
 **Context**: The pipeline's stated end goal (`README.md`) is "make them
 usable in OpenAerialMap," but OAM's actual ingestion mechanism (API
@@ -174,22 +176,28 @@ more providers ... to map publicly available STACs to the OAM metadata
 schema"` -- i.e. static-STAC harvesting is a planned direction, not
 something confirmed available today.
 
-**Decision**: Still not made -- this needs either (a) Hidenori
-contacting HOTOSM/OAM directly once we have a real static STAC catalog
-to show them (the "map publicly available STACs" roadmap item suggests
-this is the right conversation to have, and is a much better pitch with
-working output in hand), or (b) going through OAM's own account/token
-flow for the current v1 uploader if (a) stalls. Either way: **do not
-block finishing this pipeline's own static STAC + GitHub Pages
-catalog** (already-decided, in `CLAUDE.md`'s Mission) on resolving
-this -- that catalog is useful on its own, matching the rest of the
-`optgeo` "Adopt Geodata" family, regardless of whether/how OAM
-ultimately ingests it.
+**Decision**: Option (a) -- Hidenori contacts HOTOSM/OAM directly once
+a real static STAC catalog exists to show them (the "map publicly
+available STACs" roadmap item suggests this is the right conversation
+to have, and is a much better pitch with working output in hand).
+Option (b) (OAM v1's own account/token upload flow) stays available as
+a fallback if (a) stalls, not pursued first.
 
-**Consequences**: `stac_item.py`/`stac_catalog.py` can proceed using
-plain STAC spec conventions without OAM-specific schema contortions;
-revisit field choices only if/when an actual OAM ingestion conversation
-clarifies requirements.
+**Update, 2026-07-31**: found `optgeo/oam-starc` (a sibling repo,
+created the same day) doing the *reverse* direction -- mirroring OAM's
+own `/meta` API into a static STAC v1.0.0 catalog on GitHub Pages.
+Different data flow from what `cogenerate` needs (pull vs. push), but
+its STAC Item schema and operational pattern (hand-built JSON, GH
+Actions cron regen + commit-only-on-diff, `stac-validator`/`stac-valid`
+CI, GitHub Pages `docs/`) is a ready-made convention `cogenerate` now
+follows too -- see D19. Matching it means a future HOTOSM pitch lands
+on schema/tooling ground they (via this project's own author) already
+recognize.
+
+**Consequences**: `stac_item.py`/`stac_catalog.py` (D19) implement
+this now. GitHub Pages is not yet enabled on `optgeo/cogenerate`
+(checked 2026-07-31) -- turning it on, and actually approaching
+HOTOSM, both still need Hidenori.
 
 **Consequences**: Blocks the pipeline's final stage (OAM ingestion
 itself) and constrains `stac_item.py`'s design until resolved.
@@ -648,3 +656,63 @@ minzoom tiles correctly (`3 minzoom tile(s) found via flood-fill from
 value -- revisit if a future layer's seed is off by more than 2 tiles
 and the probe fails to find anything (raise the radius for that call
 via `SEED_GRID_RADIUS`, no code change needed).
+
+## D19: STAC Item/Catalog schema: hand-built JSON, matching `oam-starc`'s conventions
+
+**Status**: Accepted
+
+**Context**: D6 needed a concrete STAC schema before `stac_item.py`/
+`stac_catalog.py` could be written. `optgeo/oam-starc` (found
+2026-07-31, same day it was created) already mirrors OAM's own
+metadata into static STAC and is a live, working reference for
+schema/asset conventions HOTOSM-adjacent consumers would recognize --
+using it as a template (rather than inventing a schema from scratch or
+adopting a generic STAC SDK's defaults) makes a future HOTOSM pitch
+(D6) land on familiar ground.
+
+**Decision**:
+- No STAC SDK dependency (`pystac` etc.) -- Items/Catalog are built as
+  plain Python dicts and `json.dumps`, matching both `oam-starc`'s own
+  approach (hand-built JSON in Ruby) and D2's "small, inspectable
+  units, no unnecessary embedded libraries" preference.
+- `stac_catalog.py`'s Catalog uses proper `links` with `rel: "item"`
+  pointing at each Item's own hosted JSON file -- **not**
+  `oam-starc`'s inlined `items` array (non-standard: bundling full
+  Item objects, including large geometries/checksums, into one
+  ever-growing `catalog.json` doesn't scale the way this pipeline's
+  COGs do). Items and Catalog are separate files under `docs/`
+  (`docs/items/<layer>.json`, `docs/catalog.json`), each independently
+  fetchable and validatable.
+- Asset key/role convention borrowed directly from `oam-starc`'s
+  table: the COG asset is keyed `imagery` with `roles: ["ortho",
+  "data"]` and `type: image/tiff; application=geotiff;
+  profile=cloud-optimized`; a `metadata` asset (`roles: ["metadata"]`)
+  self-links to the Item's own JSON. No `thumbnail` asset yet (would
+  need a new render step -- future extension, not blocking).
+- `stac_extensions` stays `[]` until a field that actually needs one
+  is populated (e.g. `eo` if/when band-level metadata exists) --
+  matching `oam-starc`'s "don't declare what you don't use" rule.
+- Every field is sourced from data already on disk, no new scraping:
+  geometry/bbox from `gdalinfo -json`'s `wgs84Extent` (shelled out to,
+  per D2 -- never `osgeo` Python bindings); `datetime` from the layer
+  ID's embedded capture-date fragment (D4); title/source URL/copyright
+  from the COG's own D15 `-mo` tags, read back via the same `gdalinfo
+  -json` call; `gsd` computed from maxzoom=18 (D5), not scraped.
+- **License**: GSI's tile terms are Japan's government-standard usage
+  terms (政府標準利用規約), CC-BY-4.0-compatible -- distinct from the
+  CC0-1.0 that covers only this pipeline's own code (D3). The STAC
+  Item's `properties.license` is the real SPDX ID `"CC-BY-4.0"`, not
+  `"other"` (Hidenori, 2026-07-31: `"other"` reads as evasive to a
+  downstream consumer when a real SPDX ID applies -- correct this even
+  though `"other"` would have validated fine against the schema).
+
+**Consequences**: `stac_item.py --layer ... --cog ... --asset-url ...`
+produces one validated Item; `stac_catalog.py --items-dir docs/items/`
+rebuilds the Catalog from whatever Items exist so far. Both validated
+2026-07-31 against STAC 1.0.0 via `stac-valid`'s `stac-validator` CLI
+(not the deprecated `stac-validator` PyPI package -- it now prints a
+"please upgrade" notice pointing at `stac-valid`, so `pyproject.toml`'s
+`dev` extra uses the renamed package) -- all 6 already-published
+layers' Items plus the Catalog they produce are schema-valid. GitHub
+Pages is not yet enabled on `optgeo/cogenerate`; `docs/` exists and is
+ready to serve once it is (D6).

@@ -37,6 +37,8 @@ Each file has one job -- decisions don't get re-explained in
 ```sh
 uv sync
 LAYER=20260729kumamoto_yatsushiro_0729do_sokuho SEED_X=883 SEED_Y=414 just run
+just upload       # publish to Source Cooperative (needs source-coop login once, D10)
+just stac         # build/refresh this layer's STAC Item + the catalog (D19)
 ```
 
 (`just`'s recipe variables are read as environment variables -- set them

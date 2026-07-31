@@ -132,6 +132,38 @@ upload:
         s3://smartmaps/cogenerate/{{layer}}.tif \
         --profile source-coop --acl bucket-owner-full-control
 
+# Step 6 (manual, needs `upload` already done): build one layer's STAC
+# Item JSON from its already-built, already-uploaded COG (D6/D19).
+# asset_url assumes the standard Source Cooperative layout from
+# `upload`; override with ASSET_URL=... if a layer was published
+# somewhere else.
+docs_dir := "docs"
+asset_url := env_var_or_default("ASSET_URL", "https://source.coop/smartmaps/cogenerate/" + layer + ".tif")
+stac-item:
+    mkdir -p {{docs_dir}}/items
+    uv run python -m cogenerate.stac_item \
+        --layer {{layer}} \
+        --cog {{out_dir}}/{{layer}}.tif \
+        --asset-url {{asset_url}} \
+        > {{docs_dir}}/items/{{layer}}.json
+
+# Step 7: rebuild the top-level catalog.json from every Item generated
+# so far (docs/items/*.json). Re-run after any `stac-item`.
+stac-catalog:
+    uv run python -m cogenerate.stac_catalog \
+        --items-dir {{docs_dir}}/items/ \
+        > {{docs_dir}}/catalog.json
+
+# stac-item + stac-catalog for one layer, in order
+stac: stac-item stac-catalog
+    echo "done: {{docs_dir}}/items/{{layer}}.json, {{docs_dir}}/catalog.json refreshed"
+
+# Validate every generated Item + the catalog against the STAC spec
+# (D6/D19) -- needs `uv sync --extra dev` first for stac-valid.
+stac-validate:
+    uv run stac-validator batch {{docs_dir}}/items/*.json
+    uv run stac-validator validate {{docs_dir}}/catalog.json
+
 # Remove intermediate tiles (keep out/ COGs)
 clean:
     rm -rf tiles

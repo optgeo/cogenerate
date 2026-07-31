@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240923rain_wajima_0923do_sokuho",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          136.8717957,
+          37.4999209
+        ],
+        [
+          136.8717957,
+          37.2959055
+        ],
+        [
+          137.2013855,
+          37.2959055
+        ],
+        [
+          137.2013855,
+          37.4999209
+        ],
+        [
+          136.8717957,
+          37.4999209
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    136.8717957,
+    37.2959055,
+    137.2013855,
+    37.4999209
+  ],
+  "properties": {
+    "datetime": "2024-09-23T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240923rain_wajima_0923do_sokuho",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240923rain_wajima_0923do_sokuho",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240923rain_wajima_0923do_sokuho/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajima_0923do_sokuho.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://source.coop/smartmaps/cogenerate/20240923rain_wajima_0923do_sokuho.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240923rain_wajima_0923do_sokuho",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 3718713191,
+      "file:checksum_sha256": "405aeb077ce0ab4d949c884bb551ce38e51ab2517c06c5b0c46e82c0278012a9"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajima_0923do_sokuho.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}

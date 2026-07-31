@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
+    "stac-valid>=4.5.1",
 ]
 
 [build-system]

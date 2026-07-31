@@ -1,0 +1,55 @@
+{
+  "stac_version": "1.0.0",
+  "type": "Catalog",
+  "id": "cogenerate",
+  "title": "GSI Disaster-Response Aerial Imagery (COGs)",
+  "description": "Cloud-Optimized GeoTIFFs reassembled from GSI (国土地理院) disaster-response aerial imagery tiles, published on Source Cooperative. See https://github.com/optgeo/cogenerate.",
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240809hyuganada_nichinan_0809do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240809hyuganada_nichinan_0809do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240923rain_wajima_0923do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240923rain_wajima_0923do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_amakusa_0815do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_yatsushirohigashi_0816do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20250815rain_yatsushirohigashi_0816do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20250815rain_yatsushironishi_0816do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20250815rain_yatsushironishi_0816do_sokuho"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20260729kumamoto_yatsushiro_0729do_sokuho.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20260729kumamoto_yatsushiro_0729do_sokuho"
+    }
+  ]
+}

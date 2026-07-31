@@ -8,70 +8,51 @@ of looking for rationale here -- entries below link to the relevant
 ## Current status (read this first, then the dated entries below for detail)
 
 **Keep this section current** -- update it every time status changes,
-don't let it drift while only appending dated entries below.
+don't let it drift while only appending dated entries below. Older
+resolved sagas (D17/D18 flood-fill fix, the original 6-layer upload
+push) have been trimmed from here now that they're fully done and
+superseded -- full detail is preserved in the dated entries below if
+needed, nothing lost, just not repeated at the top anymore.
 
-**D17/D18 fully resolved and live** -- Hidenori spotted missing
-northern coverage in `20260729kumamoto_yatsushiro_0729do_sokuho`'s
-published COG; root cause found and fixed in two parts:
-- **D17**: `probe.py`'s single-seed quadtree descent could never
-  discover a *sibling* minzoom tile with real data (only children of
-  the seed). Fixed with a minzoom flood-fill (`expand_seeds_at_minzoom()`).
-  Re-probed with `FORCE=1`: **found 3 minzoom tiles (was 1), 32,016
-  confirmed z18 tiles (was 26,982, +5,034 / +18.7%)**.
-- **D18**: Hidenori then asked about making seed selection itself more
-  robust (tried lowering the seed's zoom -- confirmed GSI serves
-  nothing below z10 for these layers, so that specific idea doesn't
-  work). Implemented instead: a `(2r+1)x(2r+1)` grid of candidate
-  tiles at minzoom around each seed before flood-filling (default
-  radius 2 = 5x5, `SEED_GRID_RADIUS` to override). Validated with a
-  seed deliberately offset 2 tiles -- still found the real coverage.
+**6 layers published on Source Cooperative** (`s3://smartmaps/cogenerate/`,
+https://source.coop/smartmaps/cogenerate): `20260729kumamoto_yatsushiro_0729do_sokuho`,
+`20250815rain_amakusa_0815do_sokuho`, `20250815rain_yatsushirohigashi_0816do_sokuho`,
+`20250815rain_yatsushironishi_0816do_sokuho`, `20240923rain_wajima_0923do_sokuho`,
+`20240809hyuganada_nichinan_0809do_sokuho`. Plus `README.md` (D14).
 
-Re-download (D11-incremental, only ~5,034 new tiles), re-georef (also
-incremental, 13m39s), `FORCE=1 just cog` rebuild (15m37s, new size
-64000x76800 up from 61184x65536, 6.42GB, verified `LAYOUT=COG`/
-`NoData Value=0`), and **re-upload are all done**. First re-upload
-attempt failed on expired session credentials; Hidenori re-ran
-`source-coop login`, retry succeeded (ran in parallel with the layer-4
-georef below, per his request) -- confirmed live via `aws s3api
-head-object`: `LastModified: 2026-07-31T02:58:16+00:00`, `Size:
-6422996048`. **This layer is fully current on Source Cooperative.**
+**Next batch: 3 spatially-large layers, picked from the ~75 remaining
+`_do`/`_do_sokuho` layers in `layers-martin`'s catalog** (Hidenori
+asked for the biggest-looking ones first). No real bbox/km² field
+exists on GSI's side (confirmed this session) -- ranked instead by
+`ichiran.html`'s free-text 提供範囲 (coverage) field's municipality
+count, a weak but real proxy:
 
-Every other already-probed layer should eventually get a `FORCE=1`
-re-probe too, to check whether it was similarly incomplete -- not
-urgent for the 5 test-run layers below (probed *after* D17/D18 landed,
-so already correct -- see per-layer minzoom-tile counts in the table).
+| Layer | Area | Municipalities | Pipeline status |
+|---|---|---|---|
+| `20240102noto_0405_0426do` | 能登地区 (2024 Noto earthquake), Ishikawa + Toyama | 19 | probe done (**270,378** confirmed z18 tiles -- ~8.4x kumamoto_yatsushiro's 32,016), download in progress |
+| `20191012typhoon19_tamagawa_1013do` | 多摩川地区 (2019 Typhoon 19), Tokyo + Kanagawa | 15 | queued next (seed 909,403 @ z10) |
+| `20190828kyusyu_sagachiku_0830do` | 佐賀地区 (2019 Kyushu rain), Saga | 10 | queued last (seed 882,411 @ z10); ichiran.html's データソース text calls this one "佐賀地区一部" (partial) despite the h4 title saying "佐賀地区" -- sanity-check extent against the 3 sibling variants (`0831do`, `0830do_sokuho`, `0831do_sokuho`) if the result looks suspiciously small |
 
-**All 5 pipeline stages (probe/download/georef/cog) are done locally
-for all 6 layers, and all 6 are now uploaded to Source Cooperative.**
-Hidenori approved publishing the test-run layers too (COG metadata
-design -- D15 -- has stabilized), superseding the earlier "local only"
-instruction. **This upload effort is complete**:
+**Building locally only -- ask Hidenori before `just upload` for any of
+these 3**, same as every new layer (publishing needs a fresh ask each
+time, not covered by the earlier 6-layer approval).
 
-| Layer | Area | Upload status |
-|---|---|---|
-| `20260729kumamoto_yatsushiro_0729do_sokuho` | 八代, Kumamoto (D17/D18 rebuild) | **done**, confirmed live 2026-07-31T02:58:16Z, 6,422,996,048 bytes |
-| `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **done**, confirmed live 2026-07-31T05:45:01Z, 4,562,555,514 bytes -- second attempt succeeded after Hidenori re-ran `source-coop login` |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **done**, confirmed live 2026-07-31T05:48:03Z, 409,611,024 bytes |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | **done**, confirmed live 2026-07-31T05:50:06Z, 2,885,369,099 bytes |
-| `20240923rain_wajima_0923do_sokuho` | 輪島 | **done**, confirmed live 2026-07-31T05:53:09Z, 3,718,713,191 bytes |
-| `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | **done**, confirmed live 2026-07-31T05:56:27Z, 4,953,928,578 bytes |
+**STAC catalog implementation landed this session (D6 resolved, D19
+added)**: `src/cogenerate/stac_item.py` + `stac_catalog.py`, schema
+modeled on sibling repo `optgeo/oam-starc` (found this session -- see
+D6/D19 for why). `just stac-item` / `just stac-catalog` / `just stac` /
+`just stac-validate` wired in `Justfile`. Ran for all 6 already-
+published layers: `docs/items/*.json` (6 files) + `docs/catalog.json`,
+all validated 2026-07-31 against STAC 1.0.0 via `stac-valid`'s
+`stac-validator` CLI (added as a `dev` extra in `pyproject.toml` --
+note the PyPI package renamed from `stac-validator` to `stac-valid`,
+the old name now just prints an upgrade notice). **GitHub Pages is
+NOT yet enabled for `optgeo/cogenerate`** (checked this session,
+`has_pages: false`) -- `docs/` is ready to serve once Hidenori turns
+it on; not done proactively (repo settings change). Still open, needs
+Hidenori: actually contacting HOTOSM/OAM once Pages is live (D6).
 
-All 6 verified together via `aws s3api list-objects-v2 --bucket
-smartmaps --prefix cogenerate/ --profile source-coop` in the same
-session that finished the uploads -- no re-verification needed unless
-something changes. **Nothing else is queued behind this** except the
-general backlog (D6 OAM, `stac_item.py`, publishing the other ~68
-layers cataloged in `layers-martin`).
-
-Published, live on Source Cooperative (`s3://smartmaps/cogenerate/`,
-https://source.coop/smartmaps/cogenerate): `README.md` (D14), plus the
-table above.
-
-Verified separately (D16): a brightness difference Hidenori noticed
-between the kumamoto_yatsushiro COG's Source Cooperative preview and
-地理院地図's own viewer is the previewer's rendering, not our data --
-pixel values match GSI's original tiles exactly at native res and
-within <1% at the coarsest overview. No action needed.
+Nothing else is currently blocked on Hidenori.
 
 ### Multi-layer test-run detail (probe/download/georef/cog all done for all 5)
 
@@ -103,6 +84,74 @@ Nothing is currently blocked on Hidenori. Open decisions that will
 eventually need him: D6 (OAM ingestion path) before real OAM
 ingestion; whether to publish layers 2-5 to Source Cooperative once
 they're built.
+
+## 2026-07-31 (new session, continued further) -- 3 large layers picked, STAC catalog implemented
+
+After the prior entry's upload backlog finished (all 6 layers live),
+Hidenori asked to start on `layers-martin`'s ~75 remaining
+`_do`/`_do_sokuho` layers, prioritizing the spatially largest 3, while
+using wait time between pipeline stages to think through the OAM
+ingestion path (D6, still Open at the time).
+
+**Layer selection**: fetched `layers-martin`'s live catalog, filtered
+to `_do`/`_do_sokuho`-suffixed IDs (81 candidates -- some false
+positives from unrelated `gsjgeomap_*`/`*hirado`/`*mikado` layers whose
+IDs coincidentally end in "do", worth a regex tightening pass later
+but not blocking). GSI's `ichiran.html` has no real bbox/km² field per
+layer (confirmed by directly reading the page's actual HTML structure,
+not guessing) -- only a single z-whatever tilejump point and a
+free-text 提供範囲 (coverage) field listing municipality names. Used
+municipality count as a size proxy: top 3 were `20240102noto_0405_0426do`
+(能登, 19 munis across 2 prefectures -- by far the largest), then
+`20191012typhoon19_tamagawa_1013do` (多摩川, 15 munis), then
+`20190828kyusyu_sagachiku_0830do` (佐賀, 10 munis). Seeds derived from
+each layer's `ichiran.html` tilejump link, generalized to handle
+different thumbnail zoom levels (noto's was z11, not the usual z15 --
+`seed_z10 = coord >> (z - 10)` handles any source zoom correctly).
+
+Kicked off `just run` for noto first (the biggest): probe alone found
+**270,378 confirmed z18 tiles** -- about 8.4x kumamoto_yatsushiro's
+32,016, consistent with 19 municipalities vs. kumamoto_yatsushiro's
+single city. Download is now running (270k tiles at concurrency 8 will
+take a while); georef/cog will follow automatically via `just run`'s
+chain. tamagawa and sagachiku queued to run the same way once noto's
+`cog` step finishes.
+
+**OAM research -> STAC implementation**: found `optgeo/oam-starc`
+(created the same day), which mirrors OAM's own metadata API into
+static STAC -- opposite data direction from what `cogenerate` needs,
+but a live, working reference for STAC Item/Catalog schema and
+operational conventions. Hidenori approved matching it. Wrote
+`src/cogenerate/stac_item.py` (COG -> STAC Item, all fields sourced
+from data already on disk: `gdalinfo -json`'s `wgs84Extent` for
+geometry, D15's embedded `-mo` tags for title/copyright/source-url,
+layer-ID date-fragment parsing per D4 for datetime, maxzoom-derived
+gsd) and `stac_catalog.py` (Items -> `docs/catalog.json` via proper
+`rel:item` links, not `oam-starc`'s own non-standard inlined-items
+approach -- doesn't scale the way this pipeline's per-item file sizes
+do). New `Justfile` recipes `stac-item`/`stac-catalog`/`stac`/
+`stac-validate`. Added `stac-valid` as a `dev` extra (the PyPI package
+`stac-validator` was installed first, but it prints a "please upgrade,
+moved to stac-valid" deprecation notice -- switched before this landed
+anywhere, so the final dependency is the current package name).
+
+**Caught and fixed during review**: first draft set STAC
+`properties.license` to `"other"` -- Hidenori corrected this live: GSI
+tile terms are Japan's 政府標準利用規約, CC-BY-4.0-compatible, not some
+unspecified custom license, and `"other"` reads as evasive to a
+downstream consumer when a real SPDX ID applies. Fixed to
+`"CC-BY-4.0"` (kept a `license` link to GSI's terms page too, for the
+attribution-wording specifics CC-BY-4.0 alone doesn't capture). Full
+rationale in DECISIONS.md D19.
+
+Ran `stac-item` + `stac-catalog` for all 6 already-published layers:
+6 Item JSON files + 1 catalog, all validated against STAC 1.0.0 via
+`stac-valid`'s `stac-validator validate`/`batch` commands -- 6/6 Items
+valid, catalog valid. `ruff check src/` clean on both new modules.
+GitHub Pages is off for `optgeo/cogenerate` (`has_pages: false`,
+checked via `gh api`) -- flagged to Hidenori rather than enabled
+proactively (repo settings change). D6 resolved to Accepted, D19
+added with the full schema rationale.
 
 ## 2026-07-31 (new session, picked up from handover) -- remaining 3 uploads finished
 
