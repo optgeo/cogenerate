@@ -52,8 +52,8 @@ now**:
 |---|---|---|
 | `20260729kumamoto_yatsushiro_0729do_sokuho` | 八代, Kumamoto (D17/D18 rebuild) | **done**, confirmed live 2026-07-31T02:58:16Z, 6,422,996,048 bytes |
 | `20250815rain_amakusa_0815do_sokuho` | 天草上島, Kumamoto | **done** -- second attempt succeeded after Hidenori re-ran `source-coop login` |
-| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **uploading now** |
-| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | queued next |
+| `20250815rain_yatsushirohigashi_0816do_sokuho` | 八代東, Kumamoto | **done** |
+| `20250815rain_yatsushironishi_0816do_sokuho` | 八代西, Kumamoto | **uploading now** |
 | `20240923rain_wajima_0923do_sokuho` | 輪島 | queued next |
 | `20240809hyuganada_nichinan_0809do_sokuho` | 日南 | queued next (last one) |
 
