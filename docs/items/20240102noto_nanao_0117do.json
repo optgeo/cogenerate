@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240102noto_nanao_0117do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          136.6932678,
+          37.0836668
+        ],
+        [
+          136.6932678,
+          36.9992624
+        ],
+        [
+          137.0750427,
+          36.9992624
+        ],
+        [
+          137.0750427,
+          37.0836668
+        ],
+        [
+          136.6932678,
+          37.0836668
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    136.6932678,
+    36.9992624,
+    137.0750427,
+    37.0836668
+  ],
+  "properties": {
+    "datetime": "2024-01-17T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240102noto_nanao_0117do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240102noto_nanao_0117do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240102noto_nanao_0117do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_nanao_0117do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20240102noto_nanao_0117do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_nanao_0117do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 2380209325,
+      "file:checksum_sha256": "326ca32aad2a6622d402bb1d0505360555751cdb26f7bc8f58f79d1d57b94eb7"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_nanao_0117do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
