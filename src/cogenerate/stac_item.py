@@ -80,6 +80,7 @@ Usage:
 
 from __future__ import annotations
 
+import calendar
 import hashlib
 import json
 import re
@@ -177,7 +178,7 @@ def build_item(
         "geometry": geometry,
         "bbox": bbox_of(geometry),
         "properties": {
-            "datetime": parse_capture_date(layer),
+            **parse_capture_date(layer),
             "title": title,
             "gsd": GSD_Z18_M,
             "license": "CC-BY-4.0",
@@ -220,17 +221,23 @@ def build_item(
     }
 
 
-def parse_capture_date(layer_id: str) -> str:
+def parse_capture_date(layer_id: str) -> dict[str, str | None]:
     """Capture date embedded in the layer ID (DECISIONS.md D4): year
     from the ID's leading 4 digits, month/day from its last `_MMDDdo`
     fragment. Covers every `_do`/`_do_sokuho`/`dol`/`doh`-style layer
     ID seen in layers-martin's catalog census.
 
-    Some `dol`-suffixed IDs (e.g. `20230202_nishinoshima_dol`, volcano
-    monitoring captures) have no separate `_MMDDdo` fragment at all --
-    the full date is the leading 8 digits themselves, caught live
-    2026-08-01 when the regex-only version raised on these. Fall back
-    to parsing the leading `YYYYMMDD` directly in that case."""
+    Returns the STAC datetime properties to merge into an Item, not a
+    bare string -- most layers get an exact `{"datetime": "..."}`, but
+    a `dol`-suffixed ID with a leading `YYYYMM00` or `YYYY0000`
+    placeholder (GSI's own way of saying "somewhere in this month/year",
+    seen on `19480000dol`/`19620000dol`, historical reference imagery
+    of Hiroshima kept alongside the 2014 landslide-disaster layers) has
+    no exact day. STAC's core common-metadata date-and-time-range
+    fields (`datetime: null` + `start_datetime`/`end_datetime`, no
+    extension needed) represent that honestly instead of guessing a
+    single date -- decided live 2026-08-01 rather than left as the
+    hard error this function raised before that."""
     year = layer_id[:4]
     if not year.isdigit():
         raise ValueError(f"layer ID {layer_id!r} doesn't start with a 4-digit year")
@@ -239,19 +246,23 @@ def parse_capture_date(layer_id: str) -> str:
         match = m  # take the last match: closest to the "do" suffix
     if match is not None:
         month, day = match.group(1), match.group(2)
-        return f"{year}-{month}-{day}T00:00:00Z"
+        return {"datetime": f"{year}-{month}-{day}T00:00:00Z"}
     if layer_id[:8].isdigit():
         month, day = layer_id[4:6], layer_id[6:8]
-        if month == "00" or day == "00":
-            raise ValueError(
-                f"layer ID {layer_id!r} has a leading YYYYMMDD with a placeholder "
-                f"month/day ({month}/{day}) -- likely an approximate historical date "
-                "(e.g. GSI's own '0000' for an unknown month/day within a year); "
-                "needs a deliberate decision on how to represent that in STAC "
-                "(start_datetime/end_datetime range vs. a synthesized date), not a "
-                "silently-wrong single `datetime`"
-            )
-        return f"{year}-{month}-{day}T00:00:00Z"
+        if month == "00":
+            return {
+                "datetime": None,
+                "start_datetime": f"{year}-01-01T00:00:00Z",
+                "end_datetime": f"{year}-12-31T23:59:59Z",
+            }
+        if day == "00":
+            last_day = calendar.monthrange(int(year), int(month))[1]
+            return {
+                "datetime": None,
+                "start_datetime": f"{year}-{month}-01T00:00:00Z",
+                "end_datetime": f"{year}-{month}-{last_day:02d}T23:59:59Z",
+            }
+        return {"datetime": f"{year}-{month}-{day}T00:00:00Z"}
     raise ValueError(f"no _MMDDdo capture-date fragment found in {layer_id!r}")
 
 

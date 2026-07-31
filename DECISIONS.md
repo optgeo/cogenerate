@@ -921,3 +921,40 @@ publishing stale output -- but it's worth noting the `run` recipe's
 final `echo "done: ..."` prints unconditionally, so a silent skip
 downstream of a crash isn't obviously distinguishable from a real
 success without checking the actual file mtime/size, as happened here.
+
+## D23: STAC `datetime` for approximate historical dates: `null` + `start_datetime`/`end_datetime`, not a guessed single date
+
+**Status**: Accepted
+
+**Context**: D4 parses a layer ID's leading digits/`_MMDDdo` fragment
+for STAC `datetime`. Two live IDs don't fit that: `19480000dol` and
+`19620000dol` -- historical reference imagery of Hiroshima (1947-48
+and 1962) that GSI itself kept alongside its 2014 landslide-disaster
+layers, for land-use comparison against the present day. Both use
+GSI's own `0000` placeholder for "month/day unknown within this year"
+(`19620000dol`'s `ichiran.html` title is literally "1962年", no
+month/day at all). `stac_item.py`'s `parse_capture_date()` originally
+just raised on these (caught live 2026-08-01, picking up Hiroshima-area
+layers ahead of FOSS4G 2026 Hiroshima) rather than silently emitting a
+fabricated `-01-01` date.
+
+**Decision** (2026-08-01, made to keep the pipeline moving per
+Hidenori's standing directive not to block on decisions rather than
+escalate a two-layer edge case): use STAC's core common-metadata
+date-and-time-range fields -- `"datetime": null` plus
+`start_datetime`/`end_datetime` spanning the known precision (full
+calendar year for a `YYYY0000` ID, full month for `YYYYMM00`) -- no
+STAC extension needed, this is core spec. Represents genuine
+uncertainty honestly instead of picking an arbitrary day.
+
+**Consequences**: `parse_capture_date()`'s return type changed from a
+bare ISO string to a dict of STAC properties to merge in (exact-date
+layers get `{"datetime": "..."}`, imprecise ones get the null+range
+form) -- `build_item()` updated to `**parse_capture_date(layer)` into
+`properties` accordingly. Known gap: `19480000dol`'s own
+`ichiran.html` title says "1947年～1948年" (spans two years) but the
+layer ID's leading digits are `1948`, so this produces a 1948-only
+range, not 1947-1948 -- deliberately not special-cased from the
+scraped title text (would break D4's ID-first parsing consistency for
+one single historical layer); the STAC record is accurate to what the
+ID encodes, just not maximally precise for this one edge case.
