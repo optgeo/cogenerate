@@ -35,9 +35,21 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_nakagawa_1017do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_nakagawa_1017do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tamagawa_1013do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tamagawa_1013do"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_tokigawa_1013do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_tokigawa_1013do"
     },
     {
       "rel": "item",
