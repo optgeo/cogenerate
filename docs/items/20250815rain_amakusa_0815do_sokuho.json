@@ -81,7 +81,7 @@
   ],
   "assets": {
     "imagery": {
-      "href": "https://source.coop/smartmaps/cogenerate/20250815rain_amakusa_0815do_sokuho.tif",
+      "href": "https://data.source.coop/smartmaps/cogenerate/20250815rain_amakusa_0815do_sokuho.tif",
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "title": "GSI disaster-response ortho imagery: 20250815rain_amakusa_0815do_sokuho",
       "roles": [

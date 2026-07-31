@@ -134,18 +134,28 @@ upload:
 
 # Step 6 (manual, needs `upload` already done): build one layer's STAC
 # Item JSON from its already-built, already-uploaded COG (D6/D19).
-# asset_url assumes the standard Source Cooperative layout from
-# `upload`; override with ASSET_URL=... if a layer was published
-# somewhere else.
+# asset_url must be data.source.coop (the real image/tiff endpoint,
+# range-request-capable, GDAL-readable via /vsicurl/) -- NOT
+# source.coop (that's the Next.js product *page*, HTML, gdalinfo can't
+# open it; caught live 2026-07-31, every Item generated before this fix
+# used the wrong one). Override with ASSET_URL=... if a layer was
+# published somewhere else. --cog is passed even if the file's already
+# been cleaned up (D20) -- stac_item.py detects that itself and falls
+# back to reading from --asset-url directly; --previous-item/--output
+# both point at the same path so a refresh carries the old checksum
+# forward instead of needing the file at all (never plain `>`
+# redirection here -- see stac_item.py's own docstring for the
+# self-truncation race that would otherwise cause).
 docs_dir := "docs"
-asset_url := env_var_or_default("ASSET_URL", "https://source.coop/smartmaps/cogenerate/" + layer + ".tif")
+asset_url := env_var_or_default("ASSET_URL", "https://data.source.coop/smartmaps/cogenerate/" + layer + ".tif")
 stac-item:
     mkdir -p {{docs_dir}}/items
     uv run python -m cogenerate.stac_item \
         --layer {{layer}} \
         --cog {{out_dir}}/{{layer}}.tif \
         --asset-url {{asset_url}} \
-        > {{docs_dir}}/items/{{layer}}.json
+        --previous-item {{docs_dir}}/items/{{layer}}.json \
+        --output {{docs_dir}}/items/{{layer}}.json
 
 # Step 7: rebuild the top-level catalog.json from every Item generated
 # so far (docs/items/*.json). Re-run after any `stac-item`.
@@ -164,28 +174,41 @@ stac-validate:
     uv run stac-validator batch {{docs_dir}}/items/*.json
     uv run stac-validator validate {{docs_dir}}/catalog.json
 
-# Step 8 (D20): confirm a layer's local out/<layer>.tif matches what's
-# actually live on Source Cooperative -- the gate every cleanup recipe
-# below checks before deleting anything. Never trust "upload probably
-# succeeded"; always re-check the remote.
+# Step 8 (D20): confirm a layer's COG matches what's actually live on
+# Source Cooperative -- the gate every cleanup recipe below checks
+# before deleting anything. Never trust "upload probably succeeded";
+# always re-check the remote. Compares against local out/<layer>.tif
+# when it still exists; once that's been cleaned up, falls back to the
+# size already recorded in docs/items/<layer>.json (D19) -- Source
+# Cooperative, not out/, is the master copy once uploaded (D20), so
+# this stays meaningfully re-runnable at any point in a layer's
+# lifecycle, not just right after upload. Plain public HTTPS HEAD on
+# data.source.coop (no AWS credentials needed -- this only reads
+# already-public data, unlike `upload` itself).
 verify:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ ! -f "{{out_dir}}/{{layer}}.tif" ]; then
-        echo "NOT VERIFIED: {{out_dir}}/{{layer}}.tif doesn't exist locally" >&2
+    item_json="{{docs_dir}}/items/{{layer}}.json"
+    if [ -f "{{out_dir}}/{{layer}}.tif" ]; then
+        local_size=$(stat -f%z "{{out_dir}}/{{layer}}.tif" 2>/dev/null || stat -c%s "{{out_dir}}/{{layer}}.tif")
+        source_desc="local {{out_dir}}/{{layer}}.tif"
+    elif [ -f "$item_json" ]; then
+        local_size=$(uv run python -c "import json,sys; print(json.load(open(sys.argv[1]))['assets']['imagery']['file:size'])" "$item_json")
+        source_desc="recorded in $item_json"
+    else
+        echo "NOT VERIFIED: {{layer}} -- no local {{out_dir}}/{{layer}}.tif and no $item_json to compare against" >&2
         exit 1
     fi
-    local_size=$(stat -f%z "{{out_dir}}/{{layer}}.tif" 2>/dev/null || stat -c%s "{{out_dir}}/{{layer}}.tif")
-    remote_size=$(aws s3api head-object --bucket smartmaps --key "cogenerate/{{layer}}.tif" \
-        --profile source-coop --query 'ContentLength' --output text 2>/dev/null) || {
-        echo "NOT VERIFIED: {{layer}} -- no such object on Source Cooperative" >&2
+    remote_size=$(curl -sI "{{asset_url}}" | grep -i '^content-length:' | tr -d '\r' | awk '{print $2}')
+    if [ -z "$remote_size" ]; then
+        echo "NOT VERIFIED: {{layer}} -- couldn't reach {{asset_url}}" >&2
         exit 1
-    }
+    fi
     if [ "$local_size" != "$remote_size" ]; then
-        echo "NOT VERIFIED: {{layer}} -- local $local_size bytes != remote $remote_size bytes" >&2
+        echo "NOT VERIFIED: {{layer}} -- $source_desc is $local_size bytes, remote is $remote_size bytes" >&2
         exit 1
     fi
-    echo "verified: {{layer}} ($local_size bytes matches Source Cooperative)"
+    echo "verified: {{layer}} ($local_size bytes, $source_desc, matches {{asset_url}})"
 
 # Step 9 (D20): delete tiles/<layer>/ once `verify` confirms the COG
 # built from it is safely on Source Cooperative. Safe to run any time

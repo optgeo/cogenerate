@@ -66,6 +66,31 @@ still describe the *old, stale* COGs (wrong checksum/size) -- re-run
 `stac-catalog`) before trusting `cleanup-cog`'s "Item already exists"
 check for them specifically.
 
+**D21, same session**: Hidenori asked directly whether the tooling
+actually copes with Source Cooperative being the master copy (given
+D20 now deletes `out/*.tif`), not just whether the *policy* said so.
+Audit found two real bugs, both fixed and validated:
+- Every STAC Item generated so far had the **wrong asset `href`**:
+  `https://source.coop/...` is the human-browsable product *page*
+  (HTML), not something GDAL/a STAC client can open --
+  `https://data.source.coop/...` is the real `image/tiff` endpoint
+  (confirmed live: `Accept-Ranges: bytes`, opens fine via `gdalinfo
+  -json /vsicurl/...`). Not a D20 side-effect -- wrong from the very
+  first Item, D20 just forced actually checking.
+- `stac_item.py` had no way to regenerate an Item once `out/<layer>.tif`
+  was gone -- fixed with a remote fallback (`/vsicurl/` for
+  geometry/tags, HTTP HEAD for size, checksum carried forward from
+  `--previous-item` rather than re-hashed). `just verify` similarly no
+  longer needs the local file (falls back to the STAC Item's recorded
+  size) and dropped its AWS-credential dependency (plain public HTTPS
+  HEAD on `data.source.coop` instead of authenticated `head-object`).
+
+All 6 already-published layers' Items regenerated with the corrected
+URL and re-validated (6/6 valid); 3 of them (kumamoto_yatsushiro,
+wajima, nichinan, whose `out/*.tif` was already cleaned up) exercised
+the new remote-fallback path for real -- confirmed identical checksums
+carried forward, not re-downloaded. Full rationale: DECISIONS.md D21.
+
 **6 layers published on Source Cooperative** (`s3://smartmaps/cogenerate/`,
 https://source.coop/smartmaps/cogenerate): `20260729kumamoto_yatsushiro_0729do_sokuho`,
 `20250815rain_amakusa_0815do_sokuho`, `20250815rain_yatsushirohigashi_0816do_sokuho`,

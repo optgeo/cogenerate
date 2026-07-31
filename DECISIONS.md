@@ -37,6 +37,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D18](#d18-seed-grid-expansion-tolerate-an-imprecise-seed-not-a-lower-zoom) | Seed-grid expansion: tolerate an imprecise seed, not a lower zoom | Accepted | 2026-07-31 |
 | [D19](#d19-stac-item--catalog-schema-hand-built-json-matching-oam-starcs-conventions) | STAC Item/Catalog schema: hand-built JSON, matching `oam-starc`'s conventions | Accepted | 2026-07-31 |
 | [D20](#d20-local-storage-lifecycle-delete-tilesout-only-after-remote-is-the-verified-source-of-truth) | Local storage lifecycle: delete `tiles/`/`out/` only after remote is the verified source of truth | Accepted | 2026-07-31 |
+| [D21](#d21-tooling-must-actually-work-with-source-cooperative-as-the-master-copy-not-assume-outlayertif-is-still-there) | Tooling must actually work with Source Cooperative as the master copy, not assume `out/<layer>.tif` is still there | Accepted | 2026-07-31 |
 
 ---
 
@@ -777,3 +778,77 @@ hosting URL still resolves -- the 110GB original source COG itself)
 -- same underlying principle (don't keep local copies of data a
 finished pipeline has already durably published elsewhere), different
 repo, not itself part of `cogenerate`'s own lifecycle policy.
+
+## D21: Tooling must actually work with Source Cooperative as the master copy, not assume `out/<layer>.tif` is still there
+
+**Status**: Accepted
+
+**Context**: D20 established that `out/<layer>.tif` gets deleted once
+uploaded and its STAC Item exists -- but D20 itself only covered
+*when* to delete, not whether the rest of the toolchain could actually
+cope with the file being gone afterward. Hidenori asked directly: does
+every process actually treat Source Cooperative as the master, or do
+some still quietly assume `out/` is the real copy? Auditing found two
+real bugs, not hypothetical ones:
+
+1. **`stac_item.py` had no path forward once `out/<layer>.tif` was
+   deleted** -- `--cog` was required, `gdalinfo`/checksum/size all read
+   the local file unconditionally. Regenerating an Item after cleanup
+   (a schema fix, D19 changing, anything) was simply impossible for an
+   already-cleaned-up layer.
+2. **Every Item generated so far had the wrong asset `href`**:
+   `https://source.coop/<account>/<product>/<file>` is Source
+   Cooperative's Next.js product *page* (`content-type: text/html`) --
+   not a file GDAL (or any STAC client expecting `image/tiff`) can
+   open. `https://data.source.coop/<account>/<product>/<file>` is the
+   real data endpoint (`content-type: image/tiff`, `Accept-Ranges:
+   bytes`, confirmed live). This wasn't a D20 side-effect -- it was
+   wrong from the very first Item generated, D20 just made it visible
+   because reasoning about "what does a client actually fetch" forced
+   checking the URL instead of trusting it.
+
+**Decision**:
+- `stac_item.py`'s `--cog` is now optional. When absent or the path
+  doesn't exist, every field falls back to a remote source: `gdalinfo
+  -json /vsicurl/<asset_url>` for geometry/bbox/D15 tags (cheap even
+  for a multi-GB COG -- GDAL's COG driver only pulls header/overview
+  byte ranges over HTTP range requests, confirmed against
+  `data.source.coop`), an HTTP HEAD for file size, and the checksum
+  carried forward from `--previous-item` (an already-generated Item
+  for the same layer) rather than ever assumed -- downloading and
+  re-hashing the whole object from `asset_url` is a last resort only,
+  used and logged loudly, never silent.
+- Added `--output` (writes the file directly) as an alternative to
+  stdout redirection, specifically because `--previous-item` and
+  `--output` are routinely the *same path* (refreshing a layer's own
+  Item) -- a plain `command > file.json` shell redirect truncates
+  `file.json` before the process even starts, so reading it back via
+  `--previous-item` would see an empty file, not the old content.
+  `--output` reads-then-writes inside the one process, avoiding the
+  race entirely.
+- `Justfile`'s `asset_url` default fixed to `data.source.coop`; `stac-item`
+  now always passes `--previous-item`/`--output` at the same path.
+- `just verify` (D20's pre-deletion gate) no longer requires
+  `out/<layer>.tif` to exist: falls back to the file size already
+  recorded in `docs/items/<layer>.json` when the local COG is gone,
+  and switched from authenticated `aws s3api head-object` to a plain
+  public HTTPS HEAD on `data.source.coop` -- reading already-public
+  data doesn't need Source Cooperative credentials at all, so `verify`
+  (and everything gated on it) now works even if `source-coop login`'s
+  session has expired.
+- All 6 already-published layers' Items regenerated with the corrected
+  `href`; 3 whose `out/*.tif` was already gone (kumamoto_yatsushiro,
+  wajima, nichinan) exercised the new remote-fallback path for real,
+  not just in theory -- confirmed identical checksums to their prior
+  Items (carried forward, not re-hashed) and re-validated against STAC
+  1.0.0.
+
+**Consequences**: A STAC client (or a human) that actually tries to
+fetch the `imagery` asset of any Item generated before this fix would
+have gotten an HTML page, not a COG -- worth being aware of if
+anything cached/mirrored those earlier Items before 2026-07-31.
+Regenerating or fixing any layer's Item is now possible regardless of
+whether its local COG still exists, which is the normal state of
+affairs for most layers going forward (D20). `candidates.py` and
+`stac_catalog.py` were already remote/live-source-only (D7-style) and
+needed no changes.

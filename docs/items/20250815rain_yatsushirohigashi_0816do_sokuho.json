@@ -16,11 +16,11 @@
           32.5826922
         ],
         [
-          131.1328125,
+          131.1616516,
           32.5826922
         ],
         [
-          131.1328125,
+          131.1616516,
           32.6532509
         ],
         [
@@ -33,7 +33,7 @@
   "bbox": [
     131.0545349,
     32.5826922,
-    131.1328125,
+    131.1616516,
     32.6532509
   ],
   "properties": {
@@ -81,15 +81,15 @@
   ],
   "assets": {
     "imagery": {
-      "href": "https://source.coop/smartmaps/cogenerate/20250815rain_yatsushirohigashi_0816do_sokuho.tif",
+      "href": "https://data.source.coop/smartmaps/cogenerate/20250815rain_yatsushirohigashi_0816do_sokuho.tif",
       "type": "image/tiff; application=geotiff; profile=cloud-optimized",
       "title": "GSI disaster-response ortho imagery: 20250815rain_yatsushirohigashi_0816do_sokuho",
       "roles": [
         "ortho",
         "data"
       ],
-      "file:size": 409611024,
-      "file:checksum_sha256": "82787493341d97349f886499f01eb1e6fdafcd3bda7695606dca6161a25d08f2"
+      "file:size": 507742919,
+      "file:checksum_sha256": "c058d90fc16f242191b1fee962c358c90c0013e7d641ea11c7217ff1a5e3f2aa"
     },
     "metadata": {
       "href": "https://optgeo.github.io/cogenerate/items/20250815rain_yatsushirohigashi_0816do_sokuho.json",
