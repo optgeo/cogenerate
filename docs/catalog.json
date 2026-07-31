@@ -71,6 +71,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_anamizu_0114do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_anamizu_0114do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240102noto_anamizu_0117do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102noto_anamizu_0117do"
@@ -92,6 +98,12 @@
       "href": "https://optgeo.github.io/cogenerate/items/20240102noto_wazimahigashi_0114do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240102noto_wazimahigashi_0114do"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_wazimanaka_0111do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_wazimanaka_0111do"
     },
     {
       "rel": "item",
