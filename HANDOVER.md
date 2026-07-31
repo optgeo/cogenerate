@@ -9,7 +9,7 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-08-01 (fourth time -- see git history for
+section was rewritten 2026-08-01 (fifth time -- see git history for
 earlier versions) -- older detail lives only in the dated entries
 below now, not duplicated here.
 
@@ -27,18 +27,16 @@ counts as a fraction of the candidate pool whenever giving a status
 update, not just an absolute count -- `candidates.py`'s own summary
 line (`--top 1 --sort-by date`, read the stderr "N already published"
 line) gives the numerator; the pool total (currently 194, re-run to
-confirm since it drifts) is the denominator. As of this rewrite:
-**22 published / 194 pool (~11%)**, another 13 layers built and
-mid-upload (will bring it to 35/194, ~18%), plus 1 more
-(`20210705oame_0706do`) building now. Note the 194 figure is the raw
-tool output and includes a handful of non-photo false positives
+confirm since it drifts) is the denominator. **As of this rewrite:
+48 published / 194 pool (~25%)**. The 194 figure is the raw tool
+output and includes a handful of non-photo false positives
 (`_dansaizu`/`_shinsui` suffixes = 段彩図/浸水図 hazard maps, not
 aerial photos) that get skipped by hand as they're encountered --
 treat it as the working denominator, not a mathematically clean one.
 
-**Concurrency pattern going forward**: run one `upload` (network-bound,
-slow for big layers -- noto's 45GB took ~25min) *and* one build-chain
-step (probe/download/georef/cog, CPU or network bound, doesn't touch
+**Concurrency pattern**: run one `upload` (network-bound, slow for big
+layers -- noto's 45GB took ~25min) *and* one build-chain step
+(probe/download/georef/cog, CPU or network bound, doesn't touch
 `source-coop`) at the same time rather than serializing everything --
 they don't contend for the same resource. Keep an eye on concurrent
 `gdal_translate` count (`ps aux | grep gdal_translate`) if queuing more
@@ -56,127 +54,114 @@ once a layer's `upload` finishes, rather than letting 10+ uploaded
 layers accumulate with no STAC Item yet. `just stac-validate` after
 each `stac` catches schema drift immediately rather than in a batch.
 
-**`source-coop` credentials**: expired repeatedly this session (~4
-times in the original scaffolding session, once more around
-2026-08-01 00:2x mid-`anamizu_0117do` upload). Hidenori re-ran
-`source-coop login` as of ~06:2x and it's confirmed working again
-(`head-object` on `README.md` succeeds). If it expires again and
-Hidenori is unreachable: don't work around it, keep the credential-free
-build steps going (probe/download/georef/cog) so finished COGs queue
-in `out/` for `upload` the moment it's refreshed, same as this session
-already did once successfully.
+**`source-coop` credentials**: expired repeatedly this session. Each
+time, Hidenori re-ran `source-coop login` personally once he noticed
+(don't try to work around it -- ask, then keep credential-free build
+steps going while waiting so finished COGs queue in `out/` for
+`upload` the moment it's refreshed). Verify with `aws s3api head-object
+--bucket smartmaps --key cogenerate/README.md --profile source-coop
+--query LastModified --output text`.
 
-**noto's main COG finished, 2026-08-01 ~05:51** -- `20240102noto_0405_0426do.tif`,
-48,647,237,551 bytes, `LAYOUT=COG`/`NoData=0` confirmed via `gdalinfo`.
-This was the layer the "do this first" resume instructions were
-originally about (see D22-era entries below); it's now uploading
-(45.3GB, in progress as of this rewrite).
+**Priority: Hiroshima-area layers ahead of FOSS4G 2026 Hiroshima --
+DONE as of 2026-08-01 ~08:1x.** Hidenori asked for this shift (current
+work + already-queued items finish first, then switch). All 10
+Hiroshima-area disaster-response layers now published: the 2014
+Hiroshima landslide response (`20140820dol`/`dol2`/`dol3`, `20140828dol`,
+`20140830dol`, `20140831dol`) plus two historical reference layers GSI
+kept alongside it for land-use comparison (`19620000dol` = 1962,
+`19480000dol` = 1947-48 -- the oldest imagery in this catalog).
+`candidates.py --keyword <text>` (substring match on 提供範囲 coverage
+text, e.g. `--keyword 広島市`) exists for this kind of temporary
+geographic prioritization -- known false positive: `広島市` also
+matches 北海道's `北広島市`, eyeball results before queuing. **No
+further known Hiroshima candidates in the current 194-pool** (checked
+broadly against every Hiroshima-prefecture city name, not just 広島市)
+-- revert to `--sort-by date` (no `--keyword`) for "what's next" unless
+told otherwise.
+
+**D23 (2026-08-01)**: the two historical Hiroshima layers had `YYYY0000`-style
+IDs with no real day -- `parse_capture_date()` in `stac_item.py` now
+returns STAC's core `datetime: null` + `start_datetime`/`end_datetime`
+range fields for these instead of raising, spanning the known
+precision (full year for `YYYY0000`, full month for `YYYYMM00`). See
+DECISIONS.md D23 for the one known imprecision (`19480000dol`'s own
+title says "1947年～1948年" but its ID's leading year is 1948, so the
+STAC range is 1948-only, not deliberately special-cased from scraped
+title text).
 
 ### Do this first when resuming
 
-1. **Check `source-coop` credentials**: `aws s3api head-object --bucket
-   smartmaps --key cogenerate/README.md --profile source-coop --query
-   LastModified --output text`. If expired, ask Hidenori to run
-   `source-coop login` -- he handles this personally, don't work around
-   it. Meanwhile keep credential-free build steps going.
+1. **Check `source-coop` credentials**: see above. If expired, ask
+   Hidenori to run `source-coop login`, don't work around it. Meanwhile
+   keep credential-free build steps going.
 2. **Check what's mid-flight**: `ps aux | grep gdal_translate` for
    active builds, and check for any `.tif` in `out/` newer than its
    `.vrt` that hasn't been through `upload` yet -- those are
    built-but-unpublished and should go through
    upload->verify->stac->cleanup->commit next.
-3. **Then keep going**: `uv run python -m cogenerate.candidates --top
-   10 --sort-by date --json` for what's next (check `layers-martin`'s
-   catalog `name` field per candidate for "撮影" not "作成" before
-   queuing -- see the false-positive note above). Run one upload +
-   one build-chain step concurrently per the pattern above. Report
-   progress as `published/pool` when giving status updates.
+3. **Then keep going**: Hiroshima priority is done (see above) --
+   `uv run python -m cogenerate.candidates --top 10 --sort-by date
+   --json` for general "what's next" (check `layers-martin`'s catalog
+   `name` field per candidate for "撮影" not "作成" before queuing).
+   Run one upload + one build-chain step concurrently per the pattern
+   above. Report progress as `published/pool` when giving status
+   updates.
 
 ### What's published
 
-**22 layers** live on Source Cooperative + the STAC catalog
-(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages):
-`kumamoto_yatsushiro`, `amakusa`, `yatsushirohigashi`, `yatsushironishi`
-(original 6), `wajima`, `nichinan`, `tamagawa`, `sagachiku`,
-`kagoshima_soo`, `chikumagawa`, `tokigawa`, `nakagawa`, `kujigawa`,
-`marumori`, `sukumo`, `ainan`, `wajimatobu`, `wajimaseibu`,
-`noto_wazimanishi_0117do`, `noto_nanao_0117do`, `noto_suzu_0114do`,
-`noto_wazimahigashi_0114do`. Each followed the same settled lifecycle:
-build locally -> `upload` (autonomous per the standing directive) ->
-`just verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
+**48 layers** live on Source Cooperative + the STAC catalog
+(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
+Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
+`yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
+`tamagawa`, `sagachiku`, `kagoshima_soo`, `chikumagawa`, `tokigawa`,
+`nakagawa`, `kujigawa`, `marumori`, `sukumo`, `ainan`, `wajimatobu`,
+`wajimaseibu` (18 total pre-2026-08-01); the full Jan 2024 Noto
+earthquake sub-district batch -- `noto_0405_0426do` (the comprehensive
+layer, 48.6GB) plus every 1/2, 1/5, 1/11, 1/14, 1/17-captured district
+(`wazimanishi`/`wazimanaka`/`wazimahigashi`/`anamizu`/`suzu`/`nanao`
+across those 5 dates, each confirmed a distinct real capture via
+`layers-martin`'s per-layer date, not a duplicate) -- 15 layers;
+`20210705oame_0706do` (熱海伊豆山地区, 2021), `20230202_nishinoshima_dol`
++ `20220119_nishinoshima_dol` (西之島, 2022/2023),
+`20191025oame_sakura_1026do_sokuho` + `..._mobara_1026do_sokuho`
+(2019 Typhoon 19, Chiba) -- 5 layers; the Hiroshima-priority batch
+above -- 10 layers. Each followed the same settled lifecycle: build
+locally -> `upload` (autonomous per the standing directive) -> `just
+verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
 `cleanup-cog` (D20) -> commit+push `docs/`.
 
-**In flight, 2026-08-01**: 13 more noto-batch layers built and
-verified locally, uploading/publishing now (noto main +
-`anamizu_0117do`/`_0114do`/`_0111do`, `wazimanaka_0111do`/`_0105do`/`_0102do`,
-`wazimanishi_0111do`, `suzu_0105do`/`_0102do`, `anamizu_0105do`,
-`nanao_0105do`, `wazimahigashi_0102do`) -- these cover the 1/2, 1/5,
-1/11, 1/14, 1/17-captured sub-district batches from the Jan 2024 Noto
-earthquake response, each confirmed as a distinct real capture (not a
-duplicate) via `layers-martin`'s per-layer capture date. Plus
-`20210705oame_0706do` (熱海伊豆山地区, Atami Izusan mudslide disaster,
-2021-07-06) and `20230202_nishinoshima_dol` (西之島付近噴火活動,
-2023-02-02) both fully built and sanity-checked, queued for upload
-once noto's finishes -- the first two non-noto layers picked up
-alongside the upload backlog, run concurrently with noto's `upload`
-per Hidenori's request not to leave build capacity idle while
-uploading.
+**Ranking modes**: `candidates.py` supports `--sort-by extent`
+(default, municipality-count proxy) or `--sort-by date` (newest
+leading-`YYYYMMDD` first -- an event date, not the stricter
+capture-date fragment D4 uses for STAC `datetime`). `--sort-by date`
+has been the working default since 2026-07-31 per Hidenori, still
+current. `--keyword <text>` (2026-08-01, D above) pre-filters to a
+substring match on coverage text for temporary geographic priority.
 
-**Priority temporarily changed, 2026-07-31**: Hidenori asked to
-prioritize by *newest disaster event* instead of spatial extent for a
-while. `candidates.py` now supports both: `--sort-by extent` (default,
-municipality-count proxy) or `--sort-by date` (newest leading-`YYYYMMDD`
-first -- an event date, not the stricter capture-date fragment D4
-uses for STAC `datetime`; covers 178/182 current candidates, a few
-volcano-monitoring-style IDs without a leading date sort last rather
-than erroring). Use `--sort-by date` for "what's next" until told
-otherwise. Note while picking:
-- Some `ichiran.html`-matched entries turn out to be non-photo
-  products (e.g. `..._dansaizu` = 段彩図, a color-relief/hazard map,
-  not aerial imagery -- caught by checking `layers-martin`'s catalog
-  `name` field for "作成" instead of "撮影" before queuing one) --
-  skip those, this pipeline is for aerial photo ortho only.
-- A same-prefecture/city sub-district entry with a *different* capture
-  date than an already-published layer (like `wajimatobu`/`wajimaseibu`
-  vs. the already-published `wajima`) is real additional coverage, not
-  a duplicate -- checked `layers-martin`'s `name` field's capture date
-  to confirm before queuing.
+**Candidate-pool structure**: worth knowing before treating the ~194
+pool count as N independent targets -- many candidates sit in groups
+sharing identical or near-identical 提供範囲 text (same district,
+different capture dates/variants). Some are true near-duplicates of
+an already-published layer; most (repeat volcano-monitoring captures
+at 西之島, 新燃岳, 草津白根山, etc.) are legitimately separate
+observations, not redundant. Always check `layers-martin`'s `name`
+field for the actual capture date before treating a same-district
+entry as a duplicate to skip.
 
-**Total candidate pool**: `candidates.py` found **194** real
-disaster-response layers in `ichiran.html` (out of 1865 total catalog
-entries) as of this session -- 16 done, ~178 remaining as distinct
-layer IDs (re-run the tool rather than trusting this number, it'll
-have moved). Worth knowing before treating that as N independent
-targets: ~96 sit in 27 groups sharing identical 提供範囲 text (same
-district, different capture dates/variants) -- some are true
-near-duplicates (e.g. the 3 remaining `sagachiku` variants of the one
-already published), but most are repeat volcano-monitoring captures
-(西之島, 新燃岳, 草津白根山, etc.) that are legitimately separate
-observations, not redundant. No policy decided yet on how to treat
-those -- ask Hidenori if/when they become the next thing to
-prioritize.
-
-**Tooling built up this session, still current**:
-- `src/cogenerate/candidates.py` -- "what's next" ranking (extent or
-  date), replaces one-off manual analysis.
+**Tooling built up across this project's sessions, still current**:
+- `src/cogenerate/candidates.py` -- "what's next" ranking (extent,
+  date, or `--keyword`-filtered), replaces one-off manual analysis.
 - `src/cogenerate/stac_item.py` / `stac_catalog.py` (D19) -- STAC
   1.0.0 generation, `oam-starc`-aligned schema, remote-capable (D21:
   works even after `out/<layer>.tif` is gone, and uses the correct
   `data.source.coop` data endpoint, not the `source.coop` web-UI page
-  every earlier Item had wrong).
+  every earlier Item had wrong). D23 (2026-08-01): handles approximate
+  historical dates via `datetime: null` + `start_datetime`/`end_datetime`.
 - `Justfile`'s `verify`/`cleanup-tiles`/`cleanup-cog` (D20) -- the
   standard per-layer disk-reclaim sequence once a layer is confirmed
   live on Source Cooperative.
 - `georef.py`'s hand-written VRT (D22) -- ~68x faster than the
-  original per-tile `gdal_translate` subprocess; `discover_tiles()`
-  also had a real bug fixed the same session (crashed on D12's
-  `.cleaned.png` leftover sidecars).
-- A persistent disk-space monitor (warns <25GB, critical <10GB) was
-  running as a safety net for this session -- **tied to the now-`/clear`-ed
-  session, won't carry over**; consider starting a fresh one if disk
-  becomes a concern again (it was, once, this session -- D20 -- but
-  460GB volume is comfortable right now, ~187GB free as of this
-  handover, after also reclaiming ~150GB from the unrelated
-  `~/photosynthesis` project this session).
+  original per-tile `gdal_translate` subprocess.
 
 **Still open, needs Hidenori**: actually contacting HOTOSM/OAM now
 that a real, public STAC catalog exists (D6) -- not urgent, no one's
