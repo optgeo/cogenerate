@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_wazimanishi_0117do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_wazimanishi_0117do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20240419bungosuido_ainan_0418do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20240419bungosuido_ainan_0418do"
