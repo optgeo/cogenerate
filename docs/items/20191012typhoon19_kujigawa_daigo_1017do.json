@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20191012typhoon19_kujigawa_daigo_1017do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          140.332489,
+          36.8213783
+        ],
+        [
+          140.332489,
+          36.7256768
+        ],
+        [
+          140.3778076,
+          36.7256768
+        ],
+        [
+          140.3778076,
+          36.8213783
+        ],
+        [
+          140.332489,
+          36.8213783
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    140.332489,
+    36.7256768,
+    140.3778076,
+    36.8213783
+  ],
+  "properties": {
+    "datetime": "2019-10-17T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20191012typhoon19_kujigawa_daigo_1017do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20191012typhoon19_kujigawa_daigo_1017do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20191012typhoon19_kujigawa_daigo_1017do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_kujigawa_daigo_1017do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20191012typhoon19_kujigawa_daigo_1017do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20191012typhoon19_kujigawa_daigo_1017do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 536787887,
+      "file:checksum_sha256": "26c1eaf678cbfe7f9c3937699d7bc39047dac2faca8086b23d1e6681db5648f1"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20191012typhoon19_kujigawa_daigo_1017do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
