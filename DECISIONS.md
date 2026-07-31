@@ -34,6 +34,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D15](#d15-explicit-a_nodata-0-and-embedded-metadata-on-the-cog) | Explicit `-a_nodata 0` and embedded metadata on the COG | Accepted | 2026-07-31 |
 | [D16](#d16-pixel-values-are-untouched-a-brightness-difference-vs-地理院地図-is-the-previewers-not-ours) | Pixel values are untouched: a brightness difference vs. 地理院地図 is the previewer's, not ours | Investigated, no action | 2026-07-31 |
 | [D17](#d17-flood-fill-at-minzoom-a-single-seed-tile-can-miss-real-coverage-in-a-neighboring-cell) | Flood-fill at minzoom: a single seed tile can miss real coverage in a neighboring cell | Accepted | 2026-07-31 |
+| [D18](#d18-seed-grid-expansion-tolerate-an-imprecise-seed-not-a-lower-zoom) | Seed-grid expansion: tolerate an imprecise seed, not a lower zoom | Accepted | 2026-07-31 |
 
 ---
 
@@ -606,3 +607,44 @@ Every layer already probed with a single-cell-only result should be
 **re-probed with `FORCE=1`** to check whether it was similarly
 incomplete -- prioritized first for `20260729kumamoto_yatsushiro_0729do_sokuho`
 (the one Hidenori caught visually), tracked in `HANDOVER.md`.
+
+## D18: Seed-grid expansion: tolerate an imprecise seed, not a lower zoom
+
+**Status**: Accepted
+
+**Context**: D17's flood-fill still needs at least one *correct*
+starting seed -- if the given seed tile itself is wrong (e.g. an
+imprecise `ichiran.html` tilejump-coordinate conversion, off by more
+than one tile), it 404s and the flood-fill finds nothing. Hidenori
+asked whether lowering the seed's zoom (e.g. z9/8/7) would help find a
+correct starting point more mechanically/reliably.
+
+**Investigated, 2026-07-31**: **no** -- confirmed live that GSI serves
+literally nothing below z10 for these layers. Checked z9 down to z6
+directly against the parent tiles of a z10 coordinate known to have
+real data (`20260729kumamoto_yatsushiro_0729do_sokuho`, 883,414):
+**every one 404**, matching every surveyed layer's `ichiran.html`
+entry documenting exactly "ズームレベル 10～18". A lower-zoom seed
+search isn't just wasteful here, it's non-functional -- there's
+nothing to find.
+
+**Decision**: instead, check a small square **grid of candidate tiles
+at minzoom itself** around each given seed before flood-filling --
+`Tile.grid(radius)`, a `(2*radius+1)^2` square, `DEFAULT_SEED_GRID_RADIUS
+= 2` (5x5) in `probe.py`, overridable via `--seed-grid-radius` /
+`just probe`'s `SEED_GRID_RADIUS` env var. Every grid cell across every
+given seed becomes a candidate start for D17's flood-fill (deduplicated).
+Tolerates the seed being off by up to `radius` tiles in any direction,
+at a cost of only `(2r+1)^2 - 1` extra minzoom requests per seed --
+negligible next to the thousands of maxzoom requests that follow.
+
+**Validated live**: probed `20260729kumamoto_yatsushiro_0729do_sokuho`
+with a seed deliberately offset 2 tiles east of the real one (885,414
+instead of 883,414) and `--seed-grid-radius 2`: still found all 3 real
+minzoom tiles correctly (`3 minzoom tile(s) found via flood-fill from
+25 seed(s), 49 requests total`).
+
+**Consequences**: `radius=2` is a starting guess, not a proven-optimal
+value -- revisit if a future layer's seed is off by more than 2 tiles
+and the probe fails to find anything (raise the radius for that call
+via `SEED_GRID_RADIUS`, no code change needed).

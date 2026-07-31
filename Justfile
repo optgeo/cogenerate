@@ -13,6 +13,10 @@ minzoom := env_var_or_default("MINZOOM", "10")
 maxzoom := env_var_or_default("MAXZOOM", "18")
 seed_x := env_var_or_default("SEED_X", "883")
 seed_y := env_var_or_default("SEED_Y", "414")
+# (2r+1)x(2r+1) grid of candidate tiles checked at minzoom around each
+# seed -- tolerates an imprecise seed. See DECISIONS.md D18; must match
+# probe.py's DEFAULT_SEED_GRID_RADIUS if you change the default here.
+seed_grid_radius := env_var_or_default("SEED_GRID_RADIUS", "2")
 # FORCE=1 re-does work that would otherwise be skipped because its
 # output already exists -- see DECISIONS.md D11. Every other value
 # (including unset) means "skip what's already done."
@@ -43,6 +47,7 @@ probe:
         uv run python -m cogenerate.probe \
             --layer {{layer}} --minzoom {{minzoom}} --maxzoom {{maxzoom}} \
             --seed-x {{seed_x}} --seed-y {{seed_y}} \
+            --seed-grid-radius {{seed_grid_radius}} \
             > "$out"
     fi
     wc -l "$out"

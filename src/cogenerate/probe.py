@@ -29,6 +29,21 @@ Cheap -- request count is bounded by the polygon's minzoom-grid extent,
 not its area -- and makes the result correct regardless of which single
 tile within the true coverage the seed happened to land on.
 
+Seed-grid expansion (added 2026-07-31, DECISIONS.md D18): the
+flood-fill above still needs at least one *correct* starting seed --
+if the given seed itself is wrong (e.g. an imprecise ichiran.html
+tilejump conversion, off by more than one tile), it 404s and the whole
+probe fails with nothing to flood-fill from. Confirmed live that
+lowering the seed's zoom below minzoom does NOT help (GSI serves
+literally nothing below z10 for these layers -- checked z9 down to z6
+against a tile known to have real z10 data, all 404, matching every
+ichiran.html entry's documented "ズームレベル 10～18"). Instead: check
+a small square grid of candidate tiles *at minzoom itself* around each
+given seed (`--seed-grid-radius`, default `DEFAULT_SEED_GRID_RADIUS`
+below) before flood-filling -- tolerates the seed being off by a few
+tiles in any direction, at a cost of only (2r+1)^2 - 1 extra minzoom
+requests, negligible next to the maxzoom descent that follows.
+
 Output: newline-delimited "z,x,y" for every CONFIRMED (200) tile at the
 target (max) zoom. Feed this list to download.py, then gdalbuildvrt.
 
@@ -53,6 +68,9 @@ app = typer.Typer(add_completion=False)
 err = Console(stderr=True)
 
 BASE = "https://cyberjapandata.gsi.go.jp/xyz"
+# 2 -> 5x5 grid of candidate seed tiles at minzoom (D18). Adjustable via
+# `just probe`'s SEED_GRID_RADIUS env var / --seed-grid-radius directly.
+DEFAULT_SEED_GRID_RADIUS = 2
 
 
 @dataclass(frozen=True)
@@ -76,6 +94,15 @@ class Tile:
             for dx in (-1, 0, 1)
             for dy in (-1, 0, 1)
             if not (dx == 0 and dy == 0)
+        ]
+
+    def grid(self, radius: int) -> list[Tile]:
+        """A (2*radius+1)^2 square of candidate tiles centered on this
+        one, at the same zoom (D18 seed-grid expansion)."""
+        return [
+            Tile(self.z, self.x + dx, self.y + dy)
+            for dx in range(-radius, radius + 1)
+            for dy in range(-radius, radius + 1)
         ]
 
     def url(self, layer: str, ext: str) -> str:
@@ -181,6 +208,11 @@ def main(
     maxzoom: int = typer.Option(18, help="Target zoom to fetch for COG source (256px tiles)"),
     seed_x: list[int] = typer.Option(..., help="Seed tile X at --minzoom (repeatable)"),
     seed_y: list[int] = typer.Option(..., help="Seed tile Y at --minzoom (repeatable, paired by position)"),
+    seed_grid_radius: int = typer.Option(
+        DEFAULT_SEED_GRID_RADIUS,
+        help="Check a (2r+1)x(2r+1) grid of candidate tiles at minzoom around "
+        "each seed, tolerating an imprecise seed (D18). 0 disables (seed only).",
+    ),
     ext: str = typer.Option("png", help="Tile extension (png for most _do*/_do_sokuho layers)"),
     concurrency: int = typer.Option(8, help="Max in-flight requests; be a good citizen to a gov server"),
 ):
@@ -188,8 +220,12 @@ def main(
     if len(seed_x) != len(seed_y):
         err.print("[red]error[/red] --seed-x and --seed-y counts must match")
         raise typer.Exit(1)
-    seeds = [Tile(minzoom, x, y) for x, y in zip(seed_x, seed_y)]
-    leaves, _ = asyncio.run(probe(layer, seeds, maxzoom, ext, concurrency))
+    given_seeds = [Tile(minzoom, x, y) for x, y in zip(seed_x, seed_y)]
+    candidates: dict[Tile, None] = {}  # ordered set: dedupe overlapping grids
+    for s in given_seeds:
+        for t in s.grid(seed_grid_radius):
+            candidates[t] = None
+    leaves, _ = asyncio.run(probe(layer, list(candidates), maxzoom, ext, concurrency))
     for t in sorted(leaves, key=lambda t: (t.x, t.y)):
         print(f"{t.z},{t.x},{t.y}")
 
