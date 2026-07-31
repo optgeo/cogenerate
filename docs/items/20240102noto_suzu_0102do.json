@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20240102noto_suzu_0102do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          137.1437073,
+          37.5554651
+        ],
+        [
+          137.1437073,
+          37.3777966
+        ],
+        [
+          137.3936462,
+          37.3777966
+        ],
+        [
+          137.3936462,
+          37.5554651
+        ],
+        [
+          137.1437073,
+          37.5554651
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    137.1437073,
+    37.3777966,
+    137.3936462,
+    37.5554651
+  ],
+  "properties": {
+    "datetime": "2024-01-02T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20240102noto_suzu_0102do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20240102noto_suzu_0102do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240102noto_suzu_0102do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_suzu_0102do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20240102noto_suzu_0102do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20240102noto_suzu_0102do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 3326312217,
+      "file:checksum_sha256": "ec1f6ddc7ad86a0522841f3fa9fe945adc250b443264ad50c451299a7c81e2c1"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20240102noto_suzu_0102do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
