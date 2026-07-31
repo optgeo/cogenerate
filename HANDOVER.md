@@ -5,6 +5,21 @@ next. For *why* a choice was made, see `DECISIONS.md` (ADR log) instead
 of looking for rationale here -- entries below link to the relevant
 `D`-number rather than re-explaining it.
 
+## 2026-07-31 (new session, continued) -- D12 triggers for real, D15 fix applied
+
+`20250815rain_amakusa_0815do_sokuho`'s `georef` finished (1h00m42s for
+23,767 tiles, then 13s merge): **D12's black-nodata cleaning actually
+triggered for the first time on real data** -- "1 tiles had
+opaque-black pixels cleaned to transparent." Confirms the safeguard
+implemented earlier today wasn't just synthetic-test theater.
+
+Building this layer's COG now with D15's fix (`-a_nodata 0` +
+embedded metadata) already applied -- first layer to get it from the
+start. Once done, `20260729kumamoto_yatsushiro_0729do_sokuho.tif`
+(published before D15) needs `FORCE=1 just cog` + re-upload to pick up
+the same fix -- queued after this one to avoid two concurrent COG
+builds contending for CPU/disk.
+
 ## 2026-07-31 (new session, milestone) -- first real layer published
 
 `20260729kumamoto_yatsushiro_0729do_sokuho.tif` (5,457,760,113 bytes)
