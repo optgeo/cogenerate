@@ -17,6 +17,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20190704_kagoshima_soo_0707do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20190704_kagoshima_soo_0707do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20190828kyusyu_sagachiku_0830do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20190828kyusyu_sagachiku_0830do"
