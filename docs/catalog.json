@@ -71,6 +71,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20170705typhoon3_0707dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20170705typhoon3_0707dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180117dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180117dol"
