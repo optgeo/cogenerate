@@ -179,6 +179,18 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0420dol08.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0420dol08"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0420dol10.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0420dol10"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20160820typhoon11_9_0825dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20160820typhoon11_9_0825dol"
