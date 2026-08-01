@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20180124kusatsushirane_0216uav",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          138.5293579,
+          36.6342641
+        ],
+        [
+          138.5293579,
+          36.6188344
+        ],
+        [
+          138.5499573,
+          36.6188344
+        ],
+        [
+          138.5499573,
+          36.6342641
+        ],
+        [
+          138.5293579,
+          36.6342641
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    138.5293579,
+    36.6188344,
+    138.5499573,
+    36.6342641
+  ],
+  "properties": {
+    "datetime": "2018-01-24T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20180124kusatsushirane_0216uav",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20180124kusatsushirane_0216uav",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20180124kusatsushirane_0216uav/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20180124kusatsushirane_0216uav.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20180124kusatsushirane_0216uav.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20180124kusatsushirane_0216uav",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 24807097,
+      "file:checksum_sha256": "3790eb49679ef0cf69aa18a12d424ad3c4fa21fed54ba8c86402467ca70267fb"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20180124kusatsushirane_0216uav.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
