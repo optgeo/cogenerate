@@ -185,6 +185,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0420dol09.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0420dol09"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0420dol10.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0420dol10"
