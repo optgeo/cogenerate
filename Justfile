@@ -254,6 +254,14 @@ clean:
 audit:
     uv run python -m cogenerate.audit --items-dir {{docs_dir}}/items/
 
+# Step 12 (D25): scope which already-published layers plausibly have
+# the opaque-pure-white-nodata problem (georef.py now fixes this going
+# forward) -- reports a sorted table, doesn't patch anything. Excludes
+# layers that sample as monochrome-origin, where real content can
+# legitimately be pure white.
+whitescan:
+    uv run python -m cogenerate.whitescan --items-dir {{docs_dir}}/items/
+
 lint:
     uv run ruff check src/
 
