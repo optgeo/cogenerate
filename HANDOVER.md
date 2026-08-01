@@ -22,7 +22,7 @@ approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress, right now: 54 published / 194 pool (~28%)**. Report as
+**Progress, right now: 55 published / 194 pool (~28%)**. Report as
 this fraction whenever giving a status update -- `candidates.py`'s own
 summary line (`--top 1 --sort-by date`, stderr "N already published")
 gives the numerator; the pool total drifts, re-run rather than
@@ -31,7 +31,9 @@ handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
 skipped by hand as encountered -- a working denominator, not a
 mathematically clean one.
 
-**🔴 Two things mid-flight right now, check these first:**
+**🔴 One thing mid-flight right now, check this first**
+(`abira_0911do` finished and published since the last rewrite --
+55/194 now, see below):
 
 1. **`20240102noto_0405_0426do`'s hole-patch COG rebuild** -- see the
    "Tile-gap incident" entry below for the full story. A `gdal_translate`
@@ -66,13 +68,6 @@ mathematically clean one.
    9. Consider a courtesy note in the commit that this replaces a
       previously-published file's bytes (checksum will differ from
       what anyone downloaded before this fix).
-2. **`20180906hokkaido_abira_0911do` upload** -- was mid-`upload` when
-   `source-coop` credentials expired, retried after Hidenori re-logged
-   in; confirm it actually landed (`aws s3api head-object --bucket
-   smartmaps --key cogenerate/20180906hokkaido_abira_0911do.tif
-   --profile source-coop`) and if so run the normal
-   verify->stac->cleanup->commit tail. If not landed yet, re-run
-   `LAYER=20180906hokkaido_abira_0911do just upload`.
 
 **Concurrency pattern**: run one `upload` (network-bound, slow for big
 layers -- noto's original 45GB upload took ~25min) *and* one
@@ -167,10 +162,9 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 ### What's published
 
-**54 layers** live on Source Cooperative + the STAC catalog
-(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages) --
-**55th (`abira_0911do`) probably done too, confirm per the 🔴 section
-above**. Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
+**55 layers** live on Source Cooperative + the STAC catalog
+(`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
+Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
 `yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
 `tamagawa`, `sagachiku` (+ a distinct-date follow-up `sagachiku_0831do`
 added 2026-08-01), `kagoshima_soo`, `chikumagawa`, `tokigawa`,
@@ -187,8 +181,10 @@ across those 5 dates) -- 15 layers; `20210705oame_0706do` (熱海伊豆山地区
 Hiroshima-priority batch -- 10 layers; general-priority resumption --
 `kujigawa_daigo_1017do` (Ibaraki, 2019 Typhoon 19), `kagoshima_chuou_0704do`
 (2019), `yamagata_tsuruokamurakami_0620do`/`0626do1` (2019
-Yamagata-Niigata earthquake), `hokkaido_kiyota_0913do` (2018 Eastern
-Iburi) -- 5 layers. Each followed the same settled lifecycle: build
+Yamagata-Niigata earthquake), `hokkaido_kiyota_0913do`/`abira_0911do`
+(2018 Eastern Iburi, more `20180906hokkaido_*` sub-district variants
+likely still in the pool) -- 6 layers. Each followed the same settled
+lifecycle: build
 locally -> `upload` (autonomous per the standing directive) -> `just
 verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
 `cleanup-cog` (D20) -> commit+push `docs/`.
