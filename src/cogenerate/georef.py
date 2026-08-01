@@ -34,7 +34,7 @@ real noto tiles (cold-cache PNGs, not a cached repeat of one file),
 completely process-spawn/GDAL-driver-init overhead for what a VRT
 sidecar actually needs (a few hundred bytes of XML, no pixel copy).
 Replaced with `write_vrt()`, which hand-writes that same XML directly
-in Python using facts already in hand from `clean_black_nodata()`'s
+in Python using facts already in hand from `clean_nodata_colors()`'s
 already-open PIL image (width/height/band count) -- benchmarked at
 ~3.7ms/tile on the same real tiles, a **~68x** speedup, verified
 byte-identical (`gdalinfo -checksum`) against `gdal_translate`'s own
@@ -45,7 +45,7 @@ and ~17 minutes for this one step.
 NODATA via pure-black pixels (DECISIONS.md D12): GSI tiles sometimes
 encode "no data" as literal opaque black (0,0,0) rather than alpha=0 --
 a real, quantified problem in the sibling `optgeo/kitaphoto` project
-(13.2% of its seed tiles had meaningful black content). `clean_black_nodata()`
+(13.2% of its seed tiles had meaningful black content). `clean_nodata_colors()`
 below applies the same detection (exact-black pixel mask via numpy) but
 the simpler fix Hidenori chose for this pipeline: turn those pixels
 transparent (alpha=0), not backfill them with other imagery -- there's
@@ -54,6 +54,31 @@ kitaphoto had satellite imagery to fall back on. Checked 2026-07-31
 against the same layer: 0 opaque pure-black pixels in a 300-tile
 sample (~19.6M pixels) -- this specific layer didn't need the fix, but
 it's implemented as a general safeguard, unexercised by this run.
+
+NODATA via pure-white pixels (DECISIONS.md D25, 2026-08-02): Hidenori
+spotted a visible grid pattern of opaque pure-white (255,255,255)
+tiles in the already-published `20140831dol` overview -- ~29% of
+sampled opaque pixels in that layer, far beyond plausible real content
+for a non-snow disaster-response photo, and the same GSI-side
+"nodata encoded as a solid color" pattern D12 already handles for
+black. `clean_nodata_colors()` treats white the same way -- **but only
+for layers whose real content is actually in color**: a handful of
+this catalog's oldest layers (`19480000dol`/`19620000dol`, 1947-48/1962
+Hiroshima reference imagery, D23) are genuinely monochrome photos
+merely encoded as RGB, where real content legitimately hits pure white
+(bright highlights) or pure black (deep shadow) -- treating those as
+nodata would carve real holes in real (if grayscale) photo content.
+`sample_is_monochrome()` distinguishes the two with a real structural
+signal, not a layer-ID allowlist: sample a handful of tiles and check
+whether R, G, and B are exactfully equal across virtually every opaque
+pixel (confirmed live: exactly 0 channel spread across ~150k-227k
+sampled pixels each for 19480000dol/19620000dol, vs a clear ~11.2
+mean spread for 20140831dol's real color content) -- a true
+grayscale-into-RGB source has zero color variation anywhere, which no
+real color aerial photo does even where individual pixels happen to
+be neutral gray. Monochrome-classified layers get black-nodata
+cleaning only (D12's original behavior, unchanged); every other layer
+gets both.
 
 Usage:
     uv run python -m cogenerate.georef \\
@@ -83,21 +108,61 @@ ORIGIN_SHIFT = 2 * math.pi * 6378137 / 2.0  # 20037508.342789244
 VRT_BAND_COLORS = {"RGB": ("Red", "Green", "Blue"), "RGBA": ("Red", "Green", "Blue", "Alpha")}
 
 
-def clean_black_nodata(src: Path) -> tuple[Path, bool, int, int, str]:
-    """Turn exact-(0,0,0) pixels transparent; returns (path, cleaned,
-    width, height, mode). `path` is a cleaned copy (always RGBA) if any
-    black pixels were found, else `src` unchanged with its own original
-    mode (common case, no extra I/O) -- preserves DECISIONS.md D12's
-    original behavior of not forcing every untouched tile to RGBA."""
+# D25: a real color aerial photo shows *some* chromatic variation
+# somewhere (vegetation, water, roofing) -- a genuinely monochrome
+# source encoded as RGB shows exactly none, anywhere. 99% of sampled
+# opaque pixels at zero channel spread is a wide margin below the 100%
+# both known monochrome layers actually hit and well above what real
+# color content could produce by coincidence.
+MONOCHROME_SPREAD_THRESHOLD = 0.99
+MONOCHROME_SAMPLE_TILES = 20
+
+
+def sample_is_monochrome(tiles: list[tuple[int, int, int, Path]]) -> bool:
+    """Sample up to MONOCHROME_SAMPLE_TILES tiles spread across the
+    layer and check whether R==G==B holds for virtually every opaque
+    pixel -- see the module docstring's D25 section for why this beats
+    a layer-ID allowlist."""
+    if not tiles:
+        return False
+    step = max(1, len(tiles) // MONOCHROME_SAMPLE_TILES)
+    sample = tiles[::step][:MONOCHROME_SAMPLE_TILES]
+    gray = total = 0
+    for _, _, _, path in sample:
+        arr = np.array(Image.open(path).convert("RGBA"))
+        opaque = arr[:, :, 3] > 0
+        if not opaque.any():
+            continue
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+        spread = np.maximum(np.maximum(r, g), b).astype(int) - np.minimum(np.minimum(r, g), b).astype(int)
+        gray += int((spread[opaque] == 0).sum())
+        total += int(opaque.sum())
+    if total == 0:
+        return False
+    return (gray / total) >= MONOCHROME_SPREAD_THRESHOLD
+
+
+def clean_nodata_colors(src: Path, mask_white: bool) -> tuple[Path, bool, int, int, str]:
+    """Turn exact-(0,0,0) pixels transparent, always (D12); also exact-
+    (255,255,255) pixels if `mask_white` (D25, skipped for
+    monochrome-origin layers where real content can legitimately be
+    pure white/black). Returns (path, cleaned, width, height, mode).
+    `path` is a cleaned copy (always RGBA) if any matching pixels were
+    found, else `src` unchanged with its own original mode (common
+    case, no extra I/O) -- preserves D12's original behavior of not
+    forcing every untouched tile to RGBA."""
     img = Image.open(src)
     width, height = img.size
     mode = img.mode
     img_rgba = img.convert("RGBA")
     arr = np.array(img_rgba)
-    black = (arr[:, :, 0] == 0) & (arr[:, :, 1] == 0) & (arr[:, :, 2] == 0)
-    if not black.any():
+    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+    nodata = (r == 0) & (g == 0) & (b == 0)
+    if mask_white:
+        nodata = nodata | ((r == 255) & (g == 255) & (b == 255))
+    if not nodata.any():
         return src, False, width, height, mode
-    arr[black, 3] = 0
+    arr[nodata, 3] = 0
     cleaned = src.with_suffix(".cleaned.png")
     Image.fromarray(arr, "RGBA").save(cleaned)
     return cleaned, True, width, height, "RGBA"
@@ -156,7 +221,7 @@ def tile_bounds_3857(z: int, x: int, y: int) -> tuple[float, float, float, float
 
 def discover_tiles(root: Path, ext: str) -> list[tuple[int, int, int, Path]]:
     """Bug caught live 2026-07-31 re-running amakusa's rebuild: this glob
-    also matches `clean_black_nodata()`'s own `<y>.cleaned.<ext>` output
+    also matches `clean_nodata_colors()`'s own `<y>.cleaned.<ext>` output
     sidecars left over from an earlier run (D12) -- `Path.stem` on
     `106049.cleaned.png` is `"106049.cleaned"`, not an int, crashing
     `int(p.stem)` below. Those are outputs of this pipeline, not source
@@ -186,6 +251,13 @@ def main(
         err.print(f"[red]error[/red] no .{ext} tiles found under {tiles_dir}")
         raise typer.Exit(1)
 
+    monochrome = sample_is_monochrome(tiles)
+    if monochrome:
+        err.print(
+            "[yellow]note[/yellow] layer sampled as monochrome-origin (D25) -- "
+            "white-nodata cleaning skipped, black-nodata (D12) still applies"
+        )
+
     vrt_paths: list[str] = []
     skipped = 0
     cleaned_count = 0
@@ -197,7 +269,7 @@ def main(
             vrt_paths.append(str(vrt_path))
             continue
         ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
-        src_for_vrt, was_cleaned, width, height, mode = clean_black_nodata(src)
+        src_for_vrt, was_cleaned, width, height, mode = clean_nodata_colors(src, mask_white=not monochrome)
         if was_cleaned:
             cleaned_count += 1
         wrote_fast = write_vrt(src_for_vrt, vrt_path, width, height, mode, ulx, uly, lrx, lry)
@@ -228,10 +300,11 @@ def main(
         check=True,
     )
     file_list_path.unlink()
+    nodata_desc = "opaque-black" if monochrome else "opaque-black/white"
     err.print(
         f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
         f"({skipped} per-tile .vrt already present, not regenerated; "
-        f"{cleaned_count} tiles had opaque-black pixels cleaned to transparent, D12; "
+        f"{cleaned_count} tiles had {nodata_desc} pixels cleaned to transparent, D12/D25; "
         f"{fallback_count} needed the gdal_translate subprocess fallback -- non-RGB/RGBA mode)"
     )
 
