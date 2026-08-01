@@ -958,3 +958,47 @@ range, not 1947-1948 -- deliberately not special-cased from the
 scraped title text (would break D4's ID-first parsing consistency for
 one single historical layer); the STAC record is accurate to what the
 ID encodes, just not maximally precise for this one edge case.
+
+## D24: `probe.py`: retry transient network errors / 5xx instead of treating them as 404
+
+**Status**: Accepted
+
+**Context**: Hidenori spotted visible black square holes in the
+published `20240102noto_0405_0426do` mosaic (reported live, GSI's own
+地理院地図 shows no gap at the same coordinates -- ruling out a real
+GSI-side coverage absence). Investigated by cross-referencing the
+probe's saved CSV against the published COG's alpha channel and
+directly re-fetching candidate tiles from GSI: found **49 tiles across
+11 clusters**, each fully surrounded by confirmed neighbors (detected
+by flood-filling "outside" from the CSV's bounding-box border and
+finding the unconfirmed cells that flood-fill never reaches -- true
+enclosed holes, not coastline/open-water boundary), each returning a
+normal `HTTP 200` with valid image data when fetched directly.
+
+**Root cause**: the module docstring's own design already documents
+that the minzoom flood-fill (D17) only re-checks horizontally *at
+minzoom* -- past that, `probe()`'s maxzoom descent is a pure top-down
+quadtree walk with no sibling re-check. `exists()` had no retry: a
+single transient network error or 5xx on any intermediate-zoom
+ancestor tile, during a run fetching hundreds of thousands of tiles
+over multiple hours, permanently prunes that whole subtree (up to
+2^(maxzoom-z) tiles) as if it were a real 404 -- indistinguishable
+from the correct pruning signal the whole strategy depends on.
+
+**Decision**: retry on network exceptions and 5xx responses (3
+attempts, linear backoff starting at 0.5s) -- but **never retry a real
+404**, since treating 404 as possibly-transient would undermine the
+core pruning strategy (module docstring: "a 404 prunes the whole
+subtree... only tiles that return 200 spawn the 4 children") and waste
+requests against a government server for a signal that's actually
+fast and reliable.
+
+**Consequences**: doesn't retroactively fix layers already built
+before this change -- `20240102noto_0405_0426do`'s 49 known-missing
+tiles need a manual patch (re-probe/download just those tiles, merge
+into the existing published COG, re-upload). Worth an occasional spot
+check on other large already-published layers using the same
+enclosed-hole detection method (flood-fill the probe CSV's bounding
+box from its border, anything unreached is a true interior gap) if
+one is suspected -- not run exhaustively across all 52 published
+layers as of this decision, only reactively when something looks off.

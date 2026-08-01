@@ -109,15 +109,39 @@ class Tile:
         return f"{BASE}/{layer}/{self.z}/{self.x}/{self.y}.{ext}"
 
 
+# Retries (D24): a transient network error or 5xx used to be treated the
+# same as a real 404 -- fatal for everything under that tile in the
+# maxzoom quadtree descend, since (unlike the minzoom flood-fill, D17)
+# there's no horizontal re-check past minzoom. Confirmed live 2026-08-01
+# on 20240102noto_0405_0426do: 49 tiles across 11 clusters, each fully
+# surrounded by confirmed neighbors and returning a normal 200 when
+# fetched directly, were missing from the final mosaic purely because
+# one intermediate-zoom ancestor tile hit a blip during the ~270k-tile,
+# multi-hour probe run. 404 itself is never retried -- it's a real,
+# fast, correct signal (this is the whole point of the pruning
+# strategy in the module docstring); only network errors and 5xx
+# (both plausibly transient) get a few attempts with backoff first.
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.5
+
+
 async def exists(client: httpx.AsyncClient, layer: str, tile: Tile, ext: str) -> bool:
-    try:
-        r = await client.head(tile.url(layer, ext), timeout=10.0)
-        if r.status_code == 405:  # some GSI endpoints don't support HEAD
-            r = await client.get(tile.url(layer, ext), timeout=10.0)
-        return r.status_code == 200
-    except httpx.HTTPError as e:
-        err.print(f"[yellow]warn[/yellow] {tile} -> {e!r}")
-        return False
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            r = await client.head(tile.url(layer, ext), timeout=10.0)
+            if r.status_code == 405:  # some GSI endpoints don't support HEAD
+                r = await client.get(tile.url(layer, ext), timeout=10.0)
+            if r.status_code == 200:
+                return True
+            if r.status_code == 404:
+                return False  # real signal, not transient -- don't retry
+            err.print(f"[yellow]warn[/yellow] {tile} -> HTTP {r.status_code} "
+                      f"(attempt {attempt}/{MAX_ATTEMPTS})")
+        except httpx.HTTPError as e:
+            err.print(f"[yellow]warn[/yellow] {tile} -> {e!r} (attempt {attempt}/{MAX_ATTEMPTS})")
+        if attempt < MAX_ATTEMPTS:
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
+    return False
 
 
 async def expand_seeds_at_minzoom(

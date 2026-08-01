@@ -76,6 +76,21 @@ on GitHub Pages. See sibling repos: `optgeo/fabdem-contour-fiji`,
   helps (a small tile grid *at* minzoom) and D17 for why a single seed
   tile isn't enough by itself (it can only ever find coverage within
   its own minzoom cell, never a sibling cell with real data).
+- **A large layer's probe run can silently lose a handful of tiles
+  it should have found** -- past minzoom, `probe.py`'s descent to
+  maxzoom is a pure quadtree walk with no horizontal re-check (D17's
+  flood-fill only runs at minzoom), so `exists()` now retries network
+  errors/5xx a few times before pruning a subtree (D24) -- but this
+  doesn't retroactively fix layers built before that fix landed. If a
+  published mosaic has a small, fully-enclosed black hole (surrounded
+  on all sides by real data, not a coastline/water boundary), that's
+  the signature -- confirm by flood-filling the layer's saved probe
+  CSV (`tiles/<layer>.z18.csv`, survives `cleanup-tiles`) from its
+  bounding-box border: any (x,y) cell the flood-fill never reaches is
+  a true interior gap, not a probe-correctly-found-nothing area.
+  Cross-check a candidate gap tile against GSI directly
+  (`curl -sI https://cyberjapandata.gsi.go.jp/xyz/<layer>/18/<x>/<y>.png`)
+  before assuming it's fixable -- D24 has the full incident writeup.
 - **Picking "which layer next"**: `src/cogenerate/candidates.py` ranks
   not-yet-published layers by a municipality-count proxy (parsed from
   ichiran.html's 提供範囲 field -- no real bbox/km² exists on GSI's
