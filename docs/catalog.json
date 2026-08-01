@@ -71,9 +71,21 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160830typhoon10_0907dol2.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160830typhoon10_0907dol2"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20160830typhoon10_1007dol1.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20160830typhoon10_1007dol1"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160830typhoon10_1007dol2.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160830typhoon10_1007dol2"
     },
     {
       "rel": "item",
