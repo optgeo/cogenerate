@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20180117dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20180117dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180124kusatsushirane_0216uav.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180124kusatsushirane_0216uav"
