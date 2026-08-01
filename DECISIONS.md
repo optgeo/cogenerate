@@ -1020,3 +1020,48 @@ coupling), then rebuilt purely from local files -- succeeded in under
 an hour. **Lesson for any future large (>10GB) COG rebuild that reads
 a remote original as a VRT source**: download it locally first, don't
 let `gdal_translate` stream it over the network mid-encode.
+
+## D25: NODATA via pure-white pixels too (D12's black fix, extended) -- except for monochrome-origin layers
+
+**Status**: Accepted
+
+**Context**: Hidenori spotted a visible grid pattern of opaque
+pure-white (255,255,255) tiles in the already-published `20140831dol`
+overview. Quantified: ~29% of sampled opaque pixels in that layer are
+exact pure white -- implausible as real content for a non-snow
+disaster-response photo, the same "GSI encodes nodata as a solid
+color" pattern D12 already handles for black.
+
+**Complication**: a handful of this catalog's oldest layers
+(`19480000dol`/`19620000dol`, 1947-48/1962 Hiroshima reference
+imagery, D23) are genuinely monochrome photos merely encoded as RGB.
+Real content in those legitimately hits pure white (bright highlights)
+or pure black (deep shadow) -- blindly treating white-as-nodata
+catalog-wide would carve real holes into real (if grayscale) photo
+content on exactly the layers where D23 already went out of its way to
+represent approximate historical dates honestly.
+
+**Decision**: `georef.py`'s `clean_black_nodata()` became
+`clean_nodata_colors()`, which always cleans black (D12, unchanged)
+and additionally cleans white unless the layer samples as
+monochrome-origin. Monochrome detection (`sample_is_monochrome()`)
+uses a structural signal, not a layer-ID allowlist: sample ~20 tiles
+spread across the layer and check whether R, G, and B are exactly
+equal for virtually every opaque pixel (`MONOCHROME_SPREAD_THRESHOLD =
+0.99`). Rationale: a true grayscale-into-RGB source has *zero* color
+variation anywhere; a real color aerial photo always has some,
+somewhere (vegetation, water, roofing), even where individual pixels
+happen to be neutral gray. Confirmed live: exactly 0 channel spread
+(`max(R,G,B) - min(R,G,B)`) across ~150k-227k sampled opaque pixels
+each for `19480000dol`/`19620000dol`, vs. a clear ~11.2 mean spread for
+`20140831dol`'s real color content -- a wide, unambiguous margin.
+
+**Consequences**: fixed going forward for any layer built after this
+change. Doesn't retroactively fix already-published layers -- a
+catalog-wide remote scan (extending `cogenerate.audit`'s cheap
+`/vsicurl`-header approach: per layer, sample an overview-level
+export, classify monochrome-or-not the same way, and measure the
+opaque-white fraction) is the planned way to scope which of the
+already-published layers actually need a D24-style local-download +
+rebuild + `FORCE=1` re-upload patch, rather than reprocessing all of
+them -- not yet run as of this decision.
