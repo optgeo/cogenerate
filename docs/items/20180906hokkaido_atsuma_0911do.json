@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20180906hokkaido_atsuma_0911do",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          142.0532227,
+          42.9001127
+        ],
+        [
+          142.0532227,
+          42.7268391
+        ],
+        [
+          142.2262573,
+          42.7268391
+        ],
+        [
+          142.2262573,
+          42.9001127
+        ],
+        [
+          142.0532227,
+          42.9001127
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    142.0532227,
+    42.7268391,
+    142.2262573,
+    42.9001127
+  ],
+  "properties": {
+    "datetime": "2018-09-11T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20180906hokkaido_atsuma_0911do",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20180906hokkaido_atsuma_0911do",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20180906hokkaido_atsuma_0911do/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_atsuma_0911do.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20180906hokkaido_atsuma_0911do.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20180906hokkaido_atsuma_0911do",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 1770877437,
+      "file:checksum_sha256": "abbedba7b14900e4536d3cb6cde714f561e5a5e3cdc8c21e9181b5740fee9809"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_atsuma_0911do.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
