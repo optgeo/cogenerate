@@ -1057,11 +1057,28 @@ each for `19480000dol`/`19620000dol`, vs. a clear ~11.2 mean spread for
 `20140831dol`'s real color content -- a wide, unambiguous margin.
 
 **Consequences**: fixed going forward for any layer built after this
-change. Doesn't retroactively fix already-published layers -- a
-catalog-wide remote scan (extending `cogenerate.audit`'s cheap
-`/vsicurl`-header approach: per layer, sample an overview-level
-export, classify monochrome-or-not the same way, and measure the
-opaque-white fraction) is the planned way to scope which of the
-already-published layers actually need a D24-style local-download +
-rebuild + `FORCE=1` re-upload patch, rather than reprocessing all of
-them -- not yet run as of this decision.
+change.
+
+**Retroactive scan + patch, 2026-08-02**: built `cogenerate.whitescan`
+(`just whitescan`) to scope the already-published catalog cheaply
+(overview-level `/vsicurl` reads, no local files) -- 106 layers
+scanned, 5 flagged above the 1% white-fraction threshold, 2 correctly
+excluded as monochrome-origin. Of the 5 flagged, 2 were visually
+confirmed as **false positives** before patching anything --
+`20230202_nishinoshima_dol` (1.8%, real volcanic steam/lava
+brightness) and `20190618yamagata_tsuruokamurakami_0620do` (1.0%, real
+cloud cover) -- a reminder that the fraction alone isn't sufficient
+signal at low percentages; a quick visual/overview check before
+patching is worth the two minutes it costs. The remaining 3
+(`20140828dol` 23.7%, `20140830dol` 33.2%, `20140831dol` 29.4%, all
+from the 2014 Hiroshima landslide response batch) were confirmed as
+genuine nodata via full-resolution `gdallocationinfo` and patched:
+download the original locally, compute a corrected alpha band with
+`gdal_calc.py` (`where((R==255)*(G==255)*(B==255), 0, alpha)` --
+GDAL's bundled CLI accessory, not an osgeo Python binding, keeping D2's
+rule intact), merge that alpha with the original RGB via a VRT, then
+`gdal_translate -of COG` the VRT with the same `-co`/`-mo` flags as the
+standard `cog` recipe. All 3 verified post-patch: white fraction
+dropped to ~0.2-0.3% (residual plausibly real small bright features),
+real color content spot-checked unchanged. `FORCE=1` re-uploaded,
+verified, STAC regenerated, committed -- same lifecycle as D24.
