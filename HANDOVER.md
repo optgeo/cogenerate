@@ -22,7 +22,7 @@ approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress, right now: 69 published / 194 pool (~35.6%)**. Report as
+**Progress, right now: 79 published / 194 pool (~40.7%)**. Report as
 this fraction whenever giving a status update -- `candidates.py`'s own
 summary line (`--top 1 --sort-by date`, stderr "N already published")
 gives the numerator; the pool total drifts, re-run rather than
@@ -35,69 +35,74 @@ handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
 skipped by hand as encountered -- a working denominator, not a
 mathematically clean one.
 
-**No 🔴 mid-flight items right now**, one 🟡 build in progress (see below).
+**No 🔴 mid-flight items right now**, two 🟡 builds in progress (see below).
+Everything up through the "What's published" list below is fully done
+(uploaded, verified, STAC'd, cleaned up, committed+pushed).
 
-- The noto hole-patch rebuild (full incident + fix in the D24 section
-  below and in `DECISIONS.md`'s D24 "Patch applied" follow-up) is
-  **done**: rebuilt from a local copy of the original (not streamed
-  live via vsicurl, which is what killed the first attempt), verified
-  three ways (gdalinfo header, `gdallocationinfo` spot-checks at ~20
-  points plus the specific known-gap coordinate, exact expected byte
-  count), uploaded with `FORCE=1`, verified, STAC'd, `out/noto_patch/`
-  fully cleaned up, committed+pushed (`ad62969`).
-- **2018 Hokkaido Eastern Iburi earthquake batch: DONE**, 6 sub-district
-  layers published this session -- `atsuma_0911do` (`b1d3cb4`),
-  `atsumatoubu_0911do` (`24e1674` -- built under the corrected GSI
-  slug, see the ID-mismatch note below), `kiyota_0912do` (`f835c27`),
-  `atsumaseibu_0911do` (`20f5535`), `atsumachiku_0906do` (`d2afe0f`),
-  `atsuma_0906do` (`47c75a1`). Remaining `candidates.py` hits for this
-  event are non-photo (`atsuma_digital`, `atsuma_sekishoku`,
-  `iburi_hokaichi`) or the typo'd `atsumtoubu_0911do` ID (already
-  published under its correct spelling, will keep resurfacing -- skip
-  by hand).
-- Two distinct-date/capture-pass follow-ups to already-published
-  layers: `marumori_1020do_sokuho` (`1e65124`, distinct date from
-  published `..._1021do_sokuho`) and `tsuruokamurakami_0626do`
-  (`b7b7a2e`, second capture-pass ② vs already-published `0626do1` ①).
-- **New discovery, 2026-08-01 ~15:3x**: `candidates.py --top 60`
-  (rather than the usual `--top 10`) surfaces a long tail of older
-  (2016-2018) real photo layers that don't show up in a shallow
-  `--top 10/20` scan -- helicopter/UAV-captured disaster-response
-  photos (`名前` field says `ヘリ撮影画像` / `UAV撮影画像` / `空中写真`,
-  not just the `_do`/`_do_sokuho` suffix pattern) and a Nishinoshima
-  (西之島) eruption-monitoring ortho series going back to 2016 that
-  GSI has apparently been running continuously (dates differ, name is
-  literally just `YYYY/M/D` with no other qualifier -- confirmed real
-  photo via the ichiran.html detail entry's `正射画像（...撮影）` line,
-  not just the catalog `name` field, since that field alone was
-  ambiguous for these). Published so far from this tail:
-  `ooita_dosha` (`1914e28`, ヘリ撮影, 中津市), `kusatsushirane_0216uav`
-  (`f77e869`, UAV撮影), `20180117dol` (`e535609`, Nishinoshima
-  2018-01-17), `20161220dol` (`55554b9`, Nishinoshima 2016-12-20),
-  `typhoon3_0707dol` (`6ac616e`, 2017 Kyushu Typhoon 3, ヘリ撮影),
-  `typhoon3_0707dol3` (`8a0cc8a`, same event, UAV撮影). **🟡 In
-  progress**: `20170705typhoon3_0708dol1` (same 2017 Kyushu Typhoon 3
-  event, ヘリ撮影, 13230 tiles) -- check `out/20170705typhoon3_0708dol1.tif*`
-  and `ps aux | grep gdal_translate`; if the COG is done, upload/verify/
-  stac/cleanup/commit it like the others, then continue with the
-  remaining known-real candidates from this same tail:
-  `typhoon3_0710dol` (seed 884,411), `typhoon3_0713dol1` (884,411),
-  `typhoon3_0713dol2` (884,411), `ibaraki_1229dol` (seed 912,399, 2016
-  Ibaraki northern earthquake, 正射画像). All already confirmed via
-  direct `curl -I` 200 against their real GSI tile URLs (no ID
-  mismatches found in this batch, unlike atsumatoubu). After those,
-  `candidates.py --top 60/100 --sort-by date` likely has even more of
-  this same kind buried further down (Nishinoshima's series in
-  particular looks like it goes back further than 2016) -- worth
-  scanning progressively deeper `--top N` values rather than assuming
-  the pool is exhausted after one `--top 10` pass returns only
-  dansaizu/shinsui/digital/rittai noise.
+- The noto hole-patch rebuild (D24, full incident+fix writeup lives in
+  `DECISIONS.md`'s D24 "Patch applied" follow-up) is **done**.
+- **2018 Hokkaido Eastern Iburi earthquake batch: DONE** (8 layers).
+  Remaining `candidates.py` hits for this event are non-photo or the
+  typo'd `atsumtoubu_0911do` ID (published under its correct spelling
+  already -- will keep resurfacing in `candidates.py` output, skip by
+  hand, don't rebuild).
+- **2017 Kyushu Typhoon 3 batch: DONE** (6 layers, all ヘリ撮影/UAV撮影/
+  空中写真).
+- **Deep `candidates.py --top N` scanning technique, confirmed working
+  well**: a shallow `--top 10/20` scan surfaces mostly non-photo noise
+  (`_dansaizu`/`_shinsui`/`_digital`/`_rittai`/SAR `apsar`) once the
+  easy wins are gone -- but `--top 60`, then `--top 100`, revealed a
+  *large* additional backlog of genuinely real, unpublished photo
+  layers: helicopter/UAV-captured disaster photos whose `name` field
+  says `ヘリ撮影画像`/`UAV撮影画像`/`空中写真` rather than following the
+  `_do`/`_do_sokuho` suffix pattern, plus a Nishinoshima (西之島)
+  eruption-monitoring series GSI has run continuously since at least
+  2015 (many entries' `name` is literally just `YYYY/M/D`, no other
+  qualifier -- confirm via the ichiran.html detail entry's
+  `正射画像（...撮影）` line, the catalog `name` field alone is
+  ambiguous for these). **Keep going deeper (`--top 150`, `--top 194`
+  i.e. the whole pool) rather than assuming exhaustion** -- this
+  technique alone has been responsible for roughly a third of this
+  session's publishes.
+- 🟡 **2016 Typhoon 10 (Iwate Iwaizumi-cho) batch, in progress**: 4 of
+  6 sub-district layers done (`0907dol1`, `1007dol1`, `1007dol2`,
+  `0907dol2`). **Check on**: `20160830typhoon10_0907dol3` (COG
+  building as of this writing, check
+  `out/20160830typhoon10_0907dol3.tif*` and `ps aux | grep
+  gdal_translate`) and `20160820typhoon11_9_0825dol` (常呂川周辺,
+  Hokkaido, different district/seed -- probe done, 19690 tiles at
+  `tiles/20160820typhoon11_9_0825dol.z18.csv`, download/georef/cog not
+  yet started). Finish both the same way as the others.
+- **Next after that**: `candidates.py --top 150 --sort-by date --json`
+  still has (as of last check) a *very large* 2016 Kumamoto earthquake
+  batch -- dozens of daily/sub-district `20160414kumamoto_MMDDdolNN`
+  layers spanning 2016-04-15 through 2016-07-24 -- plus more of the
+  Nishinoshima series going back before 2016 (`20160725dol`,
+  `20160303dol`, `20151209dol`, `20150929dol` 常総地区 2015 Kanto-Tohoku
+  flood, `20150911dol` through `dol5` variants, `20150728dol`, all
+  confirmed real via layers-martin `name` field -- spot-check a few
+  more with ichiran.html before bulk-queuing, same method as above).
+  The Kumamoto batch alone could plausibly be 20-30 additional layers
+  -- worth sanity-checking a handful of `name` fields first (some
+  `kumamoto_04*` entries might turn out to be duplicate-date variants
+  of the same district like the Iburi/Typhoon3 batches, not all
+  independent) before mechanically queuing all of them.
 
 **Concurrency pattern**: run one `upload` (network-bound, slow for big
 layers -- noto's original 45GB upload took ~25min) *and* one
 build-chain step (probe/download/georef/cog, CPU or network bound,
 doesn't touch `source-coop`) at the same time rather than serializing
--- they don't contend for the same resource. Keep an eye on concurrent
+-- they don't contend for the same resource. **Pipeline across multiple
+layers, not just one at a time (Hidenori's suggestion, 2026-08-01
+~19:0x, confirmed effective)**: each build-chain step alternates
+network-bound (probe, download) and CPU-bound (cog; georef is quick)
+phases -- start layer B's probe/download while layer A's cog is still
+building, rather than waiting for A to fully finish before starting B.
+In practice this session ran 2 `gdal_translate` COG builds
+simultaneously several times (e.g. two Typhoon 10 sub-district layers
+back to back) with no problems, each finishing in the time one alone
+would have taken since they don't contend for network, and network
+steps for a third layer overlapped both. Keep an eye on concurrent
 `gdal_translate` count (`ps aux | grep gdal_translate`) if queuing more
 than ~3-4 builds at once; 8 cores on this machine, COG builds get
 CPU-hungry on large layers. **Always use full paths
@@ -193,28 +198,29 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 ### Do this first when resuming
 
-1. **Check on `20170705typhoon3_0708dol1`** (see above) -- finish its
-   upload/verify/stac/cleanup/commit if the COG build is done, then
-   continue with the other named-but-not-yet-built candidates from
-   the same 🟡 note (`0710dol`, `0713dol1`, `0713dol2`, `ibaraki_1229dol`).
+1. **Check on `20160830typhoon10_0907dol3`** (COG build) and
+   `20160820typhoon11_9_0825dol` (probe done, download/georef/cog not
+   started) -- see the 🟡 note above, finish both the same way as the
+   rest of the Typhoon 10 batch.
 2. **Check `source-coop` credentials**: see above. If expired, ask
    Hidenori to run `source-coop login`, don't work around it.
 3. **Then keep going**: `uv run python -m cogenerate.candidates --top
-   60 --sort-by date --json` (not just `--top 10` -- see the "New
-   discovery" note above, a shallow scan misses real photo layers
-   sitting behind a wall of dansaizu/shinsui/digital/rittai/SAR noise
-   in the newest ~40 entries) for "what's next" (check `layers-martin`'s
-   catalog `name` field per candidate for "撮影"/"ヘリ撮影"/"UAV撮影"/
-   "空中写真" -- not "作成"/"観測"/non-photo map products -- before
-   queuing, and sanity-`curl -I` a brand-new candidate's real GSI tile
-   URL before assuming a probe failure is a seed problem -- see the
-   ID-mismatch note above). Run one upload + one build-chain step
-   concurrently per the pattern below. Report progress as
-   `published/pool` when giving status updates.
+   150 --sort-by date --json` (keep going deeper than 60/100 -- see
+   the deep-scan note above; the 2016 Kumamoto earthquake batch alone
+   is a large additional backlog) for "what's next" (check
+   `layers-martin`'s catalog `name` field per candidate for
+   "撮影"/"ヘリ撮影"/"UAV撮影"/"空中写真" -- not "作成"/"観測"/non-photo
+   map products -- before queuing, and sanity-`curl -I` a brand-new
+   candidate's real GSI tile URL before assuming a probe failure is a
+   seed problem -- see the ID-mismatch note above). Pipeline
+   network-bound and CPU-bound phases across multiple layers per the
+   concurrency pattern below rather than fully serializing one layer
+   at a time. Report progress as `published/pool` when giving status
+   updates.
 
 ### What's published
 
-**69 layers** live on Source Cooperative + the STAC catalog
+**79 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
 Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
 `yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
@@ -238,14 +244,18 @@ Yamagata-Niigata earthquake, 3 distinct capture passes) -- 4 layers;
 `abira_0911do`, `atsuma_0911do`, `atsumatoubu_0911do`, `kiyota_0912do`,
 `atsumaseibu_0911do`, `atsumachiku_0906do`, `atsuma_0906do` -- 8 layers;
 `marumori_1020do_sokuho` (distinct-date follow-up to `1021do_sokuho`)
--- 1 layer; the "deep candidates.py scan" tail (helicopter/UAV photos +
-Nishinoshima historical series + 2017 Kyushu Typhoon 3) --
-`ooita_dosha`, `kusatsushirane_0216uav`, `20180117dol`, `20161220dol`,
-`typhoon3_0707dol`, `typhoon3_0707dol3` -- 6 layers so far, more in
-progress (see 🟡 above). Each followed the same settled lifecycle:
-build locally -> `upload` (autonomous per the standing directive) ->
-`just verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
-`cleanup-cog` (D20) -> commit+push `docs/`.
+-- 1 layer; the "deep candidates.py scan" tail -- `ooita_dosha`,
+`kusatsushirane_0216uav`, `20180117dol`, `20161220dol` (helicopter/UAV
+photos + Nishinoshima historical series), the complete 2017 Kyushu
+Typhoon 3 batch (`typhoon3_0707dol`, `0707dol3`, `0708dol1`, `0710dol`,
+`0713dol1`, `0713dol2` -- 6 layers), `20161228ibaraki_1229dol` (2016
+northern Ibaraki earthquake), `20161021tottori_1022dol` (2016 central
+Tottori earthquake), and 4 of 6 2016 Typhoon 10 sub-district layers
+(`0907dol1`, `1007dol1`, `1007dol2`, `0907dol2`) -- 16 layers so far,
+more in progress (see 🟡 above). Each followed the same settled
+lifecycle: build locally -> `upload` (autonomous per the standing
+directive) -> `just verify` -> `just stac` -> `stac-validate` ->
+`cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`.
 
 **Ranking modes**: `candidates.py` supports `--sort-by extent`
 (default, municipality-count proxy) or `--sort-by date` (newest
