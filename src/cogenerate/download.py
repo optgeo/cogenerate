@@ -39,6 +39,16 @@ def read_tiles(path: Path) -> list[tuple[int, int, int]]:
     return out
 
 
+# Retries (D24-style): probe.py already confirmed these tiles exist, so a
+# failed GET here is transient (network blip / 5xx), not a real 404 -- retry
+# a few times with backoff before giving up, same reasoning as D24's fix to
+# probe.py's exists(). Without this, a busy period (e.g. several layers
+# downloading concurrently) can silently drop tiles that were genuinely
+# there, producing the same kind of mosaic gap D24 fixed on the probe side.
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.5
+
+
 async def fetch_one(
     client: httpx.AsyncClient, layer: str, z: int, x: int, y: int, ext: str, out: Path, force: bool
 ) -> tuple[bool, bool]:
@@ -48,16 +58,20 @@ async def fetch_one(
         return True, True
     url = f"{BASE}/{layer}/{z}/{x}/{y}.{ext}"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        r = await client.get(url, timeout=20.0)
-        if r.status_code != 200:
-            err.print(f"[yellow]skip[/yellow] {z}/{x}/{y}: HTTP {r.status_code} (was confirmed earlier -- flaky?)")
-            return False, False
-        dest.write_bytes(r.content)
-        return True, False
-    except httpx.HTTPError as e:
-        err.print(f"[yellow]skip[/yellow] {z}/{x}/{y}: {e!r}")
-        return False, False
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            r = await client.get(url, timeout=20.0)
+            if r.status_code == 200:
+                dest.write_bytes(r.content)
+                return True, False
+            err.print(f"[yellow]warn[/yellow] {z}/{x}/{y}: HTTP {r.status_code} "
+                      f"(was confirmed earlier -- flaky? attempt {attempt}/{MAX_ATTEMPTS})")
+        except httpx.HTTPError as e:
+            err.print(f"[yellow]warn[/yellow] {z}/{x}/{y}: {e!r} (attempt {attempt}/{MAX_ATTEMPTS})")
+        if attempt < MAX_ATTEMPTS:
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
+    err.print(f"[red]skip[/red] {z}/{x}/{y}: giving up after {MAX_ATTEMPTS} attempts")
+    return False, False
 
 
 async def download_all(
