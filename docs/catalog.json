@@ -65,6 +65,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20161021tottori_1022dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20161021tottori_1022dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20161220dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20161220dol"
