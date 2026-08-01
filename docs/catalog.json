@@ -83,6 +83,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_kiyota_0912do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20180906hokkaido_kiyota_0912do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_kiyota_0913do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180906hokkaido_kiyota_0913do"
