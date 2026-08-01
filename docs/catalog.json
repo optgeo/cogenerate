@@ -71,6 +71,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_atsuma_0906do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20180906hokkaido_atsuma_0906do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_atsuma_0911do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180906hokkaido_atsuma_0911do"
