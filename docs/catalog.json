@@ -71,6 +71,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20161228ibaraki_1229dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20161228ibaraki_1229dol"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20170705typhoon3_0707dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20170705typhoon3_0707dol"
