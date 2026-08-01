@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20170705typhoon3_0708dol1",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          130.7194519,
+          33.4406094
+        ],
+        [
+          130.7194519,
+          33.320201
+        ],
+        [
+          130.8924866,
+          33.320201
+        ],
+        [
+          130.8924866,
+          33.4406094
+        ],
+        [
+          130.7194519,
+          33.4406094
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    130.7194519,
+    33.320201,
+    130.8924866,
+    33.4406094
+  ],
+  "properties": {
+    "datetime": "2017-07-05T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20170705typhoon3_0708dol1",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20170705typhoon3_0708dol1",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20170705typhoon3_0708dol1/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20170705typhoon3_0708dol1.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20170705typhoon3_0708dol1.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20170705typhoon3_0708dol1",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 377925031,
+      "file:checksum_sha256": "8e0183171e393c3422cb0a8021608a846e802379ac6e2f3e66cb8071c0c940c0"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20170705typhoon3_0708dol1.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
