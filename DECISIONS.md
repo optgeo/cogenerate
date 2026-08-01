@@ -1002,3 +1002,21 @@ enclosed-hole detection method (flood-fill the probe CSV's bounding
 box from its border, anything unreached is a true interior gap) if
 one is suspected -- not run exhaustively across all 52 published
 layers as of this decision, only reactively when something looks off.
+
+**Patch applied, 2026-08-01**: rebuilt `20240102noto_0405_0426do` from
+a VRT merging the original COG with the 49 patch tiles, re-uploaded
+with `FORCE=1` (checksum/size changed: 48647237551 -> 48655094466
+bytes). First attempt streamed the ~45GB original over HTTPS via
+`/vsicurl` *during* the `gdal_translate -of COG` encode itself -- that
+connection died silently after ~4h9m (no crash, no OOM, just a clean
+TCP close) partway through writing the full-resolution base layer,
+leaving a structurally-valid-looking COG header (`gdalinfo` succeeds)
+whose entire pixel payload was unwritten zeros -- confirmed via
+`gdallocationinfo` spot-checks, not `gdalinfo` alone, which cannot
+tell a two-pass COG's header-written-but-data-pending state from a
+genuinely complete file. Second attempt downloaded the original to a
+local file first (plain resumable `curl -C -`, no GDAL/network
+coupling), then rebuilt purely from local files -- succeeded in under
+an hour. **Lesson for any future large (>10GB) COG rebuild that reads
+a remote original as a VRT source**: download it locally first, don't
+let `gdal_translate` stream it over the network mid-encode.
