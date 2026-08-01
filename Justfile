@@ -244,6 +244,16 @@ cleanup: cleanup-tiles
 clean:
     rm -rf tiles
 
+# Step 11: cheap remote-only quality sweep across every Item published
+# so far -- HEAD size check + gdalinfo header structure check (COG
+# layout, band count, bbox sanity). No local out/ needed, no
+# full-file downloads. Not a substitute for a targeted
+# gdallocationinfo investigation if a specific layer is suspected
+# (D24's noto incident -- gdalinfo alone doesn't prove pixel data is
+# actually written), just the routine catalog-wide check.
+audit:
+    uv run python -m cogenerate.audit --items-dir {{docs_dir}}/items/
+
 lint:
     uv run ruff check src/
 
