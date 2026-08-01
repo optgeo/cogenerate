@@ -1,0 +1,102 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20160414kumamoto_0705dol",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          130.9350586,
+          33.0270876
+        ],
+        [
+          130.9350586,
+          32.8772805
+        ],
+        [
+          131.0655212,
+          32.8772805
+        ],
+        [
+          131.0655212,
+          33.0270876
+        ],
+        [
+          130.9350586,
+          33.0270876
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    130.9350586,
+    32.8772805,
+    131.0655212,
+    33.0270876
+  ],
+  "properties": {
+    "datetime": "2016-04-14T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0705dol",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20160414kumamoto_0705dol",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20160414kumamoto_0705dol/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0705dol.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20160414kumamoto_0705dol.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0705dol",
+      "roles": [
+        "ortho",
+        "data"
+      ],
+      "file:size": 1438025529,
+      "file:checksum_sha256": "4547f0cfdc1c553ae85e84c7c8c69b841eaf642987ab21ac2fe251ab45a89e70"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0705dol.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
