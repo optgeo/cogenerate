@@ -22,7 +22,7 @@ approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress, right now: 141 published / 194 pool (~72.7%)**. Report as
+**Progress, right now: 151 published / 194 pool (~77.8%)**. Report as
 this fraction whenever giving a status update -- `candidates.py`'s own
 summary line (`--top 1 --sort-by date`, stderr "N already published")
 gives the numerator; the pool total drifts, re-run rather than
@@ -35,14 +35,13 @@ handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
 skipped by hand as encountered -- a working denominator, not a
 mathematically clean one.
 
-🟡 **One item mid-flight**: 10 aircraft-SAR COGs built and sitting in
-`out/`, blocked on expired `source-coop` credentials -- see the D27
-bullet below for the full list and what to do on resume. Everything
-else is fully done. The 2015 Joso batch's
-remaining 6 layers, the full 2014 batch (6 layers), and the full 2013
-batch (5 layers) -- 17 layers total, all listed in the previous
-rewrite -- finished earlier this session (uploaded, verified, STAC'd, cleaned
-up, committed+pushed).
+**No 🔴/🟡 items mid-flight right now.** The 2015 Joso batch's
+remaining 6 layers, the full 2014 batch (6 layers), the full 2013
+batch (5 layers), and all 10 aircraft-SAR layers (D27) -- 27 layers
+total this session -- are all fully done (uploaded, verified, STAC'd,
+cleaned up, committed+pushed). The SAR upload was blocked on expired
+`source-coop` credentials mid-session; Hidenori re-logged in and all
+10 finished cleanly right after.
 
 - **`candidates.py --top 194` pool check, 2026-08-02, after finishing
   the batch above: the pool is now effectively exhausted.** Every one
@@ -75,13 +74,12 @@ up, committed+pushed).
   (several already-published layers, e.g.
   `20250815rain_amakusa_0815do_sokuho`, are themselves the canonical
   ID for their capture with no non-`_sokuho` sibling ever published).
-- 🟡 **Scope extended to aircraft SAR imagery, 2026-08-02 (D27) -- all
-  10 layers built, upload blocked on credentials.** Hidenori asked
-  about the 3 non-photo categories found in the pool-exhaustion pass;
-  investigated and decided: SAR is real primary sensor data and now in
-  scope, derived thematic/hazard maps stay out (full reasoning in
-  D27). Seeds derived from each layer's own `ichiran.html` tilejump
-  entry, same as any other layer:
+- **Scope extended to aircraft SAR imagery, 2026-08-02 (D27) -- all 10
+  layers published.** Hidenori asked about the 3 non-photo categories
+  found in the pool-exhaustion pass; investigated and decided: SAR is
+  real primary sensor data and now in scope, derived thematic/hazard
+  maps stay out (full reasoning in D27). Seeds derived from each
+  layer's own `ichiran.html` tilejump entry, same as any other layer:
   - `20140930dol`/`20140929dol2` (御嶽山 Mt. Ontake, Sep 2014, seed
     903,402) -- note these have **no `apsar` token in their ID**,
     confirmed SAR via `ichiran.html` title text only ("航空機SAR画像").
@@ -109,20 +107,21 @@ up, committed+pushed).
     **All 10 layers built (or rebuilt) with the corrected pipeline
     before any upload was attempted** -- nothing had reached Source
     Cooperative yet when the bug was caught, so no retroactive patch
-    was needed. Build command going forward for any more SAR layers:
+    was needed. Build command for any more SAR layers going forward:
     `SENSOR=sar just run` (not just the `stac-item` step -- `SENSOR`
     must be set from `georef` onward).
-  - **Blocked on `source-coop` credentials as of this rewrite** -- all
-    10 COGs are sitting in `out/` ready for `just upload` /
-    `SENSOR=sar just stac` / cleanup / commit the moment credentials
-    return. Don't rebuild these again on resume; check `ls out/*.tif`
-    first, they should still be there.
-- **Net effect otherwise: no further known real, in-scope, unpublished
-  optical-photo candidates remain in the pool.** Once the 10 SAR
-  layers above are published, wait for a new disaster event to add
-  fresh layers to `ichiran.html`, or for Hidenori to point at
-  something specific (e.g. another `--keyword` geographic priority
-  pass like the Hiroshima one).
+  - All 10 uploaded, verified, STAC'd (`SENSOR=sar just stac`,
+    confirming `roles: ["amplitude", "data"]` on each Item), cleaned
+    up, and committed individually.
+- **Net effect: no further known real, in-scope, unpublished
+  candidates remain in the pool** -- optical photos and aircraft SAR
+  are both exhausted as of this session. Nothing queued to build next;
+  wait for a new disaster event to add fresh layers to `ichiran.html`,
+  or for Hidenori to point at something specific (e.g. another
+  `--keyword` geographic priority pass like the Hiroshima one, or a
+  decision to bring derived thematic maps into scope after all --
+  D27's reasoning for keeping them out still stands unless that
+  changes).
 - **New minzoom gotcha, recurred this session**: `20150911dol`/
   `20150714dol` (both Kuchinoerabujima volcano UAV captures, despite
   being recorded under the "2015 Joso batch" label in the prior
@@ -291,16 +290,18 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 1. **There is no known queued work right now** -- the pool is
    effectively exhausted as of the 2026-08-02 `--top 194` pass (see
-   above). Re-run `uv run python -m cogenerate.candidates --top 194
-   --sort-by date --json` first to check whether a new disaster has
-   added fresh layers to `ichiran.html` since then (this pipeline's
+   above), for both optical photos and aircraft SAR (D27, all 10 known
+   SAR layers published). Re-run `uv run python -m cogenerate.candidates
+   --top 194 --sort-by date --json` first to check whether a new disaster
+   has added fresh layers to `ichiran.html` since then (this pipeline's
    whole reason for existing is that GSI adds these within days of a
    real event) -- don't assume the exhausted state is still current
    without checking. If new layers show up:
    - Check `layers-martin`'s catalog `name` field per candidate for
-     "撮影"/"ヘリ撮影"/"UAV撮影"/"空中写真" -- not "作成"/"観測"/non-photo
-     map products, and not nationwide/non-disaster-response products
-     like `rinya`.
+     "撮影"/"ヘリ撮影"/"UAV撮影"/"空中写真" (optical) or "航空機SAR画像"
+     (SAR, D27 -- in scope, build with `SENSOR=sar` from `georef`
+     onward, see CLAUDE.md) -- not "作成"/"観測"/non-photo map products,
+     and not nationwide/non-disaster-response products like `rinya`.
    - **Before queuing a `_sokuho`-suffixed candidate**, check whether a
      same-district, same-date non-`_sokuho` ID is *already published*
      -- if so, it's D26's preliminary-report duplicate, skip it.
@@ -348,7 +349,7 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 ### What's published
 
-**141 layers** live on Source Cooperative + the STAC catalog
+**151 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
 Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
 `yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
@@ -395,13 +396,19 @@ Kitagawa, `20140711dol` Nagiso, `20140704dol`/`20140322dol`
 Nishinoshima -- 6 layers), and the **full 2013 batch**
 (`20131017dol2`/`20131017dol` Izu-Oshima, `20130902dol` tornado/
 downburst, `20130717dol2`/`20130717dol` Susa district Yamaguchi -- 5
-layers) -- 78 layers total from the deep-scan tail
-(2026-08-01/02). Each followed the same settled lifecycle: build
-locally -> `upload` (autonomous per the standing directive) -> `just
-verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
-`cleanup-cog` (D20) -> commit+push `docs/`. **This closes out the deep
-`candidates.py --top 194` scan** -- see "Current status" above for the
-2026-08-02 pool-exhaustion check.
+layers) -- 78 layers total from the deep-scan tail (2026-08-01/02);
+plus the **10-layer aircraft SAR batch** (D27, 2026-08-02) --
+`20140930dol`/`20140929dol2` (御嶽山 Mt. Ontake), the 4-layer
+`20180419kirishima_apsar...` Ebino Highlands/Mt. Io set, and the
+4-layer `20171011kirishima_apsar...` Shinmoedake set -- built and
+published with `SENSOR=sar` throughout (`roles: ["amplitude", "data"]`
+on each Item, not the default `["ortho", "data"]`). Each followed the
+same settled lifecycle: build locally -> `upload` (autonomous per the
+standing directive) -> `just verify` -> `just stac` -> `stac-validate`
+-> `cleanup-tiles` + `cleanup-cog` (D20) -> commit+push `docs/`. **This
+closes out both the deep `candidates.py --top 194` scan and the D27
+SAR scope extension** -- see "Current status" above; the pool is
+exhausted for both optical photos and aircraft SAR as of this session.
 
 **Separately, D25's retroactive white-nodata patch** touched 3
 already-published layers without changing the published count:
