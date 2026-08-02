@@ -72,12 +72,37 @@ up, committed+pushed).
   (several already-published layers, e.g.
   `20250815rain_amakusa_0815do_sokuho`, are themselves the canonical
   ID for their capture with no non-`_sokuho` sibling ever published).
-- **Net effect: no further known real, in-scope, unpublished candidates
-  remain in the pool as of this pass.** Nothing queued to build next --
-  wait for a new disaster event to add fresh `_do`/`_do_sokuho` layers
-  to `ichiran.html`, or for Hidenori to point at something specific
-  (e.g. another `--keyword` geographic priority pass like the
-  Hiroshima one).
+- **Scope extended to aircraft SAR imagery, 2026-08-02 (D27).** Hidenori
+  asked about the 3 non-photo categories found in the pool-exhaustion
+  pass; investigated and decided: SAR is real primary sensor data and
+  now in scope, derived thematic/hazard maps stay out (full reasoning
+  in D27). Added `stac_item.py --sensor sar` / `SENSOR=sar just
+  stac-item` -- sets the imagery asset's `roles` to `["amplitude",
+  "data"]` instead of `["ortho", "data"]`, no other pipeline changes
+  needed (D25's monochrome-origin detection already protects SAR
+  tiles' real black/white content from the NODATA-cleaning heuristic).
+  **Queued to build next, 10 layers, all confirmed `10～18` zoom range,
+  no `apsar` seed coordinates derived yet** -- get each from its own
+  `ichiran.html` tilejump entry same as any other layer, remembering
+  `--sensor sar` on the `stac-item` step for all of them:
+  - `20140930dol` (御嶽山, Mt. Ontake, Sep 2014) -- note this one has
+    **no `apsar` token in its ID**, confirmed SAR via `ichiran.html`
+    title text only.
+  - `20140929dol2` (御嶽山, same event, second SAR pass) -- same
+    ID-doesn't-say-SAR caveat.
+  - `20180419kirishima_apsar180420nesw` / `..._180420swne` /
+    `..._180226nesw` / `..._180226swne` (霧島山 Kirishima, Ebino
+    Highlands/Mt. Io, 2018 -- 2 dates x 2 observation directions).
+  - `20171011kirishima_apsar171012we` / `..._171012ew` /
+    `..._141105we` / `..._141105ew` (霧島山 Kirishima, Shinmoedake,
+    2017 pass covering both a 2017 and a 2014 observation date -- 2
+    dates x 2 directions).
+- **Net effect otherwise: no further known real, in-scope, unpublished
+  optical-photo candidates remain in the pool as of this pass.** Once
+  the 10 SAR layers above are done, wait for a new disaster event to
+  add fresh layers to `ichiran.html`, or for Hidenori to point at
+  something specific (e.g. another `--keyword` geographic priority
+  pass like the Hiroshima one).
 - **New minzoom gotcha, recurred this session**: `20150911dol`/
   `20150714dol` (both Kuchinoerabujima volcano UAV captures, despite
   being recorded under the "2015 Joso batch" label in the prior

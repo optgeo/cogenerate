@@ -164,11 +164,50 @@ def build_item(
     item_url: str,
     catalog_url: str,
     previous: dict | None,
+    sensor: str = "optical",
 ) -> dict:
     info = gdalinfo_json(cog, asset_url)
     geometry = info["wgs84Extent"]
     tags = info.get("metadata", {}).get("", {})
     title = tags.get("TIFFTAG_IMAGEDESCRIPTION", layer)
+
+    properties = {
+        **parse_capture_date(layer),
+        "title": title,
+        "gsd": GSD_Z18_M,
+        "license": "CC-BY-4.0",
+        "platform": "aircraft",
+        "providers": [
+            {
+                "name": "Geospatial Information Authority of Japan (GSI)",
+                "roles": ["producer", "licensor"],
+            },
+            {
+                "name": "optgeo/cogenerate",
+                "roles": ["processor"],
+                "url": tags.get("PIPELINE", "https://github.com/optgeo/cogenerate"),
+            },
+        ],
+        "gsi:layer_id": layer,
+        "gsi:source_url": tags.get("SOURCE_URL"),
+        "gsi:attribution": tags.get("TIFFTAG_COPYRIGHT"),
+    }
+    # D27: SAR layers get a distinct asset role and an explicit sensor
+    # note so a downstream STAC consumer doesn't mistake grayscale radar
+    # amplitude imagery for an optical orthophoto. "amplitude" is drawn
+    # from the community `sar` STAC extension's recommended asset-role
+    # vocabulary (stac-extensions/sar) -- used here as a plain asset
+    # role without formally declaring stac_extensions, since GSI
+    # publishes no instrument_mode/frequency_band/polarization metadata
+    # for these layers to actually populate the extension's own fields
+    # with (D19's "don't declare what you don't use" applies here too).
+    if sensor == "sar":
+        imagery_roles = ["amplitude", "data"]
+        properties["gsi:sensor"] = (
+            "aircraft SAR (grayscale amplitude imagery, not optical photography)"
+        )
+    else:
+        imagery_roles = ["ortho", "data"]
 
     return {
         "stac_version": STAC_VERSION,
@@ -177,27 +216,7 @@ def build_item(
         "id": layer,
         "geometry": geometry,
         "bbox": bbox_of(geometry),
-        "properties": {
-            **parse_capture_date(layer),
-            "title": title,
-            "gsd": GSD_Z18_M,
-            "license": "CC-BY-4.0",
-            "platform": "aircraft",
-            "providers": [
-                {
-                    "name": "Geospatial Information Authority of Japan (GSI)",
-                    "roles": ["producer", "licensor"],
-                },
-                {
-                    "name": "optgeo/cogenerate",
-                    "roles": ["processor"],
-                    "url": tags.get("PIPELINE", "https://github.com/optgeo/cogenerate"),
-                },
-            ],
-            "gsi:layer_id": layer,
-            "gsi:source_url": tags.get("SOURCE_URL"),
-            "gsi:attribution": tags.get("TIFFTAG_COPYRIGHT"),
-        },
+        "properties": properties,
         "links": [
             {"rel": "self", "href": item_url, "type": "application/json"},
             {"rel": "root", "href": catalog_url, "type": "application/json"},
@@ -208,7 +227,7 @@ def build_item(
                 "href": asset_url,
                 "type": "image/tiff; application=geotiff; profile=cloud-optimized",
                 "title": title,
-                "roles": ["ortho", "data"],
+                "roles": imagery_roles,
                 "file:size": file_size_of(cog, asset_url),
                 "file:checksum_sha256": checksum_of(cog, asset_url, previous),
             },
@@ -295,9 +314,18 @@ def main(
         "https://optgeo.github.io/cogenerate/catalog.json",
         help="URL of the top-level Catalog this Item belongs to",
     ),
+    sensor: str = typer.Option(
+        "optical",
+        help="'optical' (default, aerial/UAV photography) or 'sar' (aircraft SAR grayscale "
+        "amplitude imagery, DECISIONS.md D27) -- sar sets the imagery asset's roles to "
+        "['amplitude', 'data'] instead of ['ortho', 'data'] and records properties.gsi:sensor, "
+        "so a downstream STAC consumer doesn't mistake radar imagery for an optical orthophoto",
+    ),
 ):
     """Build one STAC Item JSON for an already-built (or already-uploaded, even if since
     cleaned up locally) COG."""
+    if sensor not in ("optical", "sar"):
+        raise typer.BadParameter("--sensor must be 'optical' or 'sar'")
     if cog is not None and not cog.exists():
         err.print(f"[yellow]warn[/yellow] {cog} doesn't exist -- reading from {asset_url} instead")
         cog = None
@@ -306,7 +334,7 @@ def main(
         previous = json.loads(previous_item.read_text())
 
     item_url = f"{items_base_url}/{layer}.json"
-    item = build_item(layer, cog, asset_url, item_url, catalog_url, previous)
+    item = build_item(layer, cog, asset_url, item_url, catalog_url, previous, sensor)
     text = json.dumps(item, indent=2, ensure_ascii=False)
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)

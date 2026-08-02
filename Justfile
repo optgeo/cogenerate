@@ -148,6 +148,11 @@ upload:
 # self-truncation race that would otherwise cause).
 docs_dir := "docs"
 asset_url := env_var_or_default("ASSET_URL", "https://data.source.coop/smartmaps/cogenerate/" + layer + ".tif")
+# SENSOR=sar for aircraft SAR layers (D27) -- changes the imagery
+# asset's roles from ['ortho','data'] to ['amplitude','data'] and
+# records properties.gsi:sensor, so a downstream STAC consumer doesn't
+# mistake grayscale radar amplitude imagery for an optical orthophoto.
+sensor := env_var_or_default("SENSOR", "optical")
 stac-item:
     mkdir -p {{docs_dir}}/items
     uv run python -m cogenerate.stac_item \
@@ -155,7 +160,8 @@ stac-item:
         --cog {{out_dir}}/{{layer}}.tif \
         --asset-url {{asset_url}} \
         --previous-item {{docs_dir}}/items/{{layer}}.json \
-        --output {{docs_dir}}/items/{{layer}}.json
+        --output {{docs_dir}}/items/{{layer}}.json \
+        --sensor {{sensor}}
 
 # Step 7: rebuild the top-level catalog.json from every Item generated
 # so far (docs/items/*.json). Re-run after any `stac-item`.

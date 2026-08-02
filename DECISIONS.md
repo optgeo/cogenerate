@@ -40,6 +40,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D21](#d21-tooling-must-actually-work-with-source-cooperative-as-the-master-copy-not-assume-outlayertif-is-still-there) | Tooling must actually work with Source Cooperative as the master copy, not assume `out/<layer>.tif` is still there | Accepted | 2026-07-31 |
 | [D22](#d22-georef-hand-write-per-tile-vrt-xml-in-python-instead-of-a-gdal_translate-subprocess) | `georef`: hand-write per-tile VRT XML in Python instead of a `gdal_translate` subprocess | Accepted | 2026-07-31 |
 | [D26](#d26-a-sokuho-preliminary-report-layer-is-a-duplicate-when-a-same-day-non-sokuho-id-already-exists) | A `_sokuho` (preliminary-report) layer is a duplicate when a same-day non-`_sokuho` ID already exists | Accepted | 2026-08-02 |
+| [D27](#d27-scope-extension-aircraft-sar-imagery-in-scope-derived-hazard-maps-stay-out) | Scope extension: aircraft SAR imagery in scope, derived hazard maps stay out | Accepted | 2026-08-02 |
 
 ---
 
@@ -1130,3 +1131,94 @@ real, just superseded) -- skip by hand like the
 `_sokuho`-suffixed candidate turns up: check whether the same district
 + date already has a non-`_sokuho` counterpart published before
 assuming it's new coverage.
+
+## D27: Scope extension: aircraft SAR imagery in scope, derived hazard maps stay out
+
+**Status**: Accepted
+
+**Context**: The 2026-08-02 `--top 194` pool-exhaustion pass (D26)
+surfaced three categories of non-photo layers this pipeline has always
+skipped: color-coded thematic maps (`_dansaizu` flood-depth maps,
+`_shinsui` inundation-extent maps, `_kazantaisaku_*` volcanic-hazard
+maps, red-relief-derived `_digital`/`_sekishoku`/`_rittai` variants),
+and aircraft SAR imagery (`_apsar`-suffixed layers, plus the
+already-published-as-photo-shaped-but-actually-SAR `20140930dol`/
+`20140929dol2`). Hidenori asked whether any of these should be brought
+into scope.
+
+**Investigated**:
+- Downloaded and inspected real tiles from both known SAR-labeled
+  layers (`20140930dol`, Mt. Ontake; `20180419kirishima_apsar180420nesw`,
+  Kirishima). `20140930dol` decodes as PIL mode `LA` (luminance +
+  alpha); the Kirishima tile decodes as `RGBA` but every sampled pixel
+  has R=G=B (zero channel spread) -- both are genuinely grayscale
+  radar-amplitude imagery, not a color-coded derived product. This
+  means D25's `sample_is_monochrome()` monochrome-origin detection
+  (built for the 1947-48/1962 Hiroshima reference photos) already
+  protects SAR tiles correctly from D12/D25's black/white NODATA
+  cleaning -- no changes needed there.
+- The `_apsar<date><direction>` naming (`we`/`ew`/`nesw`/`swne`)
+  corresponds to GSI's own title text -- "北東から観測した画像"
+  (imaged as observed from the northeast) vs. "南西から観測した画像"
+  (from the southwest) -- i.e. distinct flight/antenna-position passes
+  over the same target, not independent captures of different places.
+  `ichiran.html`'s 備考 (remarks) field is empty for every checked SAR
+  entry -- GSI publishes no `sar:`-extension-grade technical metadata
+  (frequency band, polarization, calibration level) for these layers.
+- Checked OAM's own `/meta` API and the sibling `optgeo/oam-starc`
+  repo for an existing SAR/DEM convention to mirror (matching this
+  project's usual practice, D19): OAM's public catalog sample results
+  are exclusively UAV/aircraft optical imagery, and `oam-starc`
+  documents no non-optical asset convention. No existing OAM-specific
+  precedent to copy. Fell back to the STAC ecosystem's own community
+  `sar` extension (`stac-extensions/sar`) for asset-role vocabulary
+  instead, since that's the actual established practice for labeling
+  SAR in STAC regardless of OAM specifically.
+
+**Decision**:
+- **Aircraft SAR imagery is in scope** for this pipeline -- it's real
+  primary sensor data captured for the same disaster-response purpose
+  as the optical photos (and works through cloud cover/at night, where
+  optical can't), just a different modality. Build it through the same
+  probe/download/georef/cog pipeline unchanged.
+- **Derived thematic/hazard maps stay out of scope**
+  (`_dansaizu`/`_shinsui`/`_kazantaisaku_*`/`_digital`/`_sekishoku`/
+  `_rittai`). Two independent reasons, either alone sufficient: (1)
+  these are color-coded analysis products, not primary sensor imagery
+  -- the color itself *is* the data (e.g. flood-depth categories), so
+  D12/D25's solid-color-as-NODATA cleaning would actively corrupt real
+  content on exactly this category, and would need a wholly separate,
+  unbuilt handling path; (2) it's a mission mismatch -- this pipeline's
+  stated goal (`README.md`) is aerial *imagery*, matching OpenAerialMap
+  specifically, not general GSI GIS-product hosting. Bringing these in
+  would be a different project, not an extension of this one.
+- **STAC labeling for SAR** (`stac_item.py --sensor sar`, wired through
+  `Justfile`'s `SENSOR=sar just stac-item`): sets the `imagery` asset's
+  `roles` to `["amplitude", "data"]` instead of `["ortho", "data"]`,
+  and adds `properties.gsi:sensor` noting it's grayscale SAR amplitude
+  imagery, not an optical orthophoto. `"amplitude"` is drawn from the
+  community `sar` extension's recommended asset-role vocabulary --
+  used as a plain asset role without formally declaring
+  `stac_extensions: [sar]`, since GSI publishes none of that
+  extension's own fields (frequency band, polarization, looks,
+  resolution) for these layers to actually populate (D19's "don't
+  declare what you don't use" applies the same way here: an extension
+  declared with zero of its own properties set would be misleading
+  filler, not real metadata).
+- **SAR-vs-optical classification is per-layer and explicit, not
+  inferred from the ID**: `20140930dol`/`20140929dol2` are SAR despite
+  having no `apsar` token in their ID (confirmed via `ichiran.html`'s
+  title text, "航空機SAR画像"), so an ID-substring check would silently
+  misclassify them. Pass `--sensor sar` by hand for the ~10 known SAR
+  layer IDs (recorded in `HANDOVER.md`), the same "check the real
+  name/title, don't pattern-match the ID" discipline `candidates.py`
+  already applies to photo-vs-non-photo classification.
+
+**Consequences**: `georef.py`'s D22 fast VRT-writing path only handles
+plain `RGB`/`RGBA` PIL modes; `20140930dol`-style `LA`-mode tiles fall
+back to the slower per-tile `gdal_translate` subprocess (correct, just
+not the ~68x-faster path) -- acceptable given the small number of SAR
+layers (~10) in the pool. `candidates.py`'s existing non-photo skip
+list (CLAUDE.md) needs the `_apsar`/SAR entries moved from "skip" to
+"buildable with `--sensor sar`" -- tracked in `HANDOVER.md`. Derived
+hazard-map categories remain flagged as out-of-scope, unchanged.

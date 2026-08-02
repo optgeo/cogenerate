@@ -172,6 +172,21 @@ the incident that motivated it.
   作成/観測 (map products) and not nationwide non-disaster products
   (e.g. `rinya`, national-forest aerial photos: real photos, but out
   of this pipeline's disaster-response scope per the Mission above).
+- **Scope (D27, 2026-08-02)**: aircraft SAR imagery (`_apsar`-suffixed
+  IDs, plus `20140930dol`/`20140929dol2` which are SAR despite lacking
+  that token in their ID -- check `ichiran.html`'s title text for
+  "航空機SAR画像", don't pattern-match the ID) **is in scope** -- real
+  primary sensor data, same disaster-response purpose as the photos.
+  Build it through the same pipeline, but pass `SENSOR=sar just
+  stac-item` (or `just stac`) so the STAC Item's imagery asset gets
+  `roles: ["amplitude", "data"]` instead of `["ortho", "data"]` --
+  don't publish SAR under the default optical roles. **Derived
+  thematic/hazard maps stay out of scope**
+  (`_dansaizu`/`_shinsui`/`_kazantaisaku_*`/`_digital`/`_sekishoku`/
+  `_rittai`) -- these are color-coded analysis products where the
+  color *is* the data, so D12/D25's solid-color-as-NODATA cleaning
+  would corrupt real content if pointed at them, and they're a mission
+  mismatch with "aerial imagery" besides (D27 has the full reasoning).
 - A same-district candidate with a *different* capture date than an
   already-published layer is real additional coverage, not a
   duplicate -- confirm via the `name` field's capture date, don't skip
@@ -304,6 +319,7 @@ just cog                         # VRT -> COG (overviews generated here)
 just run                         # all of the above, one layer
 just upload                      # publish out/{{layer}}.tif to Source Cooperative (needs source-coop login done once, D10)
 just stac-item                   # build docs/items/{{layer}}.json from the already-built, already-uploaded COG (D19)
+# ...also SENSOR=sar for aircraft SAR layers (D27) -- see "Facts" above
 just stac-catalog                # rebuild docs/catalog.json from every docs/items/*.json so far
 just stac                        # stac-item + stac-catalog for one layer
 just stac-validate               # validate every Item + the catalog against the STAC spec (needs `uv sync --extra dev`)
