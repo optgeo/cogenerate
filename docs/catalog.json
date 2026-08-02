@@ -551,6 +551,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20180419kirishima_apsar180226swne.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20180419kirishima_apsar180226swne"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180419kirishima_apsar180420nesw.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180419kirishima_apsar180420nesw"
