@@ -527,6 +527,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20171011kirishima_apsar141105ew.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20171011kirishima_apsar141105ew"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20171011kirishima_apsar141105we.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20171011kirishima_apsar141105we"

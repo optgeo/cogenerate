@@ -1,0 +1,103 @@
+{
+  "stac_version": "1.0.0",
+  "stac_extensions": [],
+  "type": "Feature",
+  "id": "20171011kirishima_apsar141105ew",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          130.866394,
+          31.9253582
+        ],
+        [
+          130.866394,
+          31.8985463
+        ],
+        [
+          130.9034729,
+          31.8985463
+        ],
+        [
+          130.9034729,
+          31.9253582
+        ],
+        [
+          130.866394,
+          31.9253582
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    130.866394,
+    31.8985463,
+    130.9034729,
+    31.9253582
+  ],
+  "properties": {
+    "datetime": "2017-10-11T00:00:00Z",
+    "title": "GSI disaster-response ortho imagery: 20171011kirishima_apsar141105ew",
+    "gsd": 0.5971642834779395,
+    "license": "CC-BY-4.0",
+    "platform": "aircraft",
+    "providers": [
+      {
+        "name": "Geospatial Information Authority of Japan (GSI)",
+        "roles": [
+          "producer",
+          "licensor"
+        ]
+      },
+      {
+        "name": "optgeo/cogenerate",
+        "roles": [
+          "processor"
+        ],
+        "url": "https://github.com/optgeo/cogenerate"
+      }
+    ],
+    "gsi:layer_id": "20171011kirishima_apsar141105ew",
+    "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20171011kirishima_apsar141105ew/{z}/{x}/{y}.png",
+    "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html",
+    "gsi:sensor": "aircraft SAR (grayscale amplitude imagery, not optical photography)"
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://optgeo.github.io/cogenerate/items/20171011kirishima_apsar141105ew.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "root",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
+    }
+  ],
+  "assets": {
+    "imagery": {
+      "href": "https://data.source.coop/smartmaps/cogenerate/20171011kirishima_apsar141105ew.tif",
+      "type": "image/tiff; application=geotiff; profile=cloud-optimized",
+      "title": "GSI disaster-response ortho imagery: 20171011kirishima_apsar141105ew",
+      "roles": [
+        "amplitude",
+        "data"
+      ],
+      "file:size": 66232492,
+      "file:checksum_sha256": "57859e3fc06b0ee724b74f621fcd1b1f14dd2784bfba3f70c40a1e7717afb8e2"
+    },
+    "metadata": {
+      "href": "https://optgeo.github.io/cogenerate/items/20171011kirishima_apsar141105ew.json",
+      "type": "application/json",
+      "roles": [
+        "metadata"
+      ]
+    }
+  }
+}
