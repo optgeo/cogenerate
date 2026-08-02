@@ -1222,3 +1222,67 @@ layers (~10) in the pool. `candidates.py`'s existing non-photo skip
 list (CLAUDE.md) needs the `_apsar`/SAR entries moved from "skip" to
 "buildable with `--sensor sar`" -- tracked in `HANDOVER.md`. Derived
 hazard-map categories remain flagged as out-of-scope, unchanged.
+
+**Correctness bug caught building the first real SAR layers, same day**:
+initially shipped `--sensor sar` (above) affecting only `stac_item.py`'s
+asset role, on the assumption the rest of the pipeline needed no
+change. Wrong -- building the actual `20140930dol`/`20140929dol2` `LA`-
+mode layers and inspecting the result found **D12's black-nodata
+cleaning was destroying real content**: sampled 200 of georef's
+"cleaned" tiles per layer and checked each black pixel's *original*
+alpha value before cleaning -- 40-72% of the black pixels D12 had
+zeroed were originally **opaque** (alpha=255), i.e. genuine
+zero-backscatter SAR returns (calm water, radar shadow, a specular
+surface reflecting away from the sensor), not padding. D12's founding
+assumption ("no genuine photo content is exactly (0,0,0)") is specific
+to *optical* photography's processing pipeline and simply doesn't hold
+for a different sensing modality -- confirmed by contrast against the
+`RGBA`-mode Kirishima layers, which sampled at ~0% real-content
+corruption (GSI's own padding convention for that product apparently
+does use genuinely-transparent black, unlike the `LA`-mode Ontake
+product) -- so this isn't something to assume is fine for a specific
+encoding either; the risk has to be checked per data source, not
+assumed away by one clean example.
+
+A second, related bug surfaced checking the fix: the *rebuilt* COG's
+`gdalinfo -stats` reported an unchanged `STATISTICS_VALID_PERCENT`
+even after the georef fix. Root cause: the `cog` recipe's `-a_nodata 0`
+(D15) declares classic NODATA on *every* band including the grayscale
+band itself, not just alpha -- so a genuine zero-backscatter pixel
+(Gray=0, Alpha=255, exactly the content the georef fix now preserves)
+still reads as "invalid" to any tool respecting the classic NODATA tag
+rather than the alpha band. D15 was justified specifically by "D12
+already guarantees no genuine optical content is (0,0,0)" -- the same
+guarantee that doesn't hold for SAR, so its consequence (`-a_nodata 0`
+is safe to declare) doesn't transfer either.
+
+**Decision, revised**: `SENSOR=sar` now changes two things, not one:
+- `georef.py --sensor sar`: skips **both** black and white NODATA
+  cleaning (`clean_nodata_colors()` gained a `mask_black` parameter,
+  default `True`/unchanged for optical) -- only the tile's own
+  downloaded alpha channel marks NODATA for SAR.
+- `Justfile`'s `cog` recipe: omits `-a_nodata 0` entirely when
+  `SENSOR=sar` -- relies on the alpha band alone, the same as every
+  layer did before D15 existed.
+
+**Verified fixed**: rebuilt both already-built Ontake layers and all 4
+already-built Kirishima 2018 layers with `FORCE=1 SENSOR=sar` before
+ever uploading them (nothing had reached Source Cooperative yet, so no
+retroactive patch was needed, unlike D24/D25's already-published
+incidents) -- `georef`'s own summary line now reports `0 tiles ...
+cleaned` for every SAR layer, and the rebuilt COGs' alpha-band
+`STATISTICS_MEAN` reads exactly `255` (fully opaque everywhere the
+mask says valid, no partial contamination left over from the bug) vs.
+`231`/`188`-ish before the fix. All 10 SAR layers in the pool
+(HANDOVER.md) were built (or rebuilt) with the corrected pipeline
+before this ADR was finalized.
+
+**Lesson for any future non-optical sensor added to this pipeline**:
+D12/D15/D25's NODATA heuristics all encode assumptions specific to
+*this data source's optical processing pipeline* -- "no genuine
+content is pure black/white," justified by direct pixel inspection of
+optical tiles (D12, D25). Re-verify those assumptions against real
+tiles for any new modality before assuming they transfer, the same way
+this session did retroactively for SAR -- don't just flip a `--sensor`
+switch on the one place (STAC labeling) that's obviously
+modality-specific and assume the rest of the pipeline is neutral.

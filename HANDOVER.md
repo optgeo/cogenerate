@@ -35,10 +35,13 @@ handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
 skipped by hand as encountered -- a working denominator, not a
 mathematically clean one.
 
-**No 🔴/🟡 items mid-flight right now.** The 2015 Joso batch's
+🟡 **One item mid-flight**: 10 aircraft-SAR COGs built and sitting in
+`out/`, blocked on expired `source-coop` credentials -- see the D27
+bullet below for the full list and what to do on resume. Everything
+else is fully done. The 2015 Joso batch's
 remaining 6 layers, the full 2014 batch (6 layers), and the full 2013
 batch (5 layers) -- 17 layers total, all listed in the previous
-rewrite -- finished this session (uploaded, verified, STAC'd, cleaned
+rewrite -- finished earlier this session (uploaded, verified, STAC'd, cleaned
 up, committed+pushed).
 
 - **`candidates.py --top 194` pool check, 2026-08-02, after finishing
@@ -72,35 +75,52 @@ up, committed+pushed).
   (several already-published layers, e.g.
   `20250815rain_amakusa_0815do_sokuho`, are themselves the canonical
   ID for their capture with no non-`_sokuho` sibling ever published).
-- **Scope extended to aircraft SAR imagery, 2026-08-02 (D27).** Hidenori
-  asked about the 3 non-photo categories found in the pool-exhaustion
-  pass; investigated and decided: SAR is real primary sensor data and
-  now in scope, derived thematic/hazard maps stay out (full reasoning
-  in D27). Added `stac_item.py --sensor sar` / `SENSOR=sar just
-  stac-item` -- sets the imagery asset's `roles` to `["amplitude",
-  "data"]` instead of `["ortho", "data"]`, no other pipeline changes
-  needed (D25's monochrome-origin detection already protects SAR
-  tiles' real black/white content from the NODATA-cleaning heuristic).
-  **Queued to build next, 10 layers, all confirmed `10～18` zoom range,
-  no `apsar` seed coordinates derived yet** -- get each from its own
-  `ichiran.html` tilejump entry same as any other layer, remembering
-  `--sensor sar` on the `stac-item` step for all of them:
-  - `20140930dol` (御嶽山, Mt. Ontake, Sep 2014) -- note this one has
-    **no `apsar` token in its ID**, confirmed SAR via `ichiran.html`
-    title text only.
-  - `20140929dol2` (御嶽山, same event, second SAR pass) -- same
-    ID-doesn't-say-SAR caveat.
-  - `20180419kirishima_apsar180420nesw` / `..._180420swne` /
-    `..._180226nesw` / `..._180226swne` (霧島山 Kirishima, Ebino
-    Highlands/Mt. Io, 2018 -- 2 dates x 2 observation directions).
-  - `20171011kirishima_apsar171012we` / `..._171012ew` /
-    `..._141105we` / `..._141105ew` (霧島山 Kirishima, Shinmoedake,
-    2017 pass covering both a 2017 and a 2014 observation date -- 2
-    dates x 2 directions).
+- 🟡 **Scope extended to aircraft SAR imagery, 2026-08-02 (D27) -- all
+  10 layers built, upload blocked on credentials.** Hidenori asked
+  about the 3 non-photo categories found in the pool-exhaustion pass;
+  investigated and decided: SAR is real primary sensor data and now in
+  scope, derived thematic/hazard maps stay out (full reasoning in
+  D27). Seeds derived from each layer's own `ichiran.html` tilejump
+  entry, same as any other layer:
+  - `20140930dol`/`20140929dol2` (御嶽山 Mt. Ontake, Sep 2014, seed
+    903,402) -- note these have **no `apsar` token in their ID**,
+    confirmed SAR via `ichiran.html` title text only ("航空機SAR画像").
+  - `20180419kirishima_apsar180420nesw`/`..._180420swne`/
+    `..._180226nesw`/`..._180226swne` (霧島山 Kirishima, Ebino
+    Highlands/Mt. Io, 2018, seed 884,416 -- 2 dates x 2 observation
+    directions).
+  - `20171011kirishima_apsar171012we`/`..._171012ew`/`..._141105we`/
+    `..._141105ew` (霧島山 Kirishima, Shinmoedake, 2017 pass covering
+    both a 2017 and a 2014 observation date, seed 884,416 -- 2 dates x
+    2 directions).
+  - **Real correctness bug caught building the first two** (see D27's
+    revised Decision section for the full investigation): D12's
+    black-nodata cleaning was destroying genuine zero-backscatter SAR
+    content in the `LA`-mode Ontake layers (40-72% of "cleaned" black
+    pixels sampled were originally opaque, real content) -- the
+    `RGBA`-mode Kirishima layers happened to test clean (~0%
+    corruption) but that's a property of GSI's specific padding
+    convention for that product, not something to assume holds for
+    every SAR layer. Fixed: `georef.py --sensor sar` now skips both
+    black and white NODATA cleaning (not just white), and `Justfile`'s
+    `cog` recipe omits `-a_nodata 0` entirely for `SENSOR=sar` (that
+    flag's D15 safety justification -- "D12 already guarantees no
+    genuine content is pure black" -- doesn't hold for SAR either).
+    **All 10 layers built (or rebuilt) with the corrected pipeline
+    before any upload was attempted** -- nothing had reached Source
+    Cooperative yet when the bug was caught, so no retroactive patch
+    was needed. Build command going forward for any more SAR layers:
+    `SENSOR=sar just run` (not just the `stac-item` step -- `SENSOR`
+    must be set from `georef` onward).
+  - **Blocked on `source-coop` credentials as of this rewrite** -- all
+    10 COGs are sitting in `out/` ready for `just upload` /
+    `SENSOR=sar just stac` / cleanup / commit the moment credentials
+    return. Don't rebuild these again on resume; check `ls out/*.tif`
+    first, they should still be there.
 - **Net effect otherwise: no further known real, in-scope, unpublished
-  optical-photo candidates remain in the pool as of this pass.** Once
-  the 10 SAR layers above are done, wait for a new disaster event to
-  add fresh layers to `ichiran.html`, or for Hidenori to point at
+  optical-photo candidates remain in the pool.** Once the 10 SAR
+  layers above are published, wait for a new disaster event to add
+  fresh layers to `ichiran.html`, or for Hidenori to point at
   something specific (e.g. another `--keyword` geographic priority
   pass like the Hiroshima one).
 - **New minzoom gotcha, recurred this session**: `20150911dol`/

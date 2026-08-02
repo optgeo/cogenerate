@@ -142,22 +142,35 @@ def sample_is_monochrome(tiles: list[tuple[int, int, int, Path]]) -> bool:
     return (gray / total) >= MONOCHROME_SPREAD_THRESHOLD
 
 
-def clean_nodata_colors(src: Path, mask_white: bool) -> tuple[Path, bool, int, int, str]:
-    """Turn exact-(0,0,0) pixels transparent, always (D12); also exact-
-    (255,255,255) pixels if `mask_white` (D25, skipped for
-    monochrome-origin layers where real content can legitimately be
-    pure white/black). Returns (path, cleaned, width, height, mode).
-    `path` is a cleaned copy (always RGBA) if any matching pixels were
-    found, else `src` unchanged with its own original mode (common
-    case, no extra I/O) -- preserves D12's original behavior of not
-    forcing every untouched tile to RGBA."""
+def clean_nodata_colors(src: Path, mask_white: bool, mask_black: bool = True) -> tuple[Path, bool, int, int, str]:
+    """Turn exact-(0,0,0) pixels transparent if `mask_black` (D12,
+    default True -- optical photography never legitimately has pure
+    opaque black content); also exact-(255,255,255) pixels if
+    `mask_white` (D25, skipped for monochrome-origin layers where real
+    content can legitimately be pure white/black). `mask_black=False`
+    is for SAR amplitude imagery (D27's aircraft-SAR investigation,
+    2026-08-02): a real zero-backscatter return (calm water, radar
+    shadow, a specular surface) legitimately renders as opaque
+    (0,0,0) -- confirmed empirically against 20140930dol/20140929dol2,
+    where a large fraction (40-70% in sampled tiles) of "black" pixels
+    D12 would have cleaned were actually opaque, not padding. D12's
+    core assumption (no genuine photo content is pure black) simply
+    doesn't transfer to a different sensing modality; don't assume it
+    does for any future non-optical layer either. Returns (path,
+    cleaned, width, height, mode). `path` is a cleaned copy (always
+    RGBA) if any matching pixels were found, else `src` unchanged with
+    its own original mode (common case, no extra I/O) -- preserves
+    D12's original behavior of not forcing every untouched tile to
+    RGBA."""
     img = Image.open(src)
     width, height = img.size
     mode = img.mode
     img_rgba = img.convert("RGBA")
     arr = np.array(img_rgba)
     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
-    nodata = (r == 0) & (g == 0) & (b == 0)
+    nodata = np.zeros(r.shape, dtype=bool)
+    if mask_black:
+        nodata = nodata | ((r == 0) & (g == 0) & (b == 0))
     if mask_white:
         nodata = nodata | ((r == 255) & (g == 255) & (b == 255))
     if not nodata.any():
@@ -245,18 +258,37 @@ def main(
     force: bool = typer.Option(
         False, "--force", help="Regenerate every per-tile .vrt even if it already exists"
     ),
+    sensor: str = typer.Option(
+        "optical",
+        help="'optical' (default, D12/D25 black+white NODATA cleaning applies) or 'sar' "
+        "(D27: skip black-NODATA cleaning too -- a real zero-backscatter SAR return can "
+        "legitimately be opaque (0,0,0), unlike optical photography)",
+    ),
 ):
+    if sensor not in ("optical", "sar"):
+        err.print("[red]error[/red] --sensor must be 'optical' or 'sar'")
+        raise typer.Exit(1)
     tiles = discover_tiles(tiles_dir, ext)
     if not tiles:
         err.print(f"[red]error[/red] no .{ext} tiles found under {tiles_dir}")
         raise typer.Exit(1)
 
-    monochrome = sample_is_monochrome(tiles)
-    if monochrome:
+    if sensor == "sar":
+        mask_black = False
+        mask_white = False
         err.print(
-            "[yellow]note[/yellow] layer sampled as monochrome-origin (D25) -- "
-            "white-nodata cleaning skipped, black-nodata (D12) still applies"
+            "[yellow]note[/yellow] --sensor sar: D12/D25 black+white NODATA cleaning "
+            "both skipped -- only the tile's own downloaded alpha channel marks NODATA"
         )
+    else:
+        monochrome = sample_is_monochrome(tiles)
+        mask_black = True
+        mask_white = not monochrome
+        if monochrome:
+            err.print(
+                "[yellow]note[/yellow] layer sampled as monochrome-origin (D25) -- "
+                "white-nodata cleaning skipped, black-nodata (D12) still applies"
+            )
 
     vrt_paths: list[str] = []
     skipped = 0
@@ -269,7 +301,9 @@ def main(
             vrt_paths.append(str(vrt_path))
             continue
         ulx, uly, lrx, lry = tile_bounds_3857(z, x, y)
-        src_for_vrt, was_cleaned, width, height, mode = clean_nodata_colors(src, mask_white=not monochrome)
+        src_for_vrt, was_cleaned, width, height, mode = clean_nodata_colors(
+            src, mask_white=mask_white, mask_black=mask_black
+        )
         if was_cleaned:
             cleaned_count += 1
         wrote_fast = write_vrt(src_for_vrt, vrt_path, width, height, mode, ulx, uly, lrx, lry)
@@ -300,7 +334,12 @@ def main(
         check=True,
     )
     file_list_path.unlink()
-    nodata_desc = "opaque-black" if monochrome else "opaque-black/white"
+    if not mask_black and not mask_white:
+        nodata_desc = "opaque-black/white (should be 0 -- both skipped for sar)"
+    elif not mask_white:
+        nodata_desc = "opaque-black"
+    else:
+        nodata_desc = "opaque-black/white"
     err.print(
         f"[green]done[/green] merged {len(vrt_paths)} tiles -> {merged} "
         f"({skipped} per-tile .vrt already present, not regenerated; "

@@ -177,16 +177,28 @@ the incident that motivated it.
   that token in their ID -- check `ichiran.html`'s title text for
   "航空機SAR画像", don't pattern-match the ID) **is in scope** -- real
   primary sensor data, same disaster-response purpose as the photos.
-  Build it through the same pipeline, but pass `SENSOR=sar just
-  stac-item` (or `just stac`) so the STAC Item's imagery asset gets
-  `roles: ["amplitude", "data"]` instead of `["ortho", "data"]` --
-  don't publish SAR under the default optical roles. **Derived
-  thematic/hazard maps stay out of scope**
+  Build it with **`SENSOR=sar` passed to every stage from `georef`
+  onward** (`SENSOR=sar just georef`, `SENSOR=sar just cog`,
+  `SENSOR=sar just stac-item` -- or just `SENSOR=sar just run`/`just
+  stac`): this skips D12/D25's black+white NODATA cleaning in `georef`
+  *and* omits `-a_nodata 0` in `cog`, not just a STAC labeling change
+  -- a real zero-backscatter SAR return can legitimately be opaque
+  (0,0,0), which D12's "no genuine content is pure black" assumption
+  (true for optical, confirmed false for SAR by direct pixel
+  inspection) would otherwise destroy. Confirmed empirically: 40-72%
+  of "black" pixels D12 would have cleaned in the `LA`-mode
+  `20140930dol`/`20140929dol2` tiles were originally opaque, real
+  content -- don't assume a specific encoding is safe just because one
+  sample (the `RGBA`-mode Kirishima layers) tested clean; check every
+  new SAR-like data source the same way before trusting it. The
+  `stac-item` step additionally sets the imagery asset's
+  `roles: ["amplitude", "data"]` instead of `["ortho", "data"]`.
+  **Derived thematic/hazard maps stay out of scope**
   (`_dansaizu`/`_shinsui`/`_kazantaisaku_*`/`_digital`/`_sekishoku`/
   `_rittai`) -- these are color-coded analysis products where the
-  color *is* the data, so D12/D25's solid-color-as-NODATA cleaning
-  would corrupt real content if pointed at them, and they're a mission
-  mismatch with "aerial imagery" besides (D27 has the full reasoning).
+  color *is* the data, so the same NODATA-cleaning risk applies even
+  more directly, and they're a mission mismatch with "aerial imagery"
+  besides (D27 has the full reasoning).
 - A same-district candidate with a *different* capture date than an
   already-published layer is real additional coverage, not a
   duplicate -- confirm via the `name` field's capture date, don't skip

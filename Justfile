@@ -27,6 +27,12 @@ force_flag := if force == "1" { "--force" } else { "" }
 # fairly recent just release and may not exist on an older Mac install.
 tiles_dir := "tiles/" + layer
 out_dir := "out"
+# SENSOR=sar for aircraft SAR layers (D27) -- skips D12/D25's black/white
+# NODATA cleaning in georef (a real zero-backscatter SAR return can
+# legitimately be opaque black, unlike optical photography) and sets the
+# STAC imagery asset's roles to ['amplitude','data'] instead of
+# ['ortho','data'] in stac-item.
+sensor := env_var_or_default("SENSOR", "optical")
 
 default:
     just --list
@@ -71,6 +77,7 @@ georef:
     uv run python -m cogenerate.georef \
         --dir {{tiles_dir}}/ \
         --merged {{out_dir}}/{{layer}}.vrt \
+        --sensor {{sensor}} \
         {{force_flag}}
 
 # Step 4: VRT -> COG. Overviews are generated here, not fetched from GSI.
@@ -98,15 +105,23 @@ cog:
         # on top of (not instead of) the real alpha band, which stays
         # correct for alpha-aware tools (QGIS etc.). Safe here because
         # D12 already guarantees no genuine photo content is (0,0,0) by
-        # the time this step runs.
+        # the time this step runs -- but that guarantee doesn't hold for
+        # SAR amplitude imagery (D27: a real zero-backscatter return can
+        # legitimately be 0), so SENSOR=sar omits -a_nodata entirely and
+        # relies on the alpha band alone, same as every layer did before
+        # D15 existed.
         # -mo tags: self-describing metadata that travels with the file
         # even if someone only has the .tif (no STAC item yet -- D6).
+        nodata_flag=""
+        if [ "{{sensor}}" != "sar" ]; then
+            nodata_flag="-a_nodata 0"
+        fi
         gdal_translate -of COG \
             -co COMPRESS=DEFLATE \
             -co OVERVIEW_RESAMPLING=AVERAGE \
             -co BLOCKSIZE=512 \
             -co BIGTIFF=YES \
-            -a_nodata 0 \
+            $nodata_flag \
             -mo TIFFTAG_IMAGEDESCRIPTION="GSI disaster-response ortho imagery: {{layer}}" \
             -mo TIFFTAG_SOFTWARE="optgeo/cogenerate" \
             -mo TIFFTAG_COPYRIGHT="Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html" \
@@ -148,11 +163,6 @@ upload:
 # self-truncation race that would otherwise cause).
 docs_dir := "docs"
 asset_url := env_var_or_default("ASSET_URL", "https://data.source.coop/smartmaps/cogenerate/" + layer + ".tif")
-# SENSOR=sar for aircraft SAR layers (D27) -- changes the imagery
-# asset's roles from ['ortho','data'] to ['amplitude','data'] and
-# records properties.gsi:sensor, so a downstream STAC consumer doesn't
-# mistake grayscale radar amplitude imagery for an optical orthophoto.
-sensor := env_var_or_default("SENSOR", "optical")
 stac-item:
     mkdir -p {{docs_dir}}/items
     uv run python -m cogenerate.stac_item \
