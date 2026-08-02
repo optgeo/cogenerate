@@ -29,6 +29,24 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20131204doh.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20131204doh"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20131217doh.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20131217doh"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20140216doh.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20140216doh"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20140820dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20140820dol"
@@ -62,6 +80,60 @@
       "href": "https://optgeo.github.io/cogenerate/items/20140831dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20140831dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20141204doh.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20141204doh"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20141210doh.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20141210doh"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20150911dol1.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20150911dol1"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20150911dol2.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20150911dol2"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20150913dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20150913dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20150915dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20150915dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20150929dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20150929dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20151209dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20151209dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160303dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160303dol"
     },
     {
       "rel": "item",
@@ -236,6 +308,12 @@
       "href": "https://optgeo.github.io/cogenerate/items/20160414kumamoto_0724dol.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20160414kumamoto_0724dol"
+    },
+    {
+      "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20160725dol.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20160725dol"
     },
     {
       "rel": "item",
