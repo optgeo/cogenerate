@@ -34,6 +34,17 @@ Source Cooperative, and make it discoverable via a thin static catalog
 on GitHub Pages. Sibling repos: `optgeo/fabdem-contour-fiji`, `optgeo/c2`,
 `optgeo/oam-starc`.
 
+**On the nature of this data**: every layer here documents a real
+disaster -- some caused significant loss of life. Keep any prose this
+project produces (commit messages, STAC item text, README updates,
+chat summaries) factual and neutral: location, date, capture method,
+technical caveats. Not damage assessment, casualty counts, or any
+editorializing on human impact -- that's outside what a
+tile-reprocessing pipeline is positioned to say, and GSI's own decision
+to publish this imagery already reflects its disaster-response and
+transparency mandate. This project's job is narrowly to make the same
+data easier to use downstream.
+
 ## Reusable pattern: adapting this to a different tile source
 
 If you're building an analogous pipeline against a *different* tile

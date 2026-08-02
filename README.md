@@ -13,6 +13,40 @@ make it usable in OpenAerialMap.
 
 Part of the [optgeo](https://github.com/optgeo) "Adopt Geodata" family.
 
+## About this data
+
+This pipeline reprocesses real disaster-response aerial photography --
+landslides, floods, earthquake damage, volcanic activity -- captured
+in the days after events that, in a number of cases, caused
+significant loss of life and property (the 2014 Hiroshima landslides,
+the 2016 Kumamoto earthquake, and the 2024 Noto Peninsula earthquake,
+among others, are all represented in this archive). GSI already
+publishes this imagery openly as part of its own disaster-response and
+public-transparency mission; this project's role is narrowly to make
+the same imagery easier to use in cloud-native GIS/ML tooling and
+humanitarian mapping platforms (OpenAerialMap) -- not to originate,
+curate for impact, or editorialize on it. Any prose this pipeline
+produces (commit messages, STAC item text, this README) sticks to
+location, date, and capture method; damage assessment and human impact
+are out of scope for what a tile-reprocessing pipeline is positioned
+to say.
+
+## License and attribution
+
+This repository's own code (the pipeline, not the imagery it
+processes) is **CC0-1.0** -- see `LICENSE`.
+
+The GSI aerial imagery itself is a **separate matter, not covered by
+that CC0 grant**. GSI publishes it under Japan's government-standard
+usage terms (政府標準利用規約), CC-BY-4.0-compatible but requiring
+attribution: credit "国土地理院" (Geospatial Information Authority of
+Japan) with a link to
+<https://maps.gsi.go.jp/development/ichiran.html>. Every published
+STAC Item carries this in its `license`/`links` fields (`DECISIONS.md`
+D19); `source-coop/README.md` is the canonical data-facing statement
+of this requirement for anyone consuming the COGs directly from Source
+Cooperative without ever visiting this repository.
+
 ## Goal
 
 `layers-martin`'s catalog carries emergency-ortho layers across many

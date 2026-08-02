@@ -13,6 +13,17 @@ pipeline that reassembles GSI's XYZ tiles into standard, cloud-native
 GeoTIFFs -- see that repository for the code, and for exactly how each
 file was produced.
 
+This dataset documents real disasters -- landslides, floods,
+earthquake damage, volcanic activity -- several of which caused
+significant loss of life and property. GSI already publishes this
+imagery openly as part of its own disaster-response and
+public-transparency mission; this reprocessing only changes the file
+format, to make the same imagery usable in cloud-native GIS/ML tooling
+and humanitarian mapping platforms. Please use it accordingly: for
+disaster response, recovery, research, and preparedness, with the same
+care for the people and places it depicts that you'd want applied to
+imagery of your own community.
+
 ## What's in this dataset
 
 One COG per GSI emergency-ortho layer. Filenames follow GSI's own
