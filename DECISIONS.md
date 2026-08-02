@@ -207,6 +207,21 @@ HOTOSM, both still need Hidenori.
 **Consequences**: Blocks the pipeline's final stage (OAM ingestion
 itself) and constrains `stac_item.py`'s design until resolved.
 
+**Update, 2026-08-02**: Hidenori posted a follow-up in HOTOSM's
+`#oam-dev` Slack, referencing an earlier message that had linked a
+single prototype COG and catalog. The follow-up reports the catalog's
+current scope (151 of ~194 known layers, spanning 2013-2026 disaster
+events plus historical reference imagery and aircraft SAR) and
+restates the two open questions from the original message: the
+current recommended path for getting COGs discoverable via OAM, and
+whether contributing under the UN Smart Maps Group / UN Open GIS
+Initiative banner (rather than as GSI directly) affects how OAM would
+ingest the data. Posted on a weekend; no reply yet as of this entry. The actual
+ingestion mechanism remains unresolved pending that reply -- the
+static STAC catalog and GitHub Pages hosting this decision called for
+are both live regardless, so nothing about producing/publishing COGs
+is blocked either way.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted

@@ -312,11 +312,12 @@ the incident that motivated it.
 
 ## Decisions and open questions
 
-Full ADR log: `DECISIONS.md` (25 entries as of 2026-08-02). No entry is
-currently Open. **Still needs Hidenori specifically, not something to
-just do silently**: actually contacting HOTOSM/OAM now that a real,
-public STAC catalog exists (D6) -- not urgent, no one's asked to move
-on it yet.
+Full ADR log: `DECISIONS.md` (27 entries as of 2026-08-02). No entry is
+currently Open. **Awaiting an external reply, not something to act on
+unilaterally**: Hidenori contacted HOTOSM's `#oam-dev` Slack (D6,
+2026-08-02) with the catalog's current scope and two open questions
+(OAM ingestion path, attribution banner) -- no reply yet as of this
+writing.
 
 ## Commands
 

@@ -452,9 +452,12 @@ entry as a duplicate to skip.
   network errors/5xx get retried before a subtree is pruned; real 404s
   never retried.
 
-**Still open, needs Hidenori**: actually contacting HOTOSM/OAM now
-that a real, public STAC catalog exists (D6) -- not urgent, no one's
-asked to move on it yet.
+**Still open, awaiting an external reply**: Hidenori posted a
+follow-up in HOTOSM's `#oam-dev` Slack, 2026-08-02, with the catalog's
+current scope (151/194 layers) and the two open questions from an
+earlier prototype-stage message (OAM ingestion path, attribution
+banner) -- see D6's 2026-08-02 update in `DECISIONS.md`. Posted on a
+weekend; no reply yet. Nothing to do here until a reply arrives.
 
 ## 2026-07-31 (new session, continued further) -- 3 large layers picked, STAC catalog implemented
 
