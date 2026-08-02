@@ -39,6 +39,7 @@ split as the sibling `hfu/layers-martin` repo's `DECISIONS.md` /
 | [D20](#d20-local-storage-lifecycle-delete-tilesout-only-after-remote-is-the-verified-source-of-truth) | Local storage lifecycle: delete `tiles/`/`out/` only after remote is the verified source of truth | Accepted | 2026-07-31 |
 | [D21](#d21-tooling-must-actually-work-with-source-cooperative-as-the-master-copy-not-assume-outlayertif-is-still-there) | Tooling must actually work with Source Cooperative as the master copy, not assume `out/<layer>.tif` is still there | Accepted | 2026-07-31 |
 | [D22](#d22-georef-hand-write-per-tile-vrt-xml-in-python-instead-of-a-gdal_translate-subprocess) | `georef`: hand-write per-tile VRT XML in Python instead of a `gdal_translate` subprocess | Accepted | 2026-07-31 |
+| [D26](#d26-a-sokuho-preliminary-report-layer-is-a-duplicate-when-a-same-day-non-sokuho-id-already-exists) | A `_sokuho` (preliminary-report) layer is a duplicate when a same-day non-`_sokuho` ID already exists | Accepted | 2026-08-02 |
 
 ---
 
@@ -1082,3 +1083,50 @@ standard `cog` recipe. All 3 verified post-patch: white fraction
 dropped to ~0.2-0.3% (residual plausibly real small bright features),
 real color content spot-checked unchanged. `FORCE=1` re-uploaded,
 verified, STAC regenerated, committed -- same lifecycle as D24.
+
+## D26: A `_sokuho` (preliminary-report) layer is a duplicate when a same-day non-`_sokuho` ID already exists
+
+**Status**: Accepted
+
+**Context**: A `--top 194` full-pool pass (2026-08-02, after finishing
+the 2013-2015 batch) turned up 3 candidates that looked new but
+weren't: `20190828kyusyu_sagachiku_0830do_sokuho`,
+`..._0831do_sokuho`, and `20210705oame_0706do_sokuho`. Each has an
+already-published counterpart with the exact same district, capture
+date, and `ichiran.html` tilejump coordinate --
+`20190828kyusyu_sagachiku_0830do`/`_0831do` and
+`20210705oame_0706do` respectively.
+
+**Investigated**: `ichiran.html`'s own title text distinguishes them
+precisely -- the already-published ID's title reads plain "正射画像"
+(ortho imagery), while the candidate's title reads "正射画像（速報）"
+(ortho imagery, **preliminary report**), otherwise word-for-word
+identical including the parenthetical capture date. GSI's own naming
+convention marks `_sokuho` as the rapid/preliminary release of a
+capture that later also gets published under a non-`_sokuho`,
+presumably-reprocessed-or-finalized ID -- not a second, independent
+photograph of the same place. This is a real GSI convention, not a
+`candidates.py` bug (contrast with the D9-documented
+`atsumtoubu`/`atsumatoubu` case, which *was* a catalog typo).
+
+**Decision**: When a candidate's `ichiran.html` title contains "（速報）"
+and an already-published layer exists with an identical district +
+capture date (only differing by the `_sokuho` suffix and the "（速報）"
+marker), treat the `_sokuho` candidate as a duplicate -- skip it, don't
+build it. This is a **narrower** rule than "any `_sokuho`-suffixed
+layer is skippable": several already-published layers in this catalog
+(`20250815rain_amakusa_0815do_sokuho`,
+`20191025oame_sakura_1026do_sokuho`, etc.) are themselves `_sokuho`
+IDs with **no** non-`_sokuho` counterpart ever published by GSI --
+those are the *canonical* ID for that capture and were correctly built
+as-is. The distinguishing check is specifically "does a matching
+non-`_sokuho` sibling ID already exist," not the suffix alone.
+
+**Consequences**: These 3 IDs will keep resurfacing in future
+`candidates.py --top 194` runs (their own `ichiran.html` entries are
+real, just superseded) -- skip by hand like the
+`_dansaizu`/`_shinsui`/typo'd-ID false positives already documented
+(CLAUDE.md). Worth a similar sibling-ID check the next time a
+`_sokuho`-suffixed candidate turns up: check whether the same district
++ date already has a non-`_sokuho` counterpart published before
+assuming it's new coverage.

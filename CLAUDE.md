@@ -176,6 +176,15 @@ the incident that motivated it.
   already-published layer is real additional coverage, not a
   duplicate -- confirm via the `name` field's capture date, don't skip
   on district-name match alone.
+- A `_sokuho`-suffixed candidate whose district + capture date exactly
+  matches an *already-published* non-`_sokuho` ID is a duplicate, not
+  new coverage -- GSI's own `_sokuho` ("preliminary report") layers
+  get superseded by a same-named, same-date non-`_sokuho` ID; check
+  `ichiran.html`'s title text for "（速報）" to confirm before skipping
+  (D26). This is narrower than "skip every `_sokuho` ID" -- several
+  already-published layers are themselves canonical `_sokuho` IDs with
+  no non-`_sokuho` sibling ever published; the check is specifically
+  whether a matching sibling *exists*, not the suffix alone.
 - A source tile can be genuinely corrupt on GSI's own server, not just
   a bad local download (confirmed by re-fetching fresh and getting an
   identical corrupt PNG). `georef.py` globs whatever tile files
