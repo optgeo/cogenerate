@@ -22,7 +22,7 @@ approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress, right now: 123 published / 194 pool (~63.4%)**. Report as
+**Progress, right now: 124 published / 194 pool (~63.9%)**. Report as
 this fraction whenever giving a status update -- `candidates.py`'s own
 summary line (`--top 1 --sort-by date`, stderr "N already published")
 gives the numerator; the pool total drifts, re-run rather than
@@ -35,18 +35,10 @@ handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
 skipped by hand as encountered -- a working denominator, not a
 mathematically clean one.
 
-**🟡 One thing mid-flight**: `20150912dol` (大崎地区, part of the 2015
-Joso-flood-era batch, seed 912,393) -- probe/download done (32745
-tiles), `georef`+`cog` were kicked off in background right before this
-rewrite (session was about to `/clear`). **Check first**:
-`out/20150912dol.tif*` and `ps aux | grep gdal_translate`. If the COG
-finished, it's just upload/verify/stac/cleanup/commit like every other
-layer this session. If the process died, `LAYER=20150912dol just
-georef` then `just cog` again (both are idempotent/skip-if-done per
-D11, safe to just re-run).
-
-Everything else below is fully done (uploaded, verified, STAC'd,
-cleaned up, committed+pushed).
+**No 🔴/🟡 items mid-flight right now** -- `20150912dol` (大崎地区, 2015
+Joso-flood batch) finished and published (`dcd6623`) right after the
+previous rewrite. Everything below is fully done (uploaded, verified,
+STAC'd, cleaned up, committed+pushed).
 
 - The noto hole-patch rebuild (D24), **2018 Hokkaido Eastern Iburi
   earthquake batch** (8 layers), **2017 Kyushu Typhoon 3 batch** (6
@@ -55,9 +47,9 @@ cleaned up, committed+pushed).
   4/15 through 7/24), the **Nishinoshima "doh" series** (5 layers,
   2013-2014) **+ 3 more Nishinoshima dol layers** (`20160725dol`,
   `20160303dol`, `20151209dol`), and **most of the 2015 Kanto-Tohoku
-  flood / Joso batch** (`20150911dol1`/`dol2`, `20150913dol`,
-  `20150915dol`, `20150929dol` -- 5 of ~7 layers, `20150912dol` mid-flight
-  above, `20150911dol3`/`dol4`/`dol5`/`dol`/`20150728dol`/`20150714dol`
+  flood / Joso batch** (`20150911dol1`/`dol2`, `20150912dol`,
+  `20150913dol`, `20150915dol`, `20150929dol` -- 6 of ~7 layers,
+  `20150911dol3`/`dol4`/`dol5`/`dol`/`20150728dol`/`20150714dol`
   not yet started) are all **DONE or noted above**. Remaining
   `candidates.py` hits for the earlier events are non-photo, or the
   typo'd `atsumtoubu_0911do` ID (published under its correct spelling
@@ -244,13 +236,11 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 ### Do this first when resuming
 
-1. **Finish `20150912dol`** (see 🟡 above) -- upload/verify/stac/
-   cleanup/commit once its COG is confirmed done.
-2. **Work through the 18 remaining layers listed above** (rest of
+1. **Work through the ~17-18 remaining layers listed above** (rest of
    2015 Joso batch, 2014 batch, 2013 batch) -- seeds and confirmed-real
    status already recorded above, no need to re-derive. Skip the
    5 confirmed non-photo/out-of-scope ones listed.
-3. **Check `source-coop` credentials**: see below. If expired, ask
+2. **Check `source-coop` credentials**: see below. If expired, ask
    Hidenori to run `source-coop login`, don't work around it -- this
    session hit the expiry repeatedly (roughly every 30-60 min of
    active uploading), it's a normal recurring event. Per Hidenori's
@@ -265,7 +255,7 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
    preview that only shows early progress lines; the real
    success/failure line is at the very end, and `just verify` is the
    authoritative check either way.
-4. **Once this batch is done**, `uv run python -m cogenerate.candidates
+3. **Once this batch is done**, `uv run python -m cogenerate.candidates
    --top 194 --sort-by date --json` once more to confirm the pool is
    actually exhausted (or find whatever's still left). Check
    `layers-martin`'s catalog `name` field per candidate for
@@ -277,7 +267,7 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
    ズームレベル field before assuming a probe failure is a seed problem
    too (see the minzoom-gotcha note above) -- two different reasons a
    probe can fail that both look identical ("wrong seed?").
-5. Pipeline network-bound and CPU-bound phases across multiple layers
+4. Pipeline network-bound and CPU-bound phases across multiple layers
    per the concurrency pattern below rather than fully serializing one
    layer at a time -- **target ~2-3 concurrent `gdal_translate`
    builds** (`ps aux | grep gdal_translate | grep -v grep | wc -l`) when
@@ -285,7 +275,7 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
    target every time one finishes, rather than letting it idle down to
    0 while waiting on the next manual step. Report progress as
    `published/pool` when giving status updates.
-6. Consider re-running `just whitescan` occasionally against freshly
+5. Consider re-running `just whitescan` occasionally against freshly
    published layers once a batch of them lands (D25) -- it's cheap and
    catches the same white-nodata pattern if it recurs. Remember the 2
    false positives this session found: eyeball the overview before
@@ -293,7 +283,7 @@ to `--sort-by date` (no `--keyword`) for general "what's next".
 
 ### What's published
 
-**123 layers** live on Source Cooperative + the STAC catalog
+**124 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
 Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
 `yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
@@ -328,10 +318,10 @@ earthquake), the complete 2016 Typhoon 10 batch (6 layers), the
 the **Nishinoshima "doh" series** (`20131204doh`, `20131217doh`,
 `20140216doh`, `20141204doh`, `20141210doh` -- 5 layers) plus 3 more
 Nishinoshima layers (`20160725dol`, `20160303dol`, `20151209dol`), and
-**5 of ~7 layers from the 2015 Kanto-Tohoku flood / Joso batch**
-(`20150911dol1`, `20150911dol2`, `20150913dol`, `20150915dol`,
-`20150929dol` -- `20150912dol` mid-flight, `dol3`/`dol4`/`dol5`/`dol`/
-`0728dol`/`0714dol` not yet started, see 🟡 above) -- 60 layers total
+**6 of ~7 layers from the 2015 Kanto-Tohoku flood / Joso batch**
+(`20150911dol1`, `20150911dol2`, `20150912dol`, `20150913dol`,
+`20150915dol`, `20150929dol` -- `dol3`/`dol4`/`dol5`/`dol`/
+`0728dol`/`0714dol` not yet started) -- 61 layers total
 from the deep-scan tail. Each followed the same settled lifecycle:
 build locally -> `upload` (autonomous per the standing directive) ->
 `just verify` -> `just stac` -> `stac-validate` -> `cleanup-tiles` +
