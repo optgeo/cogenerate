@@ -551,6 +551,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20180419kirishima_apsar180420swne.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20180419kirishima_apsar180420swne"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20180906hokkaido_abira_0911do.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20180906hokkaido_abira_0911do"
