@@ -9,343 +9,63 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-08-02 (eighth time -- see git history for
-earlier versions) -- older detail lives only in the dated entries
-below now, not duplicated here.
+section was rewritten 2026-08-02 (ninth time, end-of-session refresh
+before `/clear` -- see git history for earlier versions). Detail that
+used to accumulate here has been pushed down into the dated entry for
+this session (below the "What's published" ledger) and into
+`CLAUDE.md`'s durable operational conventions -- this section stays a
+lean "what's true right now, what to do next," not a session diary.
 
 **Standing directive from Hidenori, 2026-07-31 ~23:00, still active**:
-he's away for long stretches (slept, may again) and explicitly said
-not to stop the pipeline for decisions -- keep the
+he's away for long stretches and explicitly said not to stop the
+pipeline for decisions -- keep the
 build/upload/verify/stac/cleanup/commit loop running autonomously,
 including the `upload` publish step, without waiting for per-layer
 approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress, right now: 151 published / 194 pool (~77.8%)**. Report as
-this fraction whenever giving a status update -- `candidates.py`'s own
-summary line (`--top 1 --sort-by date`, stderr "N already published")
-gives the numerator; the pool total drifts, re-run rather than
-trusting a cached number (also note: it reads the *live* GitHub Pages
-catalog, D7-style, so a just-pushed layer keeps showing as
-"unpublished" for a few minutes until Pages redeploys -- not a bug,
-don't re-publish a layer just because candidates.py still lists it
-seconds after your own push). It's the raw tool output and includes a
-handful of non-photo false positives (`_dansaizu`/`_shinsui` suffixes)
-skipped by hand as encountered -- a working denominator, not a
-mathematically clean one.
+**Progress: 151 published / 194 pool (~77.8%). Pool is exhausted for
+both optical photos and aircraft SAR (D26, D27) -- nothing queued to
+build.** Report progress as this fraction whenever giving a status
+update -- `candidates.py --top 1 --sort-by date`'s stderr summary line
+("N already published") gives the numerator; the pool total drifts,
+re-run rather than trusting a cached number. It reads the *live*
+GitHub Pages catalog (D7), so a just-pushed layer shows as
+"unpublished" for a few minutes until Pages redeploys -- not a bug.
 
-**No 🔴/🟡 items mid-flight right now.** The 2015 Joso batch's
-remaining 6 layers, the full 2014 batch (6 layers), the full 2013
-batch (5 layers), and all 10 aircraft-SAR layers (D27) -- 27 layers
-total this session -- are all fully done (uploaded, verified, STAC'd,
-cleaned up, committed+pushed). The SAR upload was blocked on expired
-`source-coop` credentials mid-session; Hidenori re-logged in and all
-10 finished cleanly right after.
+**No 🔴/🟡 items mid-flight.** Everything built this session is
+uploaded, verified, STAC'd, cleaned up, committed, and pushed.
 
-- **`candidates.py --top 194` pool check, 2026-08-02, after finishing
-  the batch above: the pool is now effectively exhausted.** Every one
-  of the 56 remaining raw hits is accounted for as one of: already-known
-  non-photo suffixes (`_dansaizu`/`_shinsui`, 25 layers),
-  red-relief-derived map products (`_digital`/`_sekishoku`/`_rittai`
-  variants, 10 layers), airborne SAR radar (`_apsar`, 10 layers, same
-  category as the already-documented `20140930dol`/`20140929dol2`),
-  volcanic-countermeasure maps (`_kazantaisaku_*`, 3 layers), the
-  already-documented typo'd ID (`atsumtoubu_0911do`, published under
-  the correct `atsumatoubu` spelling), the already-documented
-  out-of-scope/wrong-category singles (`rinya`, `kuchinoerabured`), one
-  new non-photo map product found this pass
-  (`20180906hokkaido_iburi_hokaichi` = 斜面崩壊・堆積分布図, a slope-failure/
-  debris-deposition distribution map, not a photo), and **one newly
-  published layer of this session's own batch** (`20130717dol`, still
-  showing as unpublished because GitHub Pages hadn't redeployed yet at
-  scan time -- the known D7 lag, not a real gap).
-- **New finding this pass, now D26 in DECISIONS.md: `_sokuho`
-  (preliminary-report) duplicates.** 3 of the 56 raw hits
-  (`20190828kyusyu_sagachiku_0830do_sokuho`, `..._0831do_sokuho`,
-  `20210705oame_0706do_sokuho`) looked new but are GSI's own
-  preliminary-report release of a capture that's **already published**
-  under a non-`_sokuho` ID with the identical district, date, and
-  tilejump coordinate (`sagachiku_0830do`/`_0831do`,
-  `20210705oame_0706do`) -- confirmed via `ichiran.html`'s title text,
-  which reads plain "正射画像" for the published ID and "正射画像（速報）"
-  for the duplicate. Skip these, don't rebuild -- see D26 for the full
-  reasoning and why this is narrower than "skip every `_sokuho` ID"
-  (several already-published layers, e.g.
-  `20250815rain_amakusa_0815do_sokuho`, are themselves the canonical
-  ID for their capture with no non-`_sokuho` sibling ever published).
-- **Scope extended to aircraft SAR imagery, 2026-08-02 (D27) -- all 10
-  layers published.** Hidenori asked about the 3 non-photo categories
-  found in the pool-exhaustion pass; investigated and decided: SAR is
-  real primary sensor data and now in scope, derived thematic/hazard
-  maps stay out (full reasoning in D27). Seeds derived from each
-  layer's own `ichiran.html` tilejump entry, same as any other layer:
-  - `20140930dol`/`20140929dol2` (御嶽山 Mt. Ontake, Sep 2014, seed
-    903,402) -- note these have **no `apsar` token in their ID**,
-    confirmed SAR via `ichiran.html` title text only ("航空機SAR画像").
-  - `20180419kirishima_apsar180420nesw`/`..._180420swne`/
-    `..._180226nesw`/`..._180226swne` (霧島山 Kirishima, Ebino
-    Highlands/Mt. Io, 2018, seed 884,416 -- 2 dates x 2 observation
-    directions).
-  - `20171011kirishima_apsar171012we`/`..._171012ew`/`..._141105we`/
-    `..._141105ew` (霧島山 Kirishima, Shinmoedake, 2017 pass covering
-    both a 2017 and a 2014 observation date, seed 884,416 -- 2 dates x
-    2 directions).
-  - **Real correctness bug caught building the first two** (see D27's
-    revised Decision section for the full investigation): D12's
-    black-nodata cleaning was destroying genuine zero-backscatter SAR
-    content in the `LA`-mode Ontake layers (40-72% of "cleaned" black
-    pixels sampled were originally opaque, real content) -- the
-    `RGBA`-mode Kirishima layers happened to test clean (~0%
-    corruption) but that's a property of GSI's specific padding
-    convention for that product, not something to assume holds for
-    every SAR layer. Fixed: `georef.py --sensor sar` now skips both
-    black and white NODATA cleaning (not just white), and `Justfile`'s
-    `cog` recipe omits `-a_nodata 0` entirely for `SENSOR=sar` (that
-    flag's D15 safety justification -- "D12 already guarantees no
-    genuine content is pure black" -- doesn't hold for SAR either).
-    **All 10 layers built (or rebuilt) with the corrected pipeline
-    before any upload was attempted** -- nothing had reached Source
-    Cooperative yet when the bug was caught, so no retroactive patch
-    was needed. Build command for any more SAR layers going forward:
-    `SENSOR=sar just run` (not just the `stac-item` step -- `SENSOR`
-    must be set from `georef` onward).
-  - All 10 uploaded, verified, STAC'd (`SENSOR=sar just stac`,
-    confirming `roles: ["amplitude", "data"]` on each Item), cleaned
-    up, and committed individually.
-- **Net effect: no further known real, in-scope, unpublished
-  candidates remain in the pool** -- optical photos and aircraft SAR
-  are both exhausted as of this session. Nothing queued to build next;
-  wait for a new disaster event to add fresh layers to `ichiran.html`,
-  or for Hidenori to point at something specific (e.g. another
-  `--keyword` geographic priority pass like the Hiroshima one, or a
-  decision to bring derived thematic maps into scope after all --
-  D27's reasoning for keeping them out still stands unless that
-  changes).
-- **New minzoom gotcha, recurred this session**: `20150911dol`/
-  `20150714dol` (both Kuchinoerabujima volcano UAV captures, despite
-  being recorded under the "2015 Joso batch" label in the prior
-  rewrite -- they're a different disaster entirely, GSI just assigned
-  overlapping-looking IDs) needed `MINZOOM=14`; `20150728dol` (西之島
-  Nishinoshima volcano) needed the same. Same fix as the
-  previously-documented `20151209dol`/`20150929dol` cases: check
-  `ichiran.html`'s ズームレベル field, convert the tilejump z/x/y to the
-  *real* minzoom (`coord >> (tilejump_z - real_minzoom)`), retry with
-  `FORCE=1 MINZOOM=<n>`.
-- **New transient-probe-failure pattern, 2026-08-02**: `20130717dol2`
-  and `20130717dol` (both correctly-seeded, confirmed-real via direct
-  `curl -I` 200 at both z10 and the tilejump zoom) each failed their
-  *first* probe attempt with "none of the seed(s) or their neighbors
-  returned 200" -- not a seed/minzoom problem this time, just retried
-  cleanly on a second attempt (`rm` the empty CSV first, since the
-  skip-check in D11 doesn't know an empty result was a failure, not
-  "nothing to find"). Cause not fully diagnosed -- plausibly transient
-  load on GSI's server or this session's own concurrent request volume
-  across several simultaneously-running layers, not something D24's
-  5xx/network-error retry caught (no error surfaced, `probe.py` just
-  legitimately found nothing that attempt and reported it as such,
-  rather than something the retry-3-times-with-backoff logic saw as a
-  failure worth retrying internally). **If a probe fails on a
-  known-good, `curl`-verified seed, retry the whole probe once before
-  assuming the seed/minzoom is actually wrong** -- cheap, and this
-  session hit it twice on legitimately-correct seeds.
-- **D25, new this session: opaque pure-white pixels are nodata too**
-  (D12's black-pixel fix, extended). `georef.py` now cleans white the
-  same way it cleans black, *except* for layers that sample as
-  monochrome-origin (real grayscale photos encoded as RGB, e.g.
-  `19480000dol`/`19620000dol`, where pure white/black can be real
-  content) -- see D25 in DECISIONS.md for the detection method
-  (`sample_is_monochrome()`, a structural R==G==B signal, not a
-  layer-ID allowlist). **Retroactive scan+patch also done**: built
-  `cogenerate.whitescan` (`just whitescan`, cheap `/vsicurl`-overview
-  scan, no local files needed) against all 106 then-published layers
-  -- 3 confirmed genuine (`20140828dol`/`0830dol`/`0831dol`, the 2014
-  Hiroshima batch's later 3 days) and patched via a D24-style
-  local-download + `gdal_calc.py`-computed-alpha + VRT-merge + rebuild
-  + `FORCE=1` re-upload; **2 flagged-but-false-positive** correctly
-  caught by a quick visual check before patching anything
-  (`20230202_nishinoshima_dol` = real volcanic steam/lava brightness,
-  `20190618yamagata_tsuruokamurakami_0620do` = real cloud cover) --
-  **worth remembering: don't patch on the fraction number alone below
-  a few percent, eyeball the overview first.**
-- **Investigated and closed, no action needed**: Hidenori spotted
-  possible missing corners (N/S/E/W) on `20180117dol`'s coverage
-  shape (looked diamond-pointed from a distance). Directly queried GSI
-  at the tile just inside vs. just outside each apparent corner (e.g.
-  z18 `233643,110440`→200 but `233642-233640,110440`→404 for the west
-  point) -- **confirmed a genuine hard boundary**, not a probe gap: the
-  coverage is a real rotated-rectangle flight swath with flat (not
-  infinitely pointed) corners, GSI's own server returns 404 immediately
-  outside it. No fix needed, no backlog item.
+**Nothing to do until one of these happens**:
+1. A new disaster adds fresh layers to `ichiran.html` -- this
+   pipeline's whole reason for existing is that GSI adds these within
+   days of a real event, so periodically re-check rather than assuming
+   "exhausted" stays true forever: `uv run python -m
+   cogenerate.candidates --top 194 --sort-by date --json`. When new
+   layers show up, three non-obvious classification traps to check
+   before queuing (all found the hard way this session, all detailed
+   in `DECISIONS.md`): a `_sokuho`-suffixed layer can be a
+   preliminary-report duplicate of an already-published non-`_sokuho`
+   ID (D26); a layer can be aircraft SAR with no `apsar` token in its
+   ID at all, only discoverable via `ichiran.html`'s title text saying
+   "航空機SAR画像" (D27 -- SAR is in scope, build with `SENSOR=sar` set
+   from `georef` onward, see CLAUDE.md); and a probe can fail
+   transiently on a seed that's actually correct, so retry once before
+   concluding the seed/minzoom is wrong.
+2. HOTOSM replies in `#oam-dev` (D6) -- Hidenori posted a follow-up
+   2026-08-02 with the catalog's current scope and two open questions
+   (OAM ingestion path, UN Smart Maps Group attribution banner); no
+   reply yet as of this rewrite. Nothing to do here but wait.
+3. Hidenori points at something specific -- a `--keyword` geographic
+   priority pass (like the Hiroshima-before-FOSS4G one), or a decision
+   to revisit D27's derived-thematic-map exclusion.
 
-**Concurrency pattern**: run one `upload` (network-bound, slow for big
-layers -- noto's original 45GB upload took ~25min) *and* one
-build-chain step (probe/download/georef/cog, CPU or network bound,
-doesn't touch `source-coop`) at the same time rather than serializing
--- they don't contend for the same resource. **Pipeline across multiple
-layers, not just one at a time (Hidenori's suggestion, 2026-08-01
-~19:0x, confirmed effective)**: each build-chain step alternates
-network-bound (probe, download) and CPU-bound (cog; georef is quick)
-phases -- start layer B's probe/download while layer A's cog is still
-building, rather than waiting for A to fully finish before starting B.
-In practice this session ran 2 `gdal_translate` COG builds
-simultaneously several times (e.g. two Typhoon 10 sub-district layers
-back to back) with no problems, each finishing in the time one alone
-would have taken since they don't contend for network, and network
-steps for a third layer overlapped both. Keep an eye on concurrent
-`gdal_translate` count (`ps aux | grep gdal_translate`) if queuing more
-than ~3-4 builds at once; 8 cores on this machine, COG builds get
-CPU-hungry on large layers. **Always use full paths
-(`/Users/hfu/cogenerate/...`) when checking on background tasks** --
-confirmed live 2026-08-01 that the interactive session's cwd resets to
-`/Users/hfu/faceless-cartographer` between tool calls even though a
-background task's own `cd /Users/hfu/cogenerate && ...` prefix keeps
-working fine for that task itself; a relative-path check from the
-wrong cwd looks like a missing file. Also: don't run a manual
-foreground command against the same layer a background task is
-already working on -- confirmed live that two concurrent `probe`
-invocations for the same layer ID raced on the same output CSV file
-(harmless that time, the background one finished intact after mine
-overwrote-then-was-overwritten, but avoid it).
-
-**STAC catalog freshness**: `just stac` (= `stac-item` + `stac-catalog`)
-regenerates `docs/catalog.json` from *all* Items in `docs/items/`
-every time it runs -- nothing is silently stale between publishes.
-Just don't let a batch of `upload`-completed layers sit unpublished
-(no STAC Item yet) for too long -- run the
-verify->stac->stac-validate->cleanup->commit tail promptly once each
-layer's `upload` finishes.
-
-**`source-coop` credentials**: expire repeatedly, multiple times a
-session. Each time, Hidenori re-logs in personally once he notices
-(don't work around it -- say so, then keep credential-free build steps
-going while waiting so finished COGs queue in `out/` for `upload` the
-moment it's refreshed). Verify with `aws s3api head-object --bucket
-smartmaps --key cogenerate/README.md --profile source-coop --query
-LastModified --output text`. Was expired at the start of the
-2026-08-01 ~13:1x session, refreshed by ~13:40 (Hidenori re-logged in
-without being asked directly -- session had already queued a finished
-`atsuma_0911do` COG in `out/` per the pattern above, uploaded
-immediately once creds came back).
-
-**New incident class, 2026-08-01: a `candidates.py`/layers-martin catalog
-ID can be flat-out wrong** (not just non-photo like `_dansaizu`/`_shinsui`).
-`20180906hokkaido_atsumtoubu_0911do` (candidates.py's spelling) 404s
-directly against `cyberjapandata.gsi.go.jp` -- the real GSI tile path,
-confirmed both via `ichiran.html`'s own source URL line and a working
-`curl -I` 200, is `20180906hokkaido_atsumatoubu_0911do` (extra "a").
-**Always sanity-curl a brand-new candidate's actual tile URL (or at
-least its ichiran.html source-URL line) before trusting `probe.py`'s
-"none of the seeds returned 200" as a seed problem** -- burned ~15
-minutes here retrying seed grids before checking the URL itself. Built
-this one under the corrected slug throughout (tiles/, out/, STAC item,
-Source Cooperative key all use `atsumatoubu`) -- flagged the
-layers-martin catalog bug itself as a separate task
-(`task_49b4ae67`, not this repo's problem to fix). Since the published
-STAC item's ID won't match candidates.py's own (typo'd) key, expect
-this one to keep resurfacing as a "candidate" in future
-`candidates.py` runs -- skip it by hand like the dansaizu/shinsui
-false positives, don't rebuild it twice.
-
-**Tile-gap incident + fix, 2026-08-01**: Hidenori spotted visible
-black square holes in the published `20240102noto_0405_0426do` mosaic
-(confirmed via a coordinate he gave, ~36.873690/136.968388 -- GSI's
-own 地理院地図 shows no gap there, ruling out a real source-coverage
-absence). Investigation (cross-referencing the layer's saved probe CSV
--- `tiles/20240102noto_0405_0426do.z18.csv`, which survives
-`cleanup-tiles` since it's a sibling file, not inside the deleted
-`tiles/<layer>/` dir -- against the published COG's alpha channel, and
-flood-filling the CSV's own bounding box from its border to find truly
-enclosed unconfirmed cells) found **49 tiles across 11 clusters**,
-each confirmed present via direct `curl` to GSI (`HTTP 200`, valid
-image), that `probe.py` had simply never found. **Root cause (D24)**:
-past minzoom, `probe.py`'s descent to maxzoom is a pure top-down
-quadtree walk with no horizontal re-check (D17's flood-fill only runs
-at minzoom) -- `exists()` had no retry, so a single transient network
-error/5xx on any intermediate-zoom ancestor tile permanently pruned
-its whole subtree as if it were a real 404. **Fixed going forward**:
-`exists()` now retries network errors/5xx (3 attempts, linear
-backoff), never retries a real 404. **Does not retroactively fix
-already-published layers** -- noto's is being patched right now (see
-the 🔴 section above); worth an occasional spot check on other large
-published layers using the same enclosed-hole-detection method if one
-is ever suspected, not run exhaustively across all 54 as a matter of
-course.
-
-**Priority: Hiroshima-area layers ahead of FOSS4G 2026 Hiroshima --
-DONE as of 2026-08-01 ~08:1x.** All 10 Hiroshima-area disaster-response
-layers published: the 2014 Hiroshima landslide response
-(`20140820dol`/`dol2`/`dol3`, `20140828dol`, `20140830dol`,
-`20140831dol`) plus two historical reference layers GSI kept alongside
-it for land-use comparison (`19620000dol` = 1962, `19480000dol` =
-1947-48 -- the oldest imagery in this catalog, published via D23's new
-date-range STAC representation). `candidates.py --keyword <text>`
-(substring match on 提供範囲 coverage text) exists for this kind of
-temporary geographic prioritization -- known false positive: `広島市`
-also matches 北海道's `北広島市`, eyeball results before queuing. **No
-further known Hiroshima candidates in the current pool** -- reverted
-to `--sort-by date` (no `--keyword`) for general "what's next".
-
-### Do this first when resuming
-
-1. **There is no known queued work right now** -- the pool is
-   effectively exhausted as of the 2026-08-02 `--top 194` pass (see
-   above), for both optical photos and aircraft SAR (D27, all 10 known
-   SAR layers published). Re-run `uv run python -m cogenerate.candidates
-   --top 194 --sort-by date --json` first to check whether a new disaster
-   has added fresh layers to `ichiran.html` since then (this pipeline's
-   whole reason for existing is that GSI adds these within days of a
-   real event) -- don't assume the exhausted state is still current
-   without checking. If new layers show up:
-   - Check `layers-martin`'s catalog `name` field per candidate for
-     "撮影"/"ヘリ撮影"/"UAV撮影"/"空中写真" (optical) or "航空機SAR画像"
-     (SAR, D27 -- in scope, build with `SENSOR=sar` from `georef`
-     onward, see CLAUDE.md) -- not "作成"/"観測"/non-photo map products,
-     and not nationwide/non-disaster-response products like `rinya`.
-   - **Before queuing a `_sokuho`-suffixed candidate**, check whether a
-     same-district, same-date non-`_sokuho` ID is *already published*
-     -- if so, it's D26's preliminary-report duplicate, skip it.
-   - Sanity-`curl -I` a brand-new candidate's real GSI tile URL before
-     assuming a probe failure is a seed problem (an ID can be flat-out
-     typo'd in the catalog), and check its `ichiran.html` ズームレベル
-     field before assuming a probe failure is a seed problem too (a
-     layer's real minzoom can be higher than the usual 10) -- two
-     different reasons a probe can fail that look identical ("wrong
-     seed?"). **Also just try the probe a second time** before
-     concluding either of those -- this session saw two probes fail
-     transiently on seeds that were actually correct.
-   - If Hidenori hasn't specified otherwise, ask what to prioritize
-     (a specific event, `--keyword` geographic filter, or just
-     `--sort-by date`/`extent` defaults) rather than guessing, since
-     there's no existing backlog to fall back to.
-2. **Check `source-coop` credentials**: see below (and CLAUDE.md's
-   Operational conventions for the empirical lifetime estimate). If
-   expired, ask Hidenori to run `source-coop login`, don't work around
-   it. Per Hidenori's tuning directive (2026-08-02): don't pause
-   queuing new build-chain work while waiting for a login refresh --
-   keep probing/downloading/georef'ing/cog'ing (all credential-free)
-   and let finished COGs queue in `out/` for `upload` the moment
-   credentials come back, unless disk headroom (`df -h`) actually gets
-   tight. **Always check the actual `tail`/full output of `just
-   upload`, not just a truncated preview** -- a Cloudflare 520
-   mid-upload can fail silently in a preview that only shows early
-   progress lines; the real success/failure line is at the very end,
-   and `just verify` is the authoritative check either way.
-3. Pipeline network-bound and CPU-bound phases across multiple layers
-   per the concurrency pattern below rather than fully serializing one
-   layer at a time -- **target ~2-3 concurrent `gdal_translate`
-   builds** (`ps aux | grep gdal_translate | grep -v grep | wc -l`) when
-   there's a backlog of candidates queued, topping back up to that
-   target every time one finishes, rather than letting it idle down to
-   0 while waiting on the next manual step. Report progress as
-   `published/pool` when giving status updates.
-4. Consider re-running `just whitescan` occasionally against freshly
-   published layers once a batch of them lands (D25) -- it's cheap and
-   catches the same white-nodata pattern if it recurs (ran clean
-   against the whole catalog, including this session's 17 new layers,
-   2026-08-02 -- only the 2 already-known false positives flagged,
-   nothing new). Eyeball the overview before patching anything flagged
-   below a few percent, don't patch on the fraction alone.
+Day-to-day operational conventions (credential expiry/lifetime,
+upload's silent-520 caveat, the concurrency pattern, `FORCE=1`
+skip-check gotchas, full-paths-for-background-tasks) all live in
+`CLAUDE.md` now, not duplicated here -- read that file's "Operational
+conventions" section before resuming build work, not this one.
 
 ### What's published
 
@@ -458,6 +178,109 @@ current scope (151/194 layers) and the two open questions from an
 earlier prototype-stage message (OAM ingestion path, attribution
 banner) -- see D6's 2026-08-02 update in `DECISIONS.md`. Posted on a
 weekend; no reply yet. Nothing to do here until a reply arrives.
+
+## 2026-08-02 (session) -- closed out the deep-scan photo batch, added aircraft SAR (D27), caught a real NODATA bug, posted HOTOSM follow-up
+
+Resumed from the previous rewrite's "17-18 remaining layers" list.
+Progress went from 124/194 to 151/194 over the session.
+
+**Photo batch (17 layers)**: worked through the rest of the 2015
+Kanto-Tohoku flood/Joso batch, the full 2014 batch, and the full 2013
+batch. Two things caught along the way:
+- `20150911dol`, `20150728dol`, `20150714dol` turned out to be a
+  *different* disaster (Kuchinoerabujima volcanic activity, UAV
+  imagery) despite being grouped under the "2015 Joso batch" label in
+  the prior handover -- GSI just happened to assign overlapping-looking
+  IDs. All three, plus `20150728dol`, needed `MINZOOM=14` (their real
+  `ichiran.html` ズームレベル starts at 14, not the usual 10) -- same
+  fix pattern as the previously-documented `20151209dol`/`20150929dol`
+  cases: convert the tilejump z/x/y to the real minzoom, retry with
+  `FORCE=1 MINZOOM=<n>`.
+- `20130717dol2` and `20130717dol` each failed their *first* probe
+  attempt on a seed later confirmed correct via direct `curl -I` 200 --
+  not a seed/minzoom problem, just retried cleanly on a second attempt
+  (`rm` the empty CSV first, since D11's skip-check doesn't know an
+  empty result was a failure). Cause not fully diagnosed -- plausibly
+  transient GSI-side load or this session's own concurrent request
+  volume. **If a probe fails on a known-good, `curl`-verified seed,
+  retry the whole probe once before assuming the seed is wrong.**
+
+**Pool-exhaustion check**: a `--top 194` full-pool pass afterward found
+every one of the 56 remaining raw hits accounted for -- known non-photo
+suffixes (`_dansaizu`/`_shinsui`, 25), red-relief-derived map products
+(`_digital`/`_sekishoku`/`_rittai`, 10), airborne SAR (`_apsar`, 10),
+volcanic-countermeasure maps (`_kazantaisaku_*`, 3), the
+already-documented typo'd `atsumtoubu_0911do` ID, `rinya`/
+`kuchinoerabured`, one new non-photo map product
+(`20180906hokkaido_iburi_hokaichi` = slope-failure/debris-deposition
+distribution map), and one of this session's own just-published layers
+still showing unpublished due to the D7 Pages-redeploy lag.
+`_sokuho`-suffixed layers turned out to hide a real trap (now D26):
+`20190828kyusyu_sagachiku_0830do_sokuho`/`_0831do_sokuho` and
+`20210705oame_0706do_sokuho` are GSI's own preliminary-report release
+of a capture already published under a non-`_sokuho` ID with identical
+district/date/tilejump coordinate -- `ichiran.html`'s title text
+distinguishes them ("正射画像" vs. "正射画像（速報）"). Skipped, not built.
+
+**Scope extension: aircraft SAR (D27)**. Hidenori asked whether the
+non-photo categories found above should be brought into scope;
+investigated real tiles from both known SAR products and decided SAR
+imagery is real primary sensor data and belongs in scope, while
+derived thematic/hazard maps stay out (full reasoning in D27). Built
+all 10 known SAR layers: `20140930dol`/`20140929dol2` (Mt. Ontake, no
+`apsar` token in the ID at all -- only discoverable via `ichiran.html`'s
+"航空機SAR画像" title text), the 4-layer `20180419kirishima_apsar...`
+Ebino Highlands/Mt. Io set, and the 4-layer
+`20171011kirishima_apsar...` Shinmoedake set.
+
+**Real correctness bug caught building the first two**: D12's
+black-nodata cleaning was destroying genuine zero-backscatter SAR
+content in the `LA`-mode Ontake tiles -- sampled 200 "cleaned" tiles
+per layer and found 40-72% of the black pixels D12 zeroed were
+originally opaque, real content, not padding. The `RGBA`-mode
+Kirishima layers happened to sample at ~0% corruption, which is a
+property of that specific product's padding convention, not something
+to assume holds for every SAR layer. A second bug surfaced verifying
+the fix: `cog`'s `-a_nodata 0` (D15) declares classic NODATA on the
+grayscale band too, so a real zero-backscatter pixel still read as
+invalid to non-alpha-aware tools even after the georef fix. Both
+fixed: `georef.py --sensor sar` now skips black *and* white NODATA
+cleaning (not just white), and the `cog` recipe omits `-a_nodata 0`
+entirely for `SENSOR=sar`. All 10 layers were built or rebuilt with
+the corrected pipeline **before** any upload was attempted, so nothing
+already-published needed a retroactive patch (unlike D24/D25's
+incidents). Rebuilt COGs' alpha-band `STATISTICS_MEAN` reads exactly
+`255` post-fix, confirming no partial contamination remains.
+
+All 10 SAR layers published (uploaded, verified, `SENSOR=sar just
+stac` confirming `roles: ["amplitude", "data"]`, cleaned up,
+committed) once `source-coop` credentials -- which expired mid-batch,
+as usual -- were refreshed.
+
+**Documentation pass**: restructured `CLAUDE.md` to extract a reusable
+pipeline-design playbook (for anyone adapting this approach to a
+different tile source) separate from GSI-specific facts, and folded
+several operational lessons that had only lived in this file's session
+log (upload's silent-520 failure mode, `source-coop`'s empirical
+credential lifetime, the concurrency pattern) into `CLAUDE.md`'s
+durable "Operational conventions" section. Also caught and fixed a
+real gap: `README.md` had no License/attribution section at all
+(GSI's imagery attribution requirement was only documented in
+`source-coop/README.md` and generated STAC Items, not the main repo
+README) -- added one. Added a brief, plain acknowledgment across
+`README.md`/`source-coop/README.md`/`CLAUDE.md` that this archive
+documents real disasters, several with significant loss of life, and a
+durable instruction to keep generated prose factual and neutral rather
+than editorializing on damage or human impact.
+
+**HOTOSM follow-up**: Hidenori posted an update in `#oam-dev`
+reporting the catalog's current scope (151/194 layers, spanning
+2013-2026 events plus historical reference imagery and now aircraft
+SAR) and restating the two open questions from an earlier
+prototype-stage message (OAM ingestion path; whether contributing
+under the UN Smart Maps Group / UN Open GIS Initiative banner rather
+than as GSI directly affects ingestion). Posted on a weekend; no reply
+yet -- see D6 in `DECISIONS.md`.
 
 ## 2026-07-31 (new session, continued further) -- 3 large layers picked, STAC catalog implemented
 
