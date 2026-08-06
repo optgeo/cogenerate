@@ -26,14 +26,19 @@ pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
 **Progress: 154 published / 194 pool (~79.4%). Pool is exhausted for
-optical photos and aircraft SAR (D26, D27) as of the last full scan --
-worth a fresh `--top 194` pass before trusting that, see below.**
-Report progress as this fraction whenever giving a status update --
-`candidates.py --top 1 --sort-by date`'s stderr summary line ("N
-already published") gives the numerator; the pool total drifts, re-run
-rather than trusting a cached number. It reads the *live* GitHub Pages
-catalog (D7), so a just-pushed layer shows as "unpublished" for a few
-minutes until Pages redeploys -- not a bug.
+optical photos and aircraft SAR (D26, D27) -- reconfirmed with a fresh
+`--top 194` full-pool scan 2026-08-06 (this session): 0 genuinely new
+candidates, all 40 remaining are known out-of-scope categories
+(`dansaizu` flood-depth maps, `sekisyokurittai`/`olsorittai` red-relief
+variants, `_kazantaisaku` hazard maps, `rinya`, `kuchinoerabured`) or
+already-known duplicate/ID-mismatch cases (`atsumtoubu`/`atsumatoubu`,
+the D26 `_sokuho` pairs).** Report progress as this fraction whenever
+giving a status update -- `candidates.py --top 1 --sort-by date`'s
+stderr summary line ("N already published") gives the numerator; the
+pool total drifts, re-run rather than trusting a cached number. It
+reads the *live* GitHub Pages catalog (D7), so a just-pushed layer
+shows as "unpublished" for a few minutes until Pages redeploys -- not
+a bug.
 
 **No 🔴/🟡 items mid-flight.** Everything built this session is
 uploaded, verified, STAC'd, cleaned up, committed, and pushed.
@@ -48,30 +53,37 @@ regenerations), and a real STAC `Collection` (`docs/collection.json`,
 computed extent) now exists with every Item referencing it. All 154
 already-published Items were regenerated with the new fields and
 re-validated -- 154/154 pass `stac-validator` against both core STAC
-1.0.0 and the real OAM extension schema.
+1.0.0 and the real OAM extension schema. Separately, a false-positive
+`audit.py` band-count check (flagging the two genuinely 2-band
+`LA`-mode D27 SAR layers, `20140930dol`/`20140929dol2`, as broken) was
+found and fixed the same day, via a spawned background session
+(`c92fdfe`) -- `just audit` now reports 0/154 issues.
 
-**Next task, per Hidenori's explicit direction: OAM ingestion
-Phase 2** -- a PR to `hotosm/stactools-hotosm` proposing a *generic*
-external-STAC-catalog harvester (`--catalog-url` + a since-field
-parameter, using `cogenerate`'s own live catalog as the reference
-test case), not a `cogenerate`/GSI-specific bespoke module -- matches
-HOTOSM's own stated OAM v2 roadmap direction (D6). Then Phase 3
-(dependency-bump PR to `hotosm/openaerialmap`'s `backend/stac-ingester`),
-Phase 4 (new CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`), and
-Phase 5 (reply to Sam in `#oam-dev` with the scoped proposal *before*
-writing the harvester code, since design alignment first avoids wasted
-work on an external maintainer's repo). **All of Phase 2-5 need
-Hidenori's own GitHub identity to submit and HOTOSM maintainer review
-to merge -- not something to execute unilaterally.** Full reasoning
-for "generic, not bespoke" is in D6.
+**Waiting on HOTOSM, not actively building.** Per D6's own phased plan
+("reply to Sam *before* writing the harvester code, since design
+alignment first avoids wasted work on an external maintainer's repo"),
+Hidenori sent the Phase 2 proposal to Sam Woodcock in `#oam-dev`
+2026-08-06 -- summarizing Phase 1's completion and proposing a
+*generic* external-STAC-catalog harvester for `hotosm/stactools-hotosm`
+(not a `cogenerate`-specific module), using `cogenerate`'s own catalog
+as the reference test case. **No reply yet as of this entry.** Do not
+start writing the actual harvester PR code until Sam responds (or
+Hidenori decides to proceed without waiting) -- that's the whole point
+of asking first. Phase 3 (dependency-bump PR to
+`hotosm/openaerialmap`'s `backend/stac-ingester`) and Phase 4 (new
+CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`) follow once Phase 2
+lands. **Phases 2-4 all need Hidenori's own GitHub identity to submit
+and HOTOSM maintainer review to merge -- not something to execute
+unilaterally.** Full reasoning for "generic, not bespoke" is in D6.
 
 **Separately, still true**: a new disaster can add fresh layers to
 `ichiran.html` at any time (confirmed live this session -- the 2026
 Kumamoto earthquake response added 3 more layers weeks after this
 pipeline's very first-ever published layer). Re-check periodically
 with `uv run python -m cogenerate.candidates --top 194 --sort-by date
---json` rather than assuming "exhausted" stays true. Classification
-traps to check before queuing anything new (all in `DECISIONS.md`):
+--json` rather than assuming "exhausted" stays true -- while waiting on
+HOTOSM, this is the one thing worth polling for. Classification traps
+to check before queuing anything new (all in `DECISIONS.md`):
 D26's `_sokuho`/finalized duplicate-or-coexist rules (note the
 2026-08-06 amendment: if the *already-published* layer is the
 `_sokuho` one and a finalized ID appears later, build the finalized
@@ -278,6 +290,45 @@ schema, catalog and collection both valid.** Spot-checked several
 diffs (a UAV layer, a SAR layer, the newest Kumamoto layer) -- only the
 intended new fields changed; checksums/bboxes/file sizes untouched.
 `ruff check`/`pytest` clean.
+
+Ran `just audit` immediately after committing Phase 1 as a routine
+sanity sweep (unrelated to the new fields, but hadn't been run in a
+while): flagged `20140930dol`/`20140929dol2` (the two Mt. Ontake D27
+SAR layers) for "only 2 band(s), expected >=3". Confirmed this was a
+pre-existing false positive, not a Phase 1 regression -- both layers'
+checksums/file sizes were unchanged by the backfill, and D27 already
+documented these two specifically as genuinely `LA`-mode (luminance+
+alpha, 2 bands), unlike the other 8 SAR layers in the same batch which
+are RGBA. `audit.py`'s structure check just didn't know about the
+exception. Flagged it as a spawned background task rather than fixing
+it inline (out of scope for the OAM work); Hidenori started it
+separately and it landed as `c92fdfe` -- `check_structure()` now
+accepts 2 bands when the imagery asset's `roles` include `"amplitude"`
+(the existing D27 SAR marker), still requires >=3 for optical layers.
+Verified after merging: `just audit` reports 0/154 issues.
+
+Also ran a fresh `--top 194 --sort-by date` full-pool scan (the
+"worth checking before trusting 'exhausted'" note the previous
+rewrite of this file's "Current status" section had left) --
+**0 genuinely new candidates**: all 40 remaining hits are known
+out-of-scope categories (`dansaizu` flood-depth maps,
+`sekisyokurittai`/`olsorittai` red-relief variants, `_kazantaisaku`
+hazard maps, `rinya`, `kuchinoerabured`) or already-documented
+duplicate/mismatch cases (the `atsumtoubu`/`atsumatoubu` ID typo, the
+D26 `_sokuho`-vs-finalized pairs). Confirms the pool really is
+exhausted for optical photos and aircraft SAR, not just "as of the
+last scan."
+
+Drafted (not sent -- no Slack access from this environment, and
+sending on Hidenori's behalf needs his own decision either way) a
+`#oam-dev` reply to Sam per D6's Phase 2 plan: reports Phase 1's
+completion, proposes the generic-external-STAC-harvester approach
+(rather than a `cogenerate`-specific ingestion job) with `cogenerate`'s
+own catalog as the reference test case, and asks whether that approach
+fits `stactools-hotosm`'s direction and whether there's a preferred
+Collection `id`/naming convention. Hidenori reviewed and sent it
+himself 2026-08-06. **Now waiting on Sam's reply before starting any
+Phase 2 code** -- see "Current status" above.
 
 ## 2026-08-06 (session) -- new Kumamoto layers, D26 amendment, HOTOSM reply and OAM architecture investigation
 

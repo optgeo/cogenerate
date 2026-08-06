@@ -468,6 +468,16 @@ generic external-STAC-catalog harvester CLI, validated against
 `cogenerate`'s own live catalog) is next, but needs Hidenori's own
 GitHub identity to submit -- not something to execute unilaterally.
 
+**Update, 2026-08-06 (same day): Phase 5's Slack reply sent, now
+waiting.** Per the phased plan's own step-5 note ("before writing the
+`stac tools-hotosm` PR, since design alignment first avoids wasted
+work"), Hidenori sent a `#oam-dev` reply to Sam Woodcock summarizing
+Phase 1's completion and proposing the generic-harvester approach
+before any Phase 2 code was written. No reply from Sam yet as of this
+entry -- see `HANDOVER.md`'s "Current status" for the up-to-date wait
+state. Do not start Phase 2 implementation until Sam responds (or
+Hidenori decides to proceed without waiting).
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted
@@ -1571,3 +1581,18 @@ tiles for any new modality before assuming they transfer, the same way
 this session did retroactively for SAR -- don't just flip a `--sensor`
 switch on the one place (STAC labeling) that's obviously
 modality-specific and assume the rest of the pipeline is neutral.
+
+**Update, 2026-08-06: `audit.py` false positive found and fixed.**
+`20140930dol`/`20140929dol2` (the Mt. Ontake pair, no `apsar` token in
+the ID -- see above) decode as PIL mode `LA` (luminance+alpha, 2
+bands), unlike the other 8 SAR layers in this pool which are RGBA --
+already established above during the original NODATA-cleaning
+investigation, but `audit.py`'s `check_structure()` (D-unnumbered
+tooling, `Justfile`'s `audit` recipe) still hardcoded `>=3 bands
+expected` for every layer, flagging both as structurally broken on a
+full `just audit` sweep. Not a real defect -- confirmed both layers'
+checksums/file sizes were unchanged from their original D27 build.
+Fixed (`c92fdfe`): `check_structure()` now accepts 2 bands when the
+imagery asset's `roles` include `"amplitude"` (the existing SAR
+marker set on every D27 Item), still requires >=3 for optical layers.
+`just audit` reports 0/154 issues after the fix.
