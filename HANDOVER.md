@@ -111,9 +111,20 @@ kept for `candidates.py`) and via the Collection's own `rel:item`
 links, so a naive recursive walk double-counted every Item (308
 instead of 154) -- fixed by deduplicating on Item ID in the harvester,
 a general robustness fix, not a `cogenerate`-specific patch. Full
-write-up in D6's third 2026-08-06 update in `DECISIONS.md`. A Slack
-reply pointing at the branch (drafted, not sent -- same as before,
-Hidenori sends it himself) is queued as the next action.
+write-up in D6's third 2026-08-06 update in `DECISIONS.md`.
+
+**Sent 2026-08-06.** Before sending, checked HOTOSM's actual
+contributor policy (`hotosm/docs`'s `become-a-contributor.md`) since
+Hidenori asked whether one exists -- found a real one ("we do not
+accept contributions from... automated bot / AI accounts"), read it as
+targeting unsupervised bot/AI submissions rather than a human-reviewed
+AI-assisted contribution submitted under the human's own identity and
+DCO sign-off, and decided (Hidenori's call, his identity/sign-off at
+stake) to disclose the AI assistance transparently regardless, both
+now and in the eventual PR description -- full reasoning in D6's fourth
+2026-08-06 update in `DECISIONS.md`. Message sent, disclosure included.
+**Now waiting on Sam's reply to this one too** -- see "Current status"
+above for the live wait state.
 
 **Not a formal PR yet, deliberately** -- Hidenori wants Sam able to
 look (or not) with zero obligation, not a formal review request sitting
