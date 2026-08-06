@@ -222,6 +222,136 @@ static STAC catalog and GitHub Pages hosting this decision called for
 are both live regardless, so nothing about producing/publishing COGs
 is blocked either way.
 
+**Update, 2026-08-06: Sam Woodcock (HOT Tech Lead) replied, and a full
+architecture investigation followed.** Sam's reply pointed at three
+concrete references: the Kubernetes CronJobs that drive OAM's regular
+STAC ingestion (`hotosm/k8s-infra`, `apps/oam/`), the container image
+they run (`hotosm/openaerialmap`, `backend/stac-ingester`), and offered
+to set up "another ingestion job directly into the OpenAerialMap STAC"
+-- noting this path makes the imagery queryable via
+`api.imagery.hotosm.org/map/` and browsable via
+`api.imagery.hotosm.org/browser`, but does **not** (yet) surface it in
+OAM's primary `imagery.hotosm.org/browse` UI.
+
+**Investigated all three layers of the actual ingestion stack** (read
+the real source, not just the READMEs):
+
+1. **`hotosm/k8s-infra`'s `apps/oam/`** -- two CronJob YAMLs
+   (`sync-oam.yaml` every 30 min, `sync-maxar.yaml` daily), both just
+   `kubectl`-style wrappers that `docker run` the `stac-ingester`
+   image and invoke a `hotosm sync-<source>` CLI command with PgSTAC
+   connection details injected via `PG*` env vars from a Kubernetes
+   Secret. No source-specific logic lives here at all -- this layer is
+   pure deployment glue.
+2. **`hotosm/openaerialmap`'s `backend/stac-ingester`** -- also not
+   where the logic lives. It's a `pyproject.toml` that pins one
+   dependency: `stactools-hotosm` (a **separate** HOTOSM repo) at a
+   git tag (`v0.2.1` as of this investigation). The Docker image is
+   just "install that package, expose its CLI."
+3. **`hotosm/stactools-hotosm`** -- this is where the real code lives,
+   and where a contribution would actually need to go. Read
+   `src/stactools/hotosm/cli.py` in full: every source (`OAM`,
+   `Maxar`) gets its own hardcoded Python module (`stac.py`,
+   `maxar/stac.py`, `maxar/sync.py`) plus its own `dump-<source>` /
+   `sync-<source>` CLI command pair, wired into one `click` group.
+   **There is no generic "harvest an arbitrary external STAC catalog"
+   mechanism today** -- confirmed by reading `maxar/sync.py`, the
+   closest existing analog to what `cogenerate` would need (Maxar's
+   open-data bucket is itself a real STAC catalog, walked via
+   `pystac.read_file`). Even Maxar's "what's new since X" filter is
+   bespoke: it reads a Maxar-specific `event_info.json` index file
+   with per-event dates, not a generic STAC property. Checked
+   `hotosm/stactools-hotosm`'s issue/PR history for any prior attempt
+   at a generic static-catalog harvester -- none found; this would be
+   a new capability, not something blocked or already in progress
+   elsewhere.
+
+**Also read the OAM STAC extension spec** (`stac-extension/README.md`
+in the same repo) that every ingested Item must satisfy. Two fields
+are **required** and directly affect `cogenerate`'s own output:
+
+- `oam:producer_name` (required) -- this is exactly where the answer
+  to Sam's attribution question (GSI directly, vs. UN Smart Maps
+  Group / UN Open GIS Initiative) needs to land. Still open, needs
+  Hidenori to decide the value.
+- `oam:platform_type` (required, enum: `kite`/`balloon`/`uav`/
+  `airplane`/`satellite`) -- **`stac_item.py` currently hardcodes
+  `properties.platform = "aircraft"` for every layer regardless of
+  whether GSI's own capture method was UAV or manned aircraft**
+  (already flagged as a known minor inaccuracy in this project's own
+  history, never fixed because nothing depended on it being accurate
+  until now). This is a real, must-fix-before-proposing gap, not
+  cosmetic -- OAM's extension validates this field.
+- `license` must be one of `CC-BY-SA-4.0`/`CC-BY-4.0`/`CC-BY-NC-4.0`.
+  Already compliant (`CC-BY-4.0`, D19) -- no change needed.
+- pgstac itself requires every Item to carry a `collection` ID
+  pointing at a real STAC `Collection` object.
+  `cogenerate`'s own `docs/catalog.json` is a plain `Catalog` with no
+  `Collection` defined (D19 deliberately kept `stac_extensions: []`
+  and didn't need one for a GitHub-Pages-only static catalog) -- one
+  would need to be minted, either hand-written to match Maxar/OAM's
+  own `create_collection()` pattern, or generated from `catalog.json`'s
+  existing `title`/`description`/`license` fields.
+- Incremental "what's new since last sync" filtering (needed for a
+  30-min-or-daily CronJob to stay cheap) has no existing field to hang
+  off today: `stac_item.py` only emits `properties.datetime` (capture
+  date, D4) -- for a pipeline that regularly re-publishes decades-old
+  disaster imagery, capture date is the wrong signal for "was this
+  added to the catalog recently." STAC's own common-metadata
+  `created`/`updated` fields (distinct from `datetime`) are the
+  standard place for this and aren't currently populated.
+
+**Decision on approach**: propose a **generic** external-static-STAC
+harvester to `stactools-hotosm` (`--catalog-url` + a since-field
+parameter), using `cogenerate`'s own catalog as the reference
+implementation/test case, rather than a `cogenerate`/GSI-specific
+bespoke module. Two reasons: (1) it directly matches HOTOSM's own
+stated OAM v2 roadmap goal ("map publicly available STACs to the OAM
+metadata schema," found in the original 2026-07-31 research above) --
+a generic capability is a more valuable contribution than one more
+hardcoded source, and (2) it's the more natural fit for what
+`cogenerate`'s output already is: a plain, spec-compliant static STAC
+catalog with no GSI-specific quirks a harvester would need to know
+about, unlike OAM's own legacy metadata API or Maxar's
+`event_info.json` convenience file.
+
+**Phased plan**:
+
+1. **`cogenerate`-side prep (this repo, no external dependency, can
+   start immediately)**:
+   - Fix `platform` to reflect UAV vs. aircraft capture accurately per
+     layer, feeding a correct `oam:platform_type`.
+   - Decide the `oam:producer_name` value (resolves the
+     attribution-banner question from the original Slack message).
+   - Add `properties.created` (STAC common metadata, ingestion/publish
+     timestamp -- distinct from `datetime`, the capture date) to every
+     Item, so an incremental harvester (ours or theirs) has a real
+     "what's new" signal to filter on.
+   - Mint a STAC `Collection` object for the catalog (title/
+     description/license/extent), matching the
+     `create_oam_collection()`/`create_maxar_collection()` pattern
+     `stactools-hotosm` already expects each source to provide.
+2. **PR to `hotosm/stactools-hotosm`**: implement the generic
+   external-STAC-harvester CLI commands (`dump`/`sync` pair,
+   parameterized by catalog URL and since-field), validated against
+   `cogenerate`'s own live catalog as the real test case.
+3. **PR to `hotosm/openaerialmap`'s `backend/stac-ingester`**: bump
+   the pinned `stactools-hotosm` git rev once (2) is tagged.
+4. **PR to `hotosm/k8s-infra`'s `apps/oam/`**: add a new CronJob YAML
+   (modeled on `sync-maxar.yaml`) invoking the new command against
+   `cogenerate`'s catalog URL.
+5. **Reply to Sam in `#oam-dev`** with this scoped proposal (generic
+   harvester vs. a `cogenerate`-specific module, Collection ID/naming)
+   *before* writing the `stactools-hotosm` PR, since it's an external
+   maintainer's repo and design alignment first avoids wasted work.
+
+**Consequences**: Steps 2-4 are PRs against repositories `cogenerate`
+doesn't own -- they need Hidenori's own GitHub identity to submit and
+HOTOSM maintainer review to merge, not something to execute
+unilaterally. Step 1 has no such dependency and is the concrete next
+action. `oam:producer_name`'s value is a real open decision blocking
+step 1's completion, not just step 5's Slack reply.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted

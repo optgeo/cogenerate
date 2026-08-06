@@ -9,7 +9,7 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-08-02 (ninth time, end-of-session refresh
+section was rewritten 2026-08-06 (tenth time, end-of-session refresh
 before `/clear` -- see git history for earlier versions). Detail that
 used to accumulate here has been pushed down into the dated entry for
 this session (below the "What's published" ledger) and into
@@ -25,41 +25,71 @@ approval. Still exercise judgment on anything outside the established
 pattern (a genuinely new kind of decision, a destructive/irreversible
 action outside this loop, disk/credential problems that need a human).
 
-**Progress: 151 published / 194 pool (~77.8%). Pool is exhausted for
-both optical photos and aircraft SAR (D26, D27) -- nothing queued to
-build.** Report progress as this fraction whenever giving a status
-update -- `candidates.py --top 1 --sort-by date`'s stderr summary line
-("N already published") gives the numerator; the pool total drifts,
-re-run rather than trusting a cached number. It reads the *live*
-GitHub Pages catalog (D7), so a just-pushed layer shows as
-"unpublished" for a few minutes until Pages redeploys -- not a bug.
+**Progress: 154 published / 194 pool (~79.4%). Pool is exhausted for
+optical photos and aircraft SAR (D26, D27) as of the last full scan --
+worth a fresh `--top 194` pass before trusting that, see below.**
+Report progress as this fraction whenever giving a status update --
+`candidates.py --top 1 --sort-by date`'s stderr summary line ("N
+already published") gives the numerator; the pool total drifts, re-run
+rather than trusting a cached number. It reads the *live* GitHub Pages
+catalog (D7), so a just-pushed layer shows as "unpublished" for a few
+minutes until Pages redeploys -- not a bug.
 
 **No 🔴/🟡 items mid-flight.** Everything built this session is
 uploaded, verified, STAC'd, cleaned up, committed, and pushed.
 
-**Nothing to do until one of these happens**:
-1. A new disaster adds fresh layers to `ichiran.html` -- this
-   pipeline's whole reason for existing is that GSI adds these within
-   days of a real event, so periodically re-check rather than assuming
-   "exhausted" stays true forever: `uv run python -m
-   cogenerate.candidates --top 194 --sort-by date --json`. When new
-   layers show up, three non-obvious classification traps to check
-   before queuing (all found the hard way this session, all detailed
-   in `DECISIONS.md`): a `_sokuho`-suffixed layer can be a
-   preliminary-report duplicate of an already-published non-`_sokuho`
-   ID (D26); a layer can be aircraft SAR with no `apsar` token in its
-   ID at all, only discoverable via `ichiran.html`'s title text saying
-   "航空機SAR画像" (D27 -- SAR is in scope, build with `SENSOR=sar` set
-   from `georef` onward, see CLAUDE.md); and a probe can fail
-   transiently on a seed that's actually correct, so retry once before
-   concluding the seed/minzoom is wrong.
-2. HOTOSM replies in `#oam-dev` (D6) -- Hidenori posted a follow-up
-   2026-08-02 with the catalog's current scope and two open questions
-   (OAM ingestion path, UN Smart Maps Group attribution banner); no
-   reply yet as of this rewrite. Nothing to do here but wait.
-3. Hidenori points at something specific -- a `--keyword` geographic
-   priority pass (like the Hiroshima-before-FOSS4G one), or a decision
-   to revisit D27's derived-thematic-map exclusion.
+**Next task, per Hidenori's explicit direction: start OAM ingestion
+integration (D6's 2026-08-06 update in `DECISIONS.md` has the full
+investigation and phased plan -- read that before doing anything
+here, this section only summarizes).** HOTOSM's Tech Lead (Sam
+Woodcock) replied in `#oam-dev` with concrete pointers into their
+ingestion stack; a full read of the actual source (not just READMEs)
+across `hotosm/k8s-infra`, `hotosm/openaerialmap`, and
+`hotosm/stactools-hotosm` found that a real code contribution is
+needed (not something achievable from within this repo alone), and
+identified a **Phase 1** that *can* start immediately, entirely within
+`cogenerate`, no external dependency:
+
+1. **Decide `oam:producer_name`'s value first** -- this is a real open
+   decision (GSI directly vs. UN Smart Maps Group / UN Open GIS
+   Initiative, the same question posed to Sam) that blocks the rest of
+   Phase 1, not just the eventual Slack reply. Ask Hidenori if not
+   already decided by the time this is read.
+2. Fix `stac_item.py`'s hardcoded `properties.platform = "aircraft"`
+   to reflect UAV vs. aircraft capture accurately per layer -- OAM's
+   extension requires an accurate `oam:platform_type`
+   (kite/balloon/uav/airplane/satellite) and currently every layer
+   would report the same value regardless of truth.
+3. Add `properties.created` (STAC common metadata -- when the Item was
+   *added to the catalog*, distinct from `properties.datetime`, the
+   photo's *capture* date) to every Item -- needed as the "what's new"
+   signal any incremental harvester (ours or HOTOSM's) would filter
+   on. Doesn't exist today.
+4. Mint a STAC `Collection` object for the catalog (title/description/
+   license/extent) -- pgstac requires every ingested Item to reference
+   one, and `cogenerate`'s catalog currently has none (D19 never needed
+   one for a GitHub-Pages-only static catalog).
+
+Phases 2-5 (a PR to `hotosm/stactools-hotosm` proposing a *generic*
+external-STAC-catalog harvester rather than a `cogenerate`-specific
+module, then dependency-bump/CronJob PRs, then a Slack reply to Sam
+*before* writing the harvester code) are cross-repo work needing
+Hidenori's own GitHub identity -- not something to execute
+unilaterally. Full reasoning for "generic, not bespoke" is in D6.
+
+**Separately, still true**: a new disaster can add fresh layers to
+`ichiran.html` at any time (confirmed live this session -- the 2026
+Kumamoto earthquake response added 3 more layers weeks after this
+pipeline's very first-ever published layer). Re-check periodically
+with `uv run python -m cogenerate.candidates --top 194 --sort-by date
+--json` rather than assuming "exhausted" stays true. Classification
+traps to check before queuing anything new (all in `DECISIONS.md`):
+D26's `_sokuho`/finalized duplicate-or-coexist rules (note the
+2026-08-06 amendment: if the *already-published* layer is the
+`_sokuho` one and a finalized ID appears later, build the finalized
+one too and let both coexist -- don't retire the `_sokuho`), D27's
+aircraft-SAR-is-in-scope-but-check-the-title-not-just-the-ID rule, and
+retrying a probe once before assuming a correct-looking seed is wrong.
 
 Day-to-day operational conventions (credential expiry/lifetime,
 upload's silent-520 caveat, the concurrency pattern, `FORCE=1`
@@ -69,7 +99,7 @@ conventions" section before resuming build work, not this one.
 
 ### What's published
 
-**151 layers** live on Source Cooperative + the STAC catalog
+**154 layers** live on Source Cooperative + the STAC catalog
 (`https://optgeo.github.io/cogenerate/catalog.json`, GitHub Pages).
 Groups: the original 6 (`kumamoto_yatsushiro`, `amakusa`,
 `yatsushirohigashi`, `yatsushironishi`, plus `wajima`, `nichinan`),
@@ -129,6 +159,13 @@ standing directive) -> `just verify` -> `just stac` -> `stac-validate`
 closes out both the deep `candidates.py --top 194` scan and the D27
 SAR scope extension** -- see "Current status" above; the pool is
 exhausted for both optical photos and aircraft SAR as of this session.
+Plus **3 more 2026 Kumamoto earthquake layers found live 2026-08-06**
+(new districts added to `ichiran.html`/`layers.txt` weeks after this
+pipeline's very first-ever published layer):
+`20260729kumamoto_kumamoto1_0803do`, `..._kumamoto3_0731_0801do`, and
+`20260729kumamoto_yatsushiro_0729do` (the finalized, non-`_sokuho`
+version of the original first-published layer -- coexists with it per
+D26's 2026-08-06 amendment, doesn't replace it).
 
 **Separately, D25's retroactive white-nodata patch** touched 3
 already-published layers without changing the published count:
@@ -172,12 +209,90 @@ entry as a duplicate to skip.
   network errors/5xx get retried before a subtree is pruned; real 404s
   never retried.
 
-**Still open, awaiting an external reply**: Hidenori posted a
-follow-up in HOTOSM's `#oam-dev` Slack, 2026-08-02, with the catalog's
-current scope (151/194 layers) and the two open questions from an
-earlier prototype-stage message (OAM ingestion path, attribution
-banner) -- see D6's 2026-08-02 update in `DECISIONS.md`. Posted on a
-weekend; no reply yet. Nothing to do here until a reply arrives.
+**D6/OAM ingestion -- Sam Woodcock (HOT Tech Lead) replied 2026-08-06.**
+Full architecture investigation done (see D6 in `DECISIONS.md` for the
+complete writeup); a real code contribution to `hotosm/stactools-hotosm`
+is needed, but a `cogenerate`-side prep phase can start immediately --
+see "Current status" at the top of this file for the concrete next
+steps. This is the active next task, not a wait-for-a-reply item
+anymore.
+
+## 2026-08-06 (session) -- new Kumamoto layers, D26 amendment, HOTOSM reply and OAM architecture investigation
+
+Resumed from the previous rewrite's "nothing queued, wait for a new
+disaster or a HOTOSM reply" state. Hidenori reported (from following
+地理院地図/GSI news, not from this pipeline noticing on its own -- no
+automated monitoring exists) that new 2026 Kumamoto earthquake ortho
+imagery had appeared, and asked whether `layers-martin` had picked it
+up yet, floating the idea of a manual update.
+
+**`layers-martin` was already current** -- its `build-catalog`
+GitHub Actions workflow runs daily at 18:00 UTC via `schedule:` cron
+and had succeeded the day before (confirmed via `gh run list`); only
+the local `~/layers-martin` clone was stale (last pulled 2026-07-30),
+matching D7's exact pattern. `git pull --ff-only`'d the local clone for
+convenience, but per D7 the canonical live URL was already correct and
+didn't need it.
+
+**Found 3 new Kumamoto layers, cross-referencing GSI's raw
+`layers_txt` hierarchy directly** (not `ichiran.html`, which hadn't
+caught up yet -- another D9-style lag, this time between GSI's own
+tile-serving config and its own documentation page):
+`20260729kumamoto_kumamoto1_0803do` (熊本１地区, confirmed as the "8/3
+ortho" Hidenori had heard about), `20260729kumamoto_kumamoto3_0731_0801do`
+(熊本３地区, new district), and `20260729kumamoto_yatsushiro_0729do` --
+the finalized (non-`_sokuho`) version of this pipeline's very
+first-ever published layer, `..._0729do_sokuho`, which was built when
+only the preliminary release existed. Seeds derived from
+`layers_txt`'s own `area: {lat, lng, zoom}` field (a different
+addressing scheme than `ichiran.html`'s tilejump z/x/y links -- needed
+standard slippy-map lat/lng-to-tile math instead of the usual bit-shift
+conversion) and confirmed real via direct `curl -I` 200s against all
+three before building.
+
+**D26 amendment**: the `yatsushiro_0729do` finalized/`_sokuho` pair is
+the reverse of D26's original chronology (finalized-first,
+`_sokuho`-duplicate-discovered-later) -- here the `_sokuho` was already
+published and the finalized version appeared afterward. Asked Hidenori
+whether to replace the published `_sokuho` with the finalized version
+or let both coexist; decided **coexist** -- see D26's 2026-08-06
+amendment in `DECISIONS.md` for the full reasoning and scope (doesn't
+reverse D26's original rule for the more common forward-chronology
+case). All 3 layers built, uploaded, verified, STAC'd, cleaned up,
+committed -- 151 -> 154 published.
+
+**Also, while investigating**: `layers_txt` revealed a whole separate
+GSI product category, 垂直写真 (vertical/nadir photographs, `_suichoku`
+suffix), published alongside the ortho imagery for the same districts.
+Flagged it as a possible new scope question (similar to D27's SAR
+discussion) before checking with Hidenori -- he clarified these aren't
+tile-based, so this pipeline (which requires an XYZ tile pyramid to
+probe/download/mosaic) can't process them regardless of scope
+questions. Settled, no further action, not a real candidate category.
+
+**HOTOSM's Sam Woodcock (Tech Lead) replied in `#oam-dev`** to the
+2026-08-02 follow-up, with pointers into OAM's actual ingestion
+infrastructure and an offer to set up a new ingestion job. Did a full
+investigation of the real source across `hotosm/k8s-infra`,
+`hotosm/openaerialmap`, and `hotosm/stactools-hotosm` (not just
+READMEs) -- see D6's 2026-08-06 update in `DECISIONS.md` for the
+complete findings and phased plan. Headline results: the actual
+ingestion logic lives in a third repo (`stactools-hotosm`) neither of
+Sam's two linked repos, every existing source (OAM, Maxar) is
+hand-written bespoke code with no generic "harvest an external STAC
+catalog" mechanism today, and OAM's own required extension fields
+(`oam:producer_name`, `oam:platform_type`) surfaced two real gaps in
+`cogenerate`'s own STAC output that need fixing before proposing
+anything (platform type is currently hardcoded "aircraft" for every
+layer, ignoring UAV captures; no `properties.created` field exists for
+incremental-sync filtering; no STAC `Collection` object exists for
+pgstac to reference). Decided to propose a *generic* external-STAC
+harvester to `stactools-hotosm` rather than a `cogenerate`-specific
+module, matching OAM's own stated roadmap direction. `cogenerate`-side
+prep work (Phase 1: producer_name decision, platform-type fix,
+`created` timestamps, a Collection object) can start without waiting
+on HOTOSM at all -- queued as the next task per Hidenori's explicit
+direction, ahead of any further photo/SAR-pool work.
 
 ## 2026-08-02 (session) -- closed out the deep-scan photo batch, added aircraft SAR (D27), caught a real NODATA bug, posted HOTOSM follow-up
 
