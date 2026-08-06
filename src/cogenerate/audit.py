@@ -7,7 +7,9 @@ no full-file download and no local `out/<layer>.tif` needed (D20):
     Item that wasn't regenerated after a re-upload.
   - structure: `gdalinfo -json` on `/vsicurl/<asset_url>` (only a few
     header/overview byte ranges fetched, same trick stac_item.py uses)
-    -- confirms `LAYOUT=COG`, at least 3 bands, and that the file's own
+    -- confirms `LAYOUT=COG`, at least 3 bands (2 for D27 aircraft SAR
+    layers, which are genuinely `LA`-mode luminance+alpha, identified
+    by the imagery asset's `"amplitude"` role), and that the file's own
     `wgs84Extent` roughly matches the Item's recorded `bbox` (tolerance
     `BBOX_TOLERANCE_DEG`, guards against a wrong-layer overwrite).
 
@@ -54,7 +56,9 @@ def check_size(asset_url: str, recorded_size: int) -> tuple[bool, str]:
     return True, "ok"
 
 
-def check_structure(asset_url: str, recorded_bbox: list[float]) -> tuple[bool, str]:
+def check_structure(
+    asset_url: str, recorded_bbox: list[float], is_sar: bool
+) -> tuple[bool, str]:
     try:
         out = subprocess.run(
             ["gdalinfo", "-json", f"/vsicurl/{asset_url}"],
@@ -67,8 +71,11 @@ def check_structure(asset_url: str, recorded_bbox: list[float]) -> tuple[bool, s
     if layout != "COG":
         return False, f"LAYOUT={layout!r}, expected COG"
     bands = info.get("bands", [])
-    if len(bands) < 3:
-        return False, f"only {len(bands)} band(s), expected >=3"
+    # D27: aircraft SAR layers are genuinely 2-band (luminance+alpha), not
+    # a truncated/miscoded optical layer -- only optical layers need >=3.
+    min_bands = 2 if is_sar else 3
+    if len(bands) < min_bands:
+        return False, f"only {len(bands)} band(s), expected >={min_bands}"
     extent = info.get("wgs84Extent")
     if not extent:
         return False, "no wgs84Extent in gdalinfo output"
@@ -97,8 +104,10 @@ def main(
         asset = item["assets"]["imagery"]
         asset_url = asset["href"]
 
+        is_sar = "amplitude" in asset.get("roles", [])
+
         size_ok, size_msg = check_size(asset_url, asset["file:size"])
-        struct_ok, struct_msg = check_structure(asset_url, item["bbox"])
+        struct_ok, struct_msg = check_structure(asset_url, item["bbox"], is_sar)
 
         if not size_ok or not struct_ok:
             failures.append((layer, size_msg if not size_ok else "ok", struct_msg if not struct_ok else "ok"))
