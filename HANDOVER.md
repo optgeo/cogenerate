@@ -59,22 +59,43 @@ re-validated -- 154/154 pass `stac-validator` against both core STAC
 found and fixed the same day, via a spawned background session
 (`c92fdfe`) -- `just audit` now reports 0/154 issues.
 
-**Waiting on HOTOSM, not actively building.** Per D6's own phased plan
-("reply to Sam *before* writing the harvester code, since design
-alignment first avoids wasted work on an external maintainer's repo"),
-Hidenori sent the Phase 2 proposal to Sam Woodcock in `#oam-dev`
-2026-08-06 -- summarizing Phase 1's completion and proposing a
-*generic* external-STAC-catalog harvester for `hotosm/stactools-hotosm`
-(not a `cogenerate`-specific module), using `cogenerate`'s own catalog
-as the reference test case. **No reply yet as of this entry.** Do not
-start writing the actual harvester PR code until Sam responds (or
-Hidenori decides to proceed without waiting) -- that's the whole point
-of asking first. Phase 3 (dependency-bump PR to
-`hotosm/openaerialmap`'s `backend/stac-ingester`) and Phase 4 (new
-CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`) follow once Phase 2
-lands. **Phases 2-4 all need Hidenori's own GitHub identity to submit
-and HOTOSM maintainer review to merge -- not something to execute
-unilaterally.** Full reasoning for "generic, not bespoke" is in D6.
+**Sam replied 2026-08-06 -- proposal welcomed, but `hotosm/stactools-hotosm`
+moved.** Full detail in D6's second 2026-08-06 update in
+`DECISIONS.md`; headline facts:
+
+- The generic-harvester approach is approved in principle ("sounds
+  very reasonable & would be really welcomed").
+- Sam is separately building a new OAM uploader
+  (`hotosm/openaerialmap`'s `backend/uploader-api`) that will add a
+  few more STAC fields, but explicitly said not to worry about that
+  now -- reconcile once it's live, ~next week per his message.
+- **`hotosm/stactools-hotosm` no longer exists as its own repo** --
+  HOTOSM merged it into the main monorepo while this was in flight:
+  `hotosm/openaerialmap`'s `backend/stactools-hotosm/`. Verified live
+  (not just from Sam's summary): `backend/stac-ingester` now depends on
+  it via a local monorepo path (`{ path = "../stactools-hotosm" }`),
+  not a pinned external git tag -- **this eliminates Phase 3 as
+  originally planned** (no separate dependency-bump PR needed once a
+  harvester PR merges into the monorepo). The OAM extension schema's
+  *content* is unchanged (byte-identical fields/enum), but its
+  canonical URL moved to `docs.imagery.hotosm.org` (not live yet,
+  404s currently) from `hotosm.github.io/stactools-hotosm` (still
+  live, 200, but a stale location `cogenerate`'s Items still declare)
+  -- tracked as a real but non-urgent follow-up, not switching yet
+  since the new URL doesn't resolve.
+
+**Not yet decided: how to engage Sam next** -- reply now referencing
+the new repo layout, or wait for his uploader to land first given his
+own "reconcile later" framing? Deliberately left open per Hidenori's
+explicit direction (2026-08-06: "自分たちの側をまず落ち着けよう。その後で
+Sam とのエンゲージ方法を考える" -- stabilize our own side first, decide
+the engagement approach after). **Do not start writing the actual
+harvester PR code yet** -- that's still gated on deciding the
+engagement approach, which is gated on nothing further from our side
+right now. Phase 4 (new CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`)
+still follows once a harvester PR lands. **All PR/Slack-reply
+submission still needs Hidenori's own GitHub/Slack identity and HOTOSM
+maintainer review -- not something to execute unilaterally.**
 
 **Separately, still true**: a new disaster can add fresh layers to
 `ichiran.html` at any time (confirmed live this session -- the 2026
@@ -329,6 +350,40 @@ fits `stactools-hotosm`'s direction and whether there's a preferred
 Collection `id`/naming convention. Hidenori reviewed and sent it
 himself 2026-08-06. **Now waiting on Sam's reply before starting any
 Phase 2 code** -- see "Current status" above.
+
+**Same day, Sam replied.** Approved the generic-harvester approach in
+principle. Separately mentioned building a new OAM uploader
+(`backend/uploader-api`) with a few more STAC fields coming, but said
+explicitly not to worry about that yet -- reconcile once it's live.
+Also mentioned HOTOSM had discussed merging `hotosm/stactools-hotosm`
+into the `hotosm/openaerialmap` monorepo "to keep things simpler,"
+asked if that was OK, and had already done it by the time the message
+arrived. Per Hidenori's direction ("stabilize our own side first, then
+decide how to engage Sam"), investigated the actual merged repo state
+via `gh api` rather than taking the summary at face value:
+
+- `backend/stac-ingester/pyproject.toml` now depends on
+  `stactools-hotosm` via a local monorepo path
+  (`{ path = "../stactools-hotosm" }`), not a pinned external git tag
+  -- **Phase 3 (the separate dependency-bump PR) no longer applies**,
+  folded into Phase 2 by the repo merge itself.
+- Diffed the OAM extension `schema.json` at its new location against
+  the copy fetched during D6's original investigation: byte-identical
+  (same required fields, same platform-type enum) -- Sam's
+  in-progress "additional fields" work hasn't landed yet, this is a
+  hosting-location move only.
+- The schema's canonical URI moved to `docs.imagery.hotosm.org` (not
+  live yet, 404) from `hotosm.github.io/stactools-hotosm` (still live,
+  200, but the now-stale URL `cogenerate`'s own Items declare in
+  `stac_extensions`) -- checked both directly with `curl`, not assumed.
+  Decided not to switch `cogenerate`'s declared URL yet, since the new
+  one doesn't resolve -- tracked as a real follow-up, not forgotten.
+
+Full findings recorded in D6's second 2026-08-06 update in
+`DECISIONS.md`. **How to engage Sam next is deliberately left
+undecided** -- Hidenori wants to think through the approach separately
+now that our own side (docs, understanding of the new repo layout) is
+settled.
 
 ## 2026-08-06 (session) -- new Kumamoto layers, D26 amendment, HOTOSM reply and OAM architecture investigation
 

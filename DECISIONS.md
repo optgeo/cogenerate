@@ -478,6 +478,82 @@ entry -- see `HANDOVER.md`'s "Current status" for the up-to-date wait
 state. Do not start Phase 2 implementation until Sam responds (or
 Hidenori decides to proceed without waiting).
 
+**Update, 2026-08-06 (same day): Sam replied -- welcomed the proposal,
+and `hotosm/stactools-hotosm` no longer exists as a standalone repo.**
+Full reply, condensed: (1) "sounds very reasonable & would be really
+welcomed" -- the generic-harvester approach is approved in principle.
+(2) He's separately building a new OAM uploader this week
+(`backend/uploader-api` in the monorepo -- a full replacement for the
+old v1 token-uploader this ADR's original 2026-07-31 research found,
+with its own `pipeline/{validate,convert,register}` microservices and
+Argo-workflow chart) that adds "a few additional STAC fields," but said
+explicitly **not to worry about that now** -- "stick to the current
+catalog step," reconcile once his uploader is up (~next week per his
+message). (3) Separately, HOTOSM had been discussing folding
+`hotosm/stactools-hotosm` into the `hotosm/openaerialmap` monorepo "to
+keep things a bit simpler," asked if that was OK, and had already done
+it by the time he sent the message -- **`stactools-hotosm` now lives at
+`hotosm/openaerialmap`'s `backend/stactools-hotosm/`, not as its own
+repo.**
+
+**Investigated the actual state of the merged monorepo** (`gh api`
+against `hotosm/openaerialmap`, not assumptions from Sam's summary
+alone) before updating anything downstream of this ADR:
+
+- **Phase 3 (the originally-planned separate dependency-bump PR) is
+  gone, folded into Phase 2.** `backend/stac-ingester/pyproject.toml`
+  now depends on `stactools-hotosm` via `[tool.uv.sources]` `{ path =
+  "../stactools-hotosm" }` -- a local monorepo path dependency, not
+  the pinned external git tag (`v0.2.1` as of the original
+  investigation) this ADR originally described. A merged PR to
+  `backend/stactools-hotosm/` is immediately available to
+  `backend/stac-ingester` on its next build; no separate
+  version-bump PR is needed anymore. This is exactly the
+  simplification Sam's own stated reason for the move implies.
+- **The OAM extension schema's canonical URI changed, but its content
+  didn't.** `backend/stactools-hotosm/src/stactools/hotosm/constants.py`
+  now generates `https://docs.imagery.hotosm.org/oam/v{version}/schema.json`
+  (was `https://hotosm.github.io/stactools-hotosm/oam/v{version}/schema.json`,
+  the URL `cogenerate`'s own `stac_item.py` currently declares in every
+  Item's `stac_extensions`). Diffed `backend/stactools-hotosm/src/
+  stactools/hotosm/schemas/oam/v0.1.0/schema.json` against the copy
+  fetched during this ADR's original investigation: **byte-identical**
+  -- same required fields (`gsd`/`oam:platform_type`/
+  `oam:producer_name`), same platform-type enum. So Sam's "additional
+  STAC fields" work hasn't landed in the schema yet; this is a
+  hosting-location move, not a spec change, and matches his own "don't
+  worry about it yet" framing. New module `oam_extension.py` also
+  confirms the schema is now resolved from a bundled package resource
+  during validation, not fetched over the network at all -- the
+  `stac_extensions` URL is purely an identifier now, not a dependency.
+  Checked both URLs live: the **old** `hotosm.github.io/stactools-hotosm/...`
+  URL `cogenerate` currently declares still returns `200` (the old
+  repo's GitHub Pages hasn't been torn down yet), the **new**
+  `docs.imagery.hotosm.org/...` URL returns `404` (not deployed yet,
+  consistent with Sam still setting up his staging environment).
+  **Decision: don't switch `cogenerate`'s declared `stac_extensions`
+  URL yet** -- swapping to a URL that currently 404s would be strictly
+  worse than the current stale-but-live one, and Sam's own "reconcile
+  later" timeline (~next week) means this is likely to resolve itself
+  without action. Tracked as a real follow-up, not forgotten: revisit
+  once `docs.imagery.hotosm.org/oam/v0.1.0/schema.json` actually
+  resolves.
+- `openaerialmap`'s own top-level Collection (`stac.py::create_collection()`,
+  `COLLECTION_ID = "openaerialmap"`) is unrelated to and doesn't
+  conflict with `cogenerate`'s own `id: "cogenerate"` Collection
+  (D6's Phase 1 update, above) -- different STAC documents in different
+  systems, no naming collision to worry about.
+
+**Consequences**: Phase 2's PR target is now
+`hotosm/openaerialmap`'s `backend/stactools-hotosm/` (not the old
+standalone repo -- update any future PR branch/description
+accordingly). Phase 3 as originally scoped no longer applies. Still
+need to decide *how* to engage Sam next (reply now with a scoped
+technical proposal referencing the new repo layout? wait for his
+uploader to land first, given he framed it as "reconcile later"?) --
+deliberately left open, a separate decision from this documentation
+pass.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted
