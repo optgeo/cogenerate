@@ -642,6 +642,39 @@ short Slack message pointing at the branch is drafted, to be sent by
 Hidenori. Phase 4 (CronJob PR to `hotosm/k8s-infra`) still waits until
 a harvester PR actually lands upstream.
 
+**Update, 2026-08-06 (same day): checked HOTOSM's actual AI-contribution
+policy before going further, per Hidenori's own question.** Read
+`hotosm/openaerialmap`'s `CONTRIBUTING.md` and, more importantly,
+`hotosm/docs`'s `become-a-contributor.md` (the org-wide contributor
+guide `CONTRIBUTING.md` links to) via `gh api`, not assumed. Found a
+real, explicit policy: the one-time PR contribution-agreement bot
+exists partly "to add a small barrier against automated bot / AI
+accounts, which we do not accept contributions from." Also checked the
+DCO sign-off's actual attestation text (`docs/dev-guide/repo-management/
+git.md`): "you wrote the code (or otherwise have the right to submit
+it)" -- a statement about authorship/licensing rights, not about which
+tools were used to write it.
+
+**Read**: the stated prohibition targets autonomous bot/AI accounts
+submitting content unsupervised, not a human contributor using AI
+assistance as a tool and then personally reviewing, testing, and
+submitting under their own identity with their own DCO sign-off (which
+is the actual situation here -- Hidenori's own fork, his own account,
+his own sign-off). This is a real interpretation of a short policy
+statement, though, not a certainty -- Hidenori's call to make, not
+something to resolve unilaterally given it's his GitHub identity and
+DCO attestation at stake.
+
+**Decision**: disclose the AI assistance transparently rather than
+relying on the letter-of-the-policy reading alone -- both in the
+eventual PR description *and*, for consistency (no reason to disclose
+later what wasn't disclosed when the branch was first shared), added
+to the not-yet-sent Slack message pointing at the branch too. Matches
+this project's own general practice (git commit trailers already
+credit Claude throughout `cogenerate`'s own history) and is the more
+straightforward-integrity choice given HOTOSM has explicitly stated a
+position on this topic.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted
