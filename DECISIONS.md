@@ -1147,6 +1147,30 @@ real, just superseded) -- skip by hand like the
 + date already has a non-`_sokuho` counterpart published before
 assuming it's new coverage.
 
+**Amendment, 2026-08-06 -- the reverse chronology case**: all 3
+original cases had the non-`_sokuho` (finalized) ID published *first*,
+with a `_sokuho` duplicate discovered later. The **2026 Kumamoto
+earthquake response** produced the opposite order: this pipeline's
+very first-ever published layer,
+`20260729kumamoto_yatsushiro_0729do_sokuho`, was built when only the
+preliminary release existed; GSI has since (as of 2026-08-06) also
+published the finalized `20260729kumamoto_yatsushiro_0729do` for the
+identical district/date/tilejump coordinate. Asked Hidenori whether to
+replace the published `_sokuho` with the finalized version (matching
+D26's "one canonical capture, one entry" spirit) or let both coexist
+as separate catalog entries. **Decision: let both coexist** -- build
+and publish the finalized ID as its own additional Item, don't retire
+or delete the already-published `_sokuho` one. This is a **narrower
+scope than a full reversal of D26**: it applies specifically to this
+already-published-as-`_sokuho`-then-finalized-appears-later case, not
+a general license to publish every sokuho/finalized pair as two
+entries -- D26's original rule (skip a newly-discovered `_sokuho`
+candidate when its finalized sibling is *already* published) is
+unchanged for the more common forward-chronology case. Going forward:
+when a finalized ID appears for a capture whose `_sokuho` sibling is
+already published, build the finalized one as a new Item too, don't
+touch the existing `_sokuho` Item.
+
 ## D27: Scope extension: aircraft SAR imagery in scope, derived hazard maps stay out
 
 **Status**: Accepted
