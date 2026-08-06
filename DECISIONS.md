@@ -554,6 +554,94 @@ uploader to land first, given he framed it as "reconcile later"?) --
 deliberately left open, a separate decision from this documentation
 pass.
 
+**Update, 2026-08-06 (same day): engagement approach decided, and
+Phase 2 code written and validated.** Hidenori's call on engagement:
+send a short no-ask Slack acknowledgment (queued, sent), then draft
+the actual harvester at our own pace and share a real branch -- not
+yet a formal PR -- once something concrete exists, so Sam can look
+whenever convenient with zero obligation. Per this project's standing
+safety rules, publishing anything to GitHub (even just pushing a
+branch to a fork) is a public action gated on explicit confirmation,
+not done unilaterally -- confirmed with Hidenori before pushing.
+
+**Implementation** (in `hfu/openaerialmap`, a fork of
+`hotosm/openaerialmap` -- this code lives outside `cogenerate` itself,
+since it's a contribution to HOTOSM's own package, not part of this
+pipeline): branch `add-external-stac-harvester`, adding `dump-external`/
+`sync-external` plus a `--catalog=External` option on the existing
+`dump-collection`/`sync-collection`. Read `stactools-hotosm`'s actual
+current source in full first (`cli.py`, `maxar/sync.py`,
+`oam_extension.py`) rather than assuming the 2026-08-06 investigation
+above was still accurate -- it had moved on again since: `cli.py` now
+centers on a shared `sync_handler(collection_id, raw_metadata_creator,
+stac_item_creator, uploaded_after, handle_exceptions)` helper that both
+`dump-oam`/`sync-oam` and `dump-maxar`/`sync-maxar` already plug into,
+which the new external-harvester commands plug into the same way --
+zero changes needed to that shared helper, the cleanest possible
+integration into someone else's codebase.
+
+**Design**: `external/sync.py::new_stac_items(catalog_url, after)`
+walks the source with `pystac.read_file` + `Catalog.get_items
+(recursive=True)` -- real STAC object-graph traversal, not
+source-specific parsing, so it handles a source that links Items
+directly from a flat Catalog and one that nests them under child
+Collections identically. Filters on STAC common metadata `created`
+(matching `--uploaded-since`/`--uploaded-after`'s existing semantics
+for OAM/Maxar) rather than any bespoke "uploaded at" field.
+`external/sync.py::validated_item()` deliberately does *not* transform
+or backfill missing fields for a source -- every harvested Item must
+already be OAM extension-compliant or it's an error (same
+`--handle-exceptions` behavior as the other two sources) -- doing
+otherwise would turn a generic harvester back into another bespoke
+per-source module, the opposite of the point (D6's original "generic,
+not bespoke" reasoning, now actually enforced in code, not just
+argued for in a Slack message). `external/stac.py::create_collection()`
+clones the source's own Collection (read directly, or the first child
+Collection linked from a bare root Catalog) and republishes it under
+an operator-chosen `--collection-id` -- raises rather than guessing a
+placeholder extent if the source has no real Collection to clone,
+unlike `stac.py`'s/`maxar/stac.py`'s own placeholder-global-bbox
+pattern for their fixed single sources.
+
+**Validated against `cogenerate`'s own live catalog as the real test
+case, not just synthetic fixtures** (this was the whole point of using
+`cogenerate` as the reference implementation, per the original phased
+plan): `dump-collection --catalog=External --catalog-url
+https://optgeo.github.io/cogenerate/catalog.json --collection-id
+cogenerate` correctly reads the real `docs/collection.json`.
+`dump-external` against the same catalog found **308** metadata items
+on the first real run -- not 154. Root cause, found immediately by
+testing against real data rather than only hand-built test fixtures:
+`cogenerate`'s `catalog.json` links every Item *both* directly
+(`rel:item`, kept for `candidates.py`'s own live-consumer dependency,
+D6's Phase 1 update above) *and* via `collection.json`'s own
+independent `rel:item` links (deliberately added so the Collection is
+self-describing on its own) -- a real STAC catalog shape, not a test
+artifact, and a naive recursive walk hits both paths and double-counts
+every Item. Fixed by deduplicating on Item ID in `new_stac_items()` --
+a general robustness improvement for *any* source with more than one
+link path to the same Item, not a `cogenerate`-specific patch (kept in
+the harvester, deliberately not "fixed" by trimming `cogenerate`'s own
+catalog links, since that would touch a live consumer for a problem
+the harvester itself should handle regardless of source). Re-ran after
+the fix: **154/154 Items harvested and OAM-validated, zero errors**;
+a far-future `--uploaded-after` correctly returned zero, confirming the
+incremental-sync filter actually works against real `properties.created`
+values from Phase 1's backfill. 40 tests (all in-memory `pystac`
+object graphs + `unittest.mock.patch("pystac.read_file")`, not HTTP
+mocking -- `responses` doesn't intercept pystac's default urllib-based
+transport, confirmed by hitting exactly that failure first), `ruff`/
+`mypy` clean, full existing test suite (39 pre-existing + new) still
+green.
+
+**Consequences**: Branch pushed to `hfu/openaerialmap`, not yet opened
+as a PR against `hotosm/openaerialmap` -- that's a separate, later
+decision, deliberately kept low-pressure for Sam (he can look whenever
+convenient, nothing formal sitting in his review queue). A second
+short Slack message pointing at the branch is drafted, to be sent by
+Hidenori. Phase 4 (CronJob PR to `hotosm/k8s-infra`) still waits until
+a harvester PR actually lands upstream.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted

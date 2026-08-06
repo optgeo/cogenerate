@@ -84,18 +84,45 @@ moved.** Full detail in D6's second 2026-08-06 update in
   -- tracked as a real but non-urgent follow-up, not switching yet
   since the new URL doesn't resolve.
 
-**Not yet decided: how to engage Sam next** -- reply now referencing
-the new repo layout, or wait for his uploader to land first given his
-own "reconcile later" framing? Deliberately left open per Hidenori's
-explicit direction (2026-08-06: "自分たちの側をまず落ち着けよう。その後で
-Sam とのエンゲージ方法を考える" -- stabilize our own side first, decide
-the engagement approach after). **Do not start writing the actual
-harvester PR code yet** -- that's still gated on deciding the
-engagement approach, which is gated on nothing further from our side
-right now. Phase 4 (new CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`)
-still follows once a harvester PR lands. **All PR/Slack-reply
-submission still needs Hidenori's own GitHub/Slack identity and HOTOSM
-maintainer review -- not something to execute unilaterally.**
+**Decided how to engage Sam: build a low-pressure, concrete draft
+first, ask nothing of him.** Hidenori's call (2026-08-06): a short
+no-ask Slack acknowledgment now, then draft the actual harvester at
+`cogenerate`'s own pace and share a branch (not yet a formal PR) once
+something real exists to look at -- "他者から見える/公開される操作" (a
+public GitHub action) gated on explicit confirmation each step, per
+this project's standing safety rules, not done unilaterally.
+
+**The harvester draft is done and pushed.** Branch
+`add-external-stac-harvester` on `hfu/openaerialmap` (a fork of
+`hotosm/openaerialmap`, not this repo -- the actual code lives outside
+`cogenerate` since it's a contribution to HOTOSM's own package):
+<https://github.com/hotosm/openaerialmap/compare/main...hfu:openaerialmap:add-external-stac-harvester>.
+Adds `dump-external`/`sync-external` + `--catalog=External` on the
+existing `dump-collection`/`sync-collection`, built directly on top of
+`stactools-hotosm`'s own `sync_handler` abstraction (matching, not
+duplicating, the `dump-oam`/`dump-maxar` pattern). **Validated against
+`cogenerate`'s own live catalog as the real test case, not just
+fixtures**: `dump-collection --catalog=External` correctly reads
+`docs/collection.json`; `dump-external` harvested and OAM-validated
+**154/154 published Items with zero errors**. That live run also
+caught a real bug before it ever reached a PR: `cogenerate`'s catalog
+links every Item both directly (`catalog.json`'s flat `rel:item`,
+kept for `candidates.py`) and via the Collection's own `rel:item`
+links, so a naive recursive walk double-counted every Item (308
+instead of 154) -- fixed by deduplicating on Item ID in the harvester,
+a general robustness fix, not a `cogenerate`-specific patch. Full
+write-up in D6's third 2026-08-06 update in `DECISIONS.md`. A Slack
+reply pointing at the branch (drafted, not sent -- same as before,
+Hidenori sends it himself) is queued as the next action.
+
+**Not a formal PR yet, deliberately** -- Hidenori wants Sam able to
+look (or not) with zero obligation, not a formal review request sitting
+in his queue. Opening it as an actual PR against `hotosm/openaerialmap`
+is a separate, later decision. Phase 4 (new CronJob PR to
+`hotosm/k8s-infra`'s `apps/oam/`) still follows once a harvester PR
+actually lands. **All PR/Slack-reply submission still needs Hidenori's
+own GitHub/Slack identity and HOTOSM maintainer review -- not something
+to execute unilaterally.**
 
 **Separately, still true**: a new disaster can add fresh layers to
 `ichiran.html` at any time (confirmed live this session -- the 2026
@@ -384,6 +411,41 @@ Full findings recorded in D6's second 2026-08-06 update in
 undecided** -- Hidenori wants to think through the approach separately
 now that our own side (docs, understanding of the new repo layout) is
 settled.
+
+**Same day, engagement decided and the harvester actually built.**
+Asked Hidenori directly what would be most comfortable for Sam given
+neither side is in a rush but momentum still matters; recommended (and
+he agreed) a short no-ask Slack acknowledgment now plus quietly
+building a concrete draft at our own pace, sharing a branch (not a
+formal PR) once something real exists -- lower-pressure for Sam than
+either going fully quiet or asking him to engage in more back-and-forth
+while he's mid-migration on his own side.
+
+Built the actual harvester in a fork, `hfu/openaerialmap`, branch
+`add-external-stac-harvester` -- not in `cogenerate` itself, since this
+is a contribution to HOTOSM's own `stactools-hotosm` package. Read the
+package's real current source in full before writing anything (it had
+changed again since the investigation above: `cli.py` now centers on a
+shared `sync_handler` helper both `dump-oam`/`dump-maxar` already use).
+Added `dump-external`/`sync-external` + `--catalog=External`, plugging
+into that same shared helper with zero changes to it. Full design
+rationale in D6's third 2026-08-06 update in `DECISIONS.md`.
+
+**Validated against `cogenerate`'s own live catalog, not just test
+fixtures** -- this is exactly what "use `cogenerate` as the reference
+implementation" was supposed to mean, and it caught a real bug
+immediately: a naive first run found 308 items instead of 154,
+because `cogenerate`'s catalog links every Item both directly and via
+the Collection's own links (a real, deliberate part of this catalog's
+own shape, not a test artifact). Fixed with ID deduplication in the
+harvester itself. Re-ran clean: **154/154 Items harvested and
+OAM-validated, zero errors.** 40 tests, lint/typecheck clean, full
+existing `stactools-hotosm` test suite still green.
+
+Pushed the branch to the fork (confirmed with Hidenori first -- a
+public GitHub action, not done unilaterally) and drafted a second short
+Slack message pointing at the branch diff, no formal PR yet. Hidenori
+sends it himself, same pattern as the first acknowledgment.
 
 ## 2026-08-06 (session) -- new Kumamoto layers, D26 amendment, HOTOSM reply and OAM architecture investigation
 
