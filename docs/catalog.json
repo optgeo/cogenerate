@@ -917,6 +917,12 @@
     },
     {
       "rel": "item",
+      "href": "https://optgeo.github.io/cogenerate/items/20260729kumamoto_kumamoto1_0803do.json",
+      "type": "application/json",
+      "title": "GSI disaster-response ortho imagery: 20260729kumamoto_kumamoto1_0803do"
+    },
+    {
+      "rel": "item",
       "href": "https://optgeo.github.io/cogenerate/items/20260729kumamoto_yatsushiro_0729do_sokuho.json",
       "type": "application/json",
       "title": "GSI disaster-response ortho imagery: 20260729kumamoto_yatsushiro_0729do_sokuho"
