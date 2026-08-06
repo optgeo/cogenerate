@@ -85,6 +85,7 @@ import hashlib
 import json
 import re
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -96,9 +97,48 @@ err = Console(stderr=True)
 
 STAC_VERSION = "1.0.0"
 GSI_TERMS_URL = "https://maps.gsi.go.jp/development/ichiran.html"
+LAYERS_MARTIN_CATALOG_URL = "https://hfu.github.io/layers-martin/catalog.json"
+# STAC common metadata `platform` / OAM extension `oam:platform_type` share
+# this vocabulary (DECISIONS.md D6 update, 2026-08-06): the OAM extension's
+# JSON schema enum is kite/balloon/uav/aircraft/satellite (its own README
+# prose says "airplane", but the schema -- the thing that actually
+# validates -- says "aircraft"; schema wins).
+PLATFORM_TYPES = {"kite", "balloon", "uav", "aircraft", "satellite"}
+OAM_EXTENSION_URL = "https://hotosm.github.io/stactools-hotosm/oam/v0.1.0/schema.json"
+# Decided 2026-08-06 (Hidenori): GSI is the actual imagery producer: UN
+# Smart Maps Group (DWG7 of the UN Open GIS Initiative, unopengis.org) is
+# the community/hosting context this pipeline (and the `smartmaps`
+# Source Cooperative account it publishes under) operates within. Spelled
+# out in full rather than as "GSI/dwg7" since oam:producer_name is a
+# public, HOTOSM-validated field an outside viewer needs to understand
+# without knowing UN Open GIS Initiative's internal working-group numbering.
+OAM_PRODUCER_NAME = "GSI / UN Smart Maps Group"
+COLLECTION_ID = "cogenerate"
 # Standard Web Mercator ground sample distance at the equator, 256px
 # tiles, zoom 18 -- matches D5 (maxzoom fixed at 18 for every layer).
 GSD_Z18_M = 156543.03392804097 / 2**18
+
+
+def platform_type_of(layer: str, client: httpx.Client) -> str:
+    """UAV vs. aircraft, from layers-martin's own `name` field (DECISIONS.md
+    D6 update, 2026-08-06) -- GSI's own 名称 text says "無人航空機（UAV）撮影"
+    for UAV captures and is silent (plain "撮影"/"ヘリ撮影"/"空中写真"/
+    "航空機SAR画像") for manned-aircraft ones. Checked against all 154
+    already-published layers before trusting this: 9 UAV, 143 aircraft,
+    2 not found in the live catalog (a known ID-typo case and a
+    brand-new layer layers-martin hasn't indexed yet) -- both fall back
+    to "aircraft" here, this pipeline's long-standing default, with a
+    warning rather than a hard failure."""
+    try:
+        data = client.get(LAYERS_MARTIN_CATALOG_URL, timeout=30.0).json()
+        name = data["tiles"][layer]["name"]
+    except (httpx.HTTPError, KeyError) as e:
+        err.print(
+            f"[yellow]warn[/yellow] couldn't look up {layer!r} in layers-martin's catalog "
+            f"({e!r}) -- defaulting platform to 'aircraft'"
+        )
+        return "aircraft"
+    return "uav" if ("UAV" in name or "無人航空機" in name) else "aircraft"
 
 
 def gdalinfo_json(cog: Path | None, asset_url: str) -> dict:
@@ -157,13 +197,32 @@ def bbox_of(geometry: dict) -> list[float]:
     return [min(lons), min(lats), max(lons), max(lats)]
 
 
+def created_at(previous: dict | None) -> str:
+    """STAC common metadata `created` -- when this Item was added to the
+    catalog, distinct from `properties.datetime` (the photo's capture
+    date, D4). Carries the value forward from `--previous-item` once set,
+    so refreshing an existing Item (new checksum, re-run after a fix)
+    never bumps its original catalog-addition date -- only a genuinely
+    new Item gets "now". DECISIONS.md D6 update, 2026-08-06: this is the
+    "what's new since last sync" signal an incremental harvester (ours or
+    HOTOSM's) needs, which capture date can't provide for a pipeline that
+    regularly publishes decades-old disaster imagery."""
+    if previous is not None:
+        prev_created = previous.get("properties", {}).get("created")
+        if prev_created:
+            return prev_created
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def build_item(
     layer: str,
     cog: Path | None,
     asset_url: str,
     item_url: str,
     catalog_url: str,
+    collection_url: str,
     previous: dict | None,
+    platform: str,
     sensor: str = "optical",
 ) -> dict:
     info = gdalinfo_json(cog, asset_url)
@@ -173,14 +232,22 @@ def build_item(
 
     properties = {
         **parse_capture_date(layer),
+        "created": created_at(previous),
         "title": title,
         "gsd": GSD_Z18_M,
         "license": "CC-BY-4.0",
-        "platform": "aircraft",
+        "platform": platform,
+        "oam:producer_name": OAM_PRODUCER_NAME,
+        "oam:platform_type": platform,
         "providers": [
             {
                 "name": "Geospatial Information Authority of Japan (GSI)",
                 "roles": ["producer", "licensor"],
+            },
+            {
+                "name": "UN Smart Maps Group",
+                "roles": ["host"],
+                "url": "https://source.coop/smartmaps",
             },
             {
                 "name": "optgeo/cogenerate",
@@ -211,15 +278,17 @@ def build_item(
 
     return {
         "stac_version": STAC_VERSION,
-        "stac_extensions": [],
+        "stac_extensions": [OAM_EXTENSION_URL],
         "type": "Feature",
         "id": layer,
         "geometry": geometry,
         "bbox": bbox_of(geometry),
         "properties": properties,
+        "collection": COLLECTION_ID,
         "links": [
             {"rel": "self", "href": item_url, "type": "application/json"},
             {"rel": "root", "href": catalog_url, "type": "application/json"},
+            {"rel": "collection", "href": collection_url, "type": "application/json"},
             {"rel": "license", "href": GSI_TERMS_URL, "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"},
         ],
         "assets": {
@@ -314,6 +383,10 @@ def main(
         "https://optgeo.github.io/cogenerate/catalog.json",
         help="URL of the top-level Catalog this Item belongs to",
     ),
+    collection_url: str = typer.Option(
+        "https://optgeo.github.io/cogenerate/collection.json",
+        help="URL of the STAC Collection this Item belongs to (properties.collection + rel:collection link)",
+    ),
     sensor: str = typer.Option(
         "optical",
         help="'optical' (default, aerial/UAV photography) or 'sar' (aircraft SAR grayscale "
@@ -321,11 +394,20 @@ def main(
         "['amplitude', 'data'] instead of ['ortho', 'data'] and records properties.gsi:sensor, "
         "so a downstream STAC consumer doesn't mistake radar imagery for an optical orthophoto",
     ),
+    platform: str = typer.Option(
+        None,
+        help="Override auto-detected 'uav'/'aircraft' platform type (kite/balloon/uav/aircraft/"
+        "satellite) -- by default, looked up from layers-martin's own 名称 text for this layer "
+        "(DECISIONS.md D6 update, 2026-08-06), which says 無人航空機（UAV）撮影 for UAV captures "
+        "and is silent for manned-aircraft ones",
+    ),
 ):
     """Build one STAC Item JSON for an already-built (or already-uploaded, even if since
     cleaned up locally) COG."""
     if sensor not in ("optical", "sar"):
         raise typer.BadParameter("--sensor must be 'optical' or 'sar'")
+    if platform is not None and platform not in PLATFORM_TYPES:
+        raise typer.BadParameter(f"--platform must be one of {sorted(PLATFORM_TYPES)}")
     if cog is not None and not cog.exists():
         err.print(f"[yellow]warn[/yellow] {cog} doesn't exist -- reading from {asset_url} instead")
         cog = None
@@ -333,8 +415,13 @@ def main(
     if previous_item is not None and previous_item.exists():
         previous = json.loads(previous_item.read_text())
 
+    with httpx.Client(headers={"User-Agent": "optgeo/cogenerate stac_item (contact via github.com/optgeo)"}) as client:
+        resolved_platform = platform if platform is not None else platform_type_of(layer, client)
+
     item_url = f"{items_base_url}/{layer}.json"
-    item = build_item(layer, cog, asset_url, item_url, catalog_url, previous, sensor)
+    item = build_item(
+        layer, cog, asset_url, item_url, catalog_url, collection_url, previous, resolved_platform, sensor
+    )
     text = json.dumps(item, indent=2, ensure_ascii=False)
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,8 @@
 {
   "stac_version": "1.0.0",
-  "stac_extensions": [],
+  "stac_extensions": [
+    "https://hotosm.github.io/stactools-hotosm/oam/v0.1.0/schema.json"
+  ],
   "type": "Feature",
   "id": "20240102noto_anamizu_0117do",
   "geometry": {
@@ -38,10 +40,13 @@
   ],
   "properties": {
     "datetime": "2024-01-17T00:00:00Z",
+    "created": "2026-08-06T10:55:46Z",
     "title": "GSI disaster-response ortho imagery: 20240102noto_anamizu_0117do",
     "gsd": 0.5971642834779395,
     "license": "CC-BY-4.0",
     "platform": "aircraft",
+    "oam:producer_name": "GSI / UN Smart Maps Group",
+    "oam:platform_type": "aircraft",
     "providers": [
       {
         "name": "Geospatial Information Authority of Japan (GSI)",
@@ -49,6 +54,13 @@
           "producer",
           "licensor"
         ]
+      },
+      {
+        "name": "UN Smart Maps Group",
+        "roles": [
+          "host"
+        ],
+        "url": "https://source.coop/smartmaps"
       },
       {
         "name": "optgeo/cogenerate",
@@ -62,6 +74,7 @@
     "gsi:source_url": "https://cyberjapandata.gsi.go.jp/xyz/20240102noto_anamizu_0117do/{z}/{x}/{y}.png",
     "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html"
   },
+  "collection": "cogenerate",
   "links": [
     {
       "rel": "self",
@@ -71,6 +84,11 @@
     {
       "rel": "root",
       "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "collection",
+      "href": "https://optgeo.github.io/cogenerate/collection.json",
       "type": "application/json"
     },
     {

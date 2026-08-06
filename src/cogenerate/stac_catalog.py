@@ -8,12 +8,17 @@ inline under a non-standard `items` array, this Catalog uses proper
 file (DECISIONS.md D19) -- spec-compliant, and keeps `catalog.json`
 small regardless of how many layers get added (each Item carries its
 own COG checksum/geometry, no reason to duplicate that into the
-Catalog document too).
+Catalog document too). This flat item-linking shape is kept as-is
+(D6 update, 2026-08-06, when `stac_collection.py` was added) --
+`candidates.py`'s `fetch_published_ids()` and other live consumers
+already depend on it (D7); the new Collection object is additive via
+one `rel:child` link, not a restructuring.
 
 Usage:
     uv run python -m cogenerate.stac_catalog \\
         --items-dir docs/items/ \\
         --catalog-url https://optgeo.github.io/cogenerate/catalog.json \\
+        --collection-url https://optgeo.github.io/cogenerate/collection.json \\
         > docs/catalog.json
 """
 
@@ -31,11 +36,14 @@ err = Console(stderr=True)
 STAC_VERSION = "1.0.0"
 
 
-def build_catalog(items_dir: Path, catalog_url: str, items_base_url: str) -> dict:
+def build_catalog(
+    items_dir: Path, catalog_url: str, items_base_url: str, collection_url: str
+) -> dict:
     item_files = sorted(items_dir.glob("*.json"))
     links = [
         {"rel": "self", "href": catalog_url, "type": "application/json"},
         {"rel": "root", "href": catalog_url, "type": "application/json"},
+        {"rel": "child", "href": collection_url, "type": "application/json", "title": "cogenerate"},
     ]
     for path in item_files:
         item = json.loads(path.read_text())
@@ -72,13 +80,17 @@ def main(
         "https://optgeo.github.io/cogenerate/items",
         help="Base URL where Item JSON files are hosted",
     ),
+    collection_url: str = typer.Option(
+        "https://optgeo.github.io/cogenerate/collection.json",
+        help="URL of the STAC Collection (stac_collection.py output) linked as this Catalog's rel:child",
+    ),
 ):
     """Build the top-level STAC Catalog JSON from a directory of Items, printed to stdout."""
     if not items_dir.is_dir():
         err.print(f"[red]error[/red] {items_dir} is not a directory")
         raise typer.Exit(1)
-    catalog = build_catalog(items_dir, catalog_url, items_base_url)
-    n = len(catalog["links"]) - 2  # minus self/root
+    catalog = build_catalog(items_dir, catalog_url, items_base_url, collection_url)
+    n = len(catalog["links"]) - 3  # minus self/root/child
     err.print(f"[green]done[/green] {n} item(s) linked from {items_dir}")
     print(json.dumps(catalog, indent=2, ensure_ascii=False))
 

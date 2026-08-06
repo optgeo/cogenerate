@@ -1,13 +1,57 @@
 {
   "stac_version": "1.0.0",
-  "type": "Catalog",
+  "type": "Collection",
   "id": "cogenerate",
   "title": "GSI Disaster-Response Aerial Imagery (COGs)",
   "description": "Cloud-Optimized GeoTIFFs reassembled from GSI (国土地理院) disaster-response aerial imagery tiles, published on Source Cooperative. See https://github.com/optgeo/cogenerate.",
+  "license": "CC-BY-4.0",
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          129.9256897,
+          27.1642516,
+          144.0513611,
+          44.0816663
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "1948-01-01T00:00:00Z",
+          "2026-08-03T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "providers": [
+    {
+      "name": "Geospatial Information Authority of Japan (GSI)",
+      "roles": [
+        "producer",
+        "licensor"
+      ]
+    },
+    {
+      "name": "UN Smart Maps Group",
+      "roles": [
+        "host"
+      ],
+      "url": "https://source.coop/smartmaps"
+    },
+    {
+      "name": "optgeo/cogenerate",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://github.com/optgeo/cogenerate"
+    }
+  ],
   "links": [
     {
       "rel": "self",
-      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "href": "https://optgeo.github.io/cogenerate/collection.json",
       "type": "application/json"
     },
     {
@@ -16,10 +60,14 @@
       "type": "application/json"
     },
     {
-      "rel": "child",
-      "href": "https://optgeo.github.io/cogenerate/collection.json",
-      "type": "application/json",
-      "title": "cogenerate"
+      "rel": "parent",
+      "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "license",
+      "href": "https://maps.gsi.go.jp/development/ichiran.html",
+      "title": "GSI usage terms (CC-BY-4.0-compatible, attribution required)"
     },
     {
       "rel": "item",

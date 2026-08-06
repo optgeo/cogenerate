@@ -1,6 +1,8 @@
 {
   "stac_version": "1.0.0",
-  "stac_extensions": [],
+  "stac_extensions": [
+    "https://hotosm.github.io/stactools-hotosm/oam/v0.1.0/schema.json"
+  ],
   "type": "Feature",
   "id": "20140929dol2",
   "geometry": {
@@ -38,10 +40,13 @@
   ],
   "properties": {
     "datetime": "2014-09-29T00:00:00Z",
+    "created": "2026-08-06T10:50:13Z",
     "title": "GSI disaster-response ortho imagery: 20140929dol2",
     "gsd": 0.5971642834779395,
     "license": "CC-BY-4.0",
     "platform": "aircraft",
+    "oam:producer_name": "GSI / UN Smart Maps Group",
+    "oam:platform_type": "aircraft",
     "providers": [
       {
         "name": "Geospatial Information Authority of Japan (GSI)",
@@ -49,6 +54,13 @@
           "producer",
           "licensor"
         ]
+      },
+      {
+        "name": "UN Smart Maps Group",
+        "roles": [
+          "host"
+        ],
+        "url": "https://source.coop/smartmaps"
       },
       {
         "name": "optgeo/cogenerate",
@@ -63,6 +75,7 @@
     "gsi:attribution": "Source imagery (c) Geospatial Information Authority of Japan (GSI); attribution required, see https://maps.gsi.go.jp/development/ichiran.html",
     "gsi:sensor": "aircraft SAR (grayscale amplitude imagery, not optical photography)"
   },
+  "collection": "cogenerate",
   "links": [
     {
       "rel": "self",
@@ -72,6 +85,11 @@
     {
       "rel": "root",
       "href": "https://optgeo.github.io/cogenerate/catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "collection",
+      "href": "https://optgeo.github.io/cogenerate/collection.json",
       "type": "application/json"
     },
     {

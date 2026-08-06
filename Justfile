@@ -163,6 +163,11 @@ upload:
 # self-truncation race that would otherwise cause).
 docs_dir := "docs"
 asset_url := env_var_or_default("ASSET_URL", "https://data.source.coop/smartmaps/cogenerate/" + layer + ".tif")
+# PLATFORM=uav/aircraft/... to override auto-detection (layers-martin's
+# own 名称 text, DECISIONS.md D6 update) if it ever guesses wrong for a
+# specific layer -- empty (default) means "auto-detect".
+platform := env_var_or_default("PLATFORM", "")
+platform_flag := if platform != "" { "--platform " + platform } else { "" }
 stac-item:
     mkdir -p {{docs_dir}}/items
     uv run python -m cogenerate.stac_item \
@@ -171,7 +176,8 @@ stac-item:
         --asset-url {{asset_url}} \
         --previous-item {{docs_dir}}/items/{{layer}}.json \
         --output {{docs_dir}}/items/{{layer}}.json \
-        --sensor {{sensor}}
+        --sensor {{sensor}} \
+        {{platform_flag}}
 
 # Step 7: rebuild the top-level catalog.json from every Item generated
 # so far (docs/items/*.json). Re-run after any `stac-item`.
@@ -180,15 +186,25 @@ stac-catalog:
         --items-dir {{docs_dir}}/items/ \
         > {{docs_dir}}/catalog.json
 
-# stac-item + stac-catalog for one layer, in order
-stac: stac-item stac-catalog
-    echo "done: {{docs_dir}}/items/{{layer}}.json, {{docs_dir}}/catalog.json refreshed"
+# Step 7b (D6 update, 2026-08-06): rebuild collection.json -- the STAC
+# Collection every Item references via its `collection` field, extent
+# computed from every Item currently in docs/items/. Re-run after any
+# `stac-item` that changes an Item's bbox/datetime, same as stac-catalog.
+stac-collection:
+    uv run python -m cogenerate.stac_collection \
+        --items-dir {{docs_dir}}/items/ \
+        > {{docs_dir}}/collection.json
 
-# Validate every generated Item + the catalog against the STAC spec
-# (D6/D19) -- needs `uv sync --extra dev` first for stac-valid.
+# stac-item + stac-catalog + stac-collection for one layer, in order
+stac: stac-item stac-catalog stac-collection
+    echo "done: {{docs_dir}}/items/{{layer}}.json, {{docs_dir}}/catalog.json, {{docs_dir}}/collection.json refreshed"
+
+# Validate every generated Item + the catalog + the collection against
+# the STAC spec (D6/D19) -- needs `uv sync --extra dev` first for stac-valid.
 stac-validate:
     uv run stac-validator batch {{docs_dir}}/items/*.json
     uv run stac-validator validate {{docs_dir}}/catalog.json
+    uv run stac-validator validate {{docs_dir}}/collection.json
 
 # Step 8 (D20): confirm a layer's COG matches what's actually live on
 # Source Cooperative -- the gate every cleanup recipe below checks

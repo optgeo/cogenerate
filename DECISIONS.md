@@ -352,6 +352,122 @@ unilaterally. Step 1 has no such dependency and is the concrete next
 action. `oam:producer_name`'s value is a real open decision blocking
 step 1's completion, not just step 5's Slack reply.
 
+**Update, 2026-08-06: Phase 1 implemented.** Before writing any code,
+fetched the actual OAM extension spec files from
+`hotosm/stactools-hotosm` (`stac-extension/README.md`, `.../json-schema/
+schema.json`, `.../examples/item.json`, plus `src/stactools/hotosm/
+stac.py` and `maxar/stac.py` for how the extension is actually
+populated in practice) via `gh api`, rather than working only from the
+prose summary in the update above. One real discrepancy found:
+`README.md`'s human-readable field table says `oam:platform_type`'s
+enum includes `"airplane"`, but `json-schema/schema.json` (the document
+that actually validates ingested Items) enums `"aircraft"` instead --
+schema wins, matches what `cogenerate` already used as its (previously
+hardcoded) default.
+
+- **`oam:producer_name` decided**: `"GSI / UN Smart Maps Group"`
+  (Hidenori, 2026-08-06). GSI remains the real imagery producer/licensor
+  (existing `providers` entry, unchanged); "UN Smart Maps Group" is
+  DWG7 of the UN Open GIS Initiative (confirmed live at
+  `unopengis.org` -- DWG7's page title is literally "Smart Maps"),
+  the community/hosting context this pipeline and the `smartmaps`
+  Source Cooperative account (D10) both operate under. Spelled out in
+  full rather than Hidenori's own first suggestion, the GNU/Linux-style
+  `"GSI/dwg7"` shorthand -- `oam:producer_name` is a public,
+  HOTOSM-validated field an outside OAM viewer needs to understand
+  without knowing UN Open GIS's internal DWG numbering. Added a new
+  `providers` entry, `{"name": "UN Smart Maps Group", "roles": ["host"],
+  "url": "https://source.coop/smartmaps"}` (the OAM extension spec
+  requires the producer to also appear in `providers` if not constant
+  across the whole Collection -- here it's a compound name, so both
+  halves are represented: GSI as `producer`/`licensor`, UN Smart Maps
+  Group as `host`).
+- **`platform`/`oam:platform_type` fixed**: `stac_item.py`'s new
+  `platform_type_of()` looks up the layer in layers-martin's own
+  catalog and inspects its `name` field -- GSI's own 名称 text says
+  "無人航空機（UAV）撮影" for UAV captures, and is silent (plain
+  "撮影"/"ヘリ撮影"/"空中写真"/"航空機SAR画像") for manned-aircraft
+  ones, so `"UAV" in name or "無人航空機" in name` -> `"uav"`, else
+  `"aircraft"`. Checked against all 154 already-published layers before
+  trusting this as a general rule: 9 UAV (matches the UAV-photography
+  series flagged in `HANDOVER.md`'s "deep-scan tail" -- Kuchinoerabujima,
+  `kusatsushirane_0216uav`, several Nishinoshima captures), 143 aircraft,
+  2 layers not found at all in the live layers-martin catalog (the
+  already-known `atsumatoubu`/`atsumtoubu` ID-typo case, D-something
+  in `HANDOVER.md`'s 2026-08-02 entry, and a brand-new Kumamoto layer
+  layers-martin hasn't indexed yet) -- both fall back to `"aircraft"`
+  (this pipeline's long-standing default) with a printed warning rather
+  than a hard failure. `--platform` on `stac_item.py` (and `PLATFORM=`
+  on `just stac-item`) overrides auto-detection for the rare case it
+  guesses wrong. `properties.platform` (STAC common metadata) is set to
+  the same `uav`/`aircraft` value as `oam:platform_type` -- GSI publishes
+  no more specific platform name (tail number, drone model) to
+  distinguish the two fields' semantics further.
+- **`properties.created` added**: new `created_at()` carries the value
+  forward from `--previous-item` once set (so refreshing an existing
+  Item -- new checksum, a rebuilt COG -- never bumps its original
+  catalog-addition date), and defaults to "now" only the first time an
+  Item is generated. For the 154-layer backfill this session, every
+  existing Item had no `created` field yet, so all 154 got "now"
+  (2026-08-06) rather than their real historical publish dates --
+  considered backfilling from each `docs/items/<layer>.json`'s first
+  `git log --diff-filter=A` commit date instead (verified this data
+  exists and is accurate, e.g. `20260729kumamoto_yatsushiro_0729do_sokuho.json`
+  first committed 2026-07-31T15:42:23+09:00), but decided against it:
+  the field's whole purpose is "what's new for an incremental harvester
+  to sync," and a harvester (ours or HOTOSM's) won't exist to consume it
+  until Phase 2 at the earliest, so a uniform backfill date costs
+  nothing today and going forward every genuinely new Item gets a real
+  first-seen timestamp via the carry-forward logic above.
+- **STAC Collection minted**: new `stac_collection.py` (mirrors
+  `stac_catalog.py`'s structure) computes a real spatial bbox union and
+  temporal min/max from every Item currently in `docs/items/`, rather
+  than the placeholder global-bbox/open-ended-interval pattern
+  `stactools-hotosm`'s own `maxar/stac.py::create_collection()` uses --
+  more useful to a downstream consumer, and cheap since the Items are
+  already local. Verified live against all 154 Items: bbox
+  `[129.93, 27.16, 144.05, 44.08]` (Okinawa-adjacent islands to
+  Hokkaido, correct for Japan), temporal interval `1948-01-01` to
+  `2026-08-03` (correct: spans the 1947/48 Hiroshima historical
+  reference photos through the newest 2026 Kumamoto layer). `id:
+  "cogenerate"` -- deliberately kept identical to the existing
+  `catalog.json`'s own `id`, since nothing in this codebase reads that
+  field and Catalog/Collection are different STAC object types at
+  different URLs anyway; not worth the churn of renaming an
+  already-published, already-pitched-to-HOTOSM artifact's `id`.
+  `catalog.json`'s existing flat `rel:item` links are kept exactly as
+  they were (D19) -- `candidates.py`'s `fetch_published_ids()` and any
+  other live consumer already depend on that shape (D7's "always read
+  the live URL, never assume a fixed shape more than you have to"
+  spirit applies here too) -- the Collection is purely additive: one new
+  `rel:child` link from `catalog.json`, and the Collection independently
+  links every Item too via its own `rel:item` links, so it's valid and
+  browsable on its own regardless of how a consumer reaches it. Every
+  Item now carries a top-level `"collection": "cogenerate"` field (what
+  pgstac actually needs) plus a `rel:collection` link to
+  `collection.json`.
+- **`stac_extensions` now declares the real OAM schema URL**
+  (`https://hotosm.github.io/stactools-hotosm/oam/v0.1.0/schema.json`,
+  was `[]`, D19's "don't declare what you don't use" no longer applies
+  now that `oam:producer_name`/`oam:platform_type` are genuinely
+  populated). Validated every regenerated Item against this schema
+  live via `stac-validator validate` (not just the base STAC 1.0.0
+  Item schema) -- passes.
+- **All 154 already-published Items regenerated** with the new fields
+  (remote-fallback path, D20/D21 -- no local COG needed, `gdalinfo`
+  reads header/overview ranges over HTTP from `data.source.coop`),
+  `catalog.json` and the new `collection.json` rebuilt, all validated
+  via `just stac-validate`. `Justfile`'s `stac` target now runs
+  `stac-item stac-catalog stac-collection` in
+  sequence; `PLATFORM=`/`SENSOR=` both available as env vars matching
+  the existing `FORCE=`/`SENSOR=` pattern.
+
+**Consequences**: Phase 1 (this repo, no external dependency) is
+complete. Phase 2 (the PR to `hotosm/stactools-hotosm` proposing a
+generic external-STAC-catalog harvester CLI, validated against
+`cogenerate`'s own live catalog) is next, but needs Hidenori's own
+GitHub identity to submit -- not something to execute unilaterally.
+
 ## D7: Read layers-martin's catalog from its canonical live URL, never a local clone
 
 **Status**: Accepted

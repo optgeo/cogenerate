@@ -9,10 +9,10 @@ of looking for rationale here -- entries below link to the relevant
 
 **Keep this section current** -- update it every time status changes,
 don't let it drift while only appending dated entries below. This
-section was rewritten 2026-08-06 (tenth time, end-of-session refresh
-before `/clear` -- see git history for earlier versions). Detail that
-used to accumulate here has been pushed down into the dated entry for
-this session (below the "What's published" ledger) and into
+section was rewritten 2026-08-06 (eleventh time -- OAM Phase 1
+completed this session, see git history for earlier versions). Detail
+that used to accumulate here has been pushed down into the dated entry
+for this session (below the "What's published" ledger) and into
 `CLAUDE.md`'s durable operational conventions -- this section stays a
 lean "what's true right now, what to do next," not a session diary.
 
@@ -38,44 +38,32 @@ minutes until Pages redeploys -- not a bug.
 **No 🔴/🟡 items mid-flight.** Everything built this session is
 uploaded, verified, STAC'd, cleaned up, committed, and pushed.
 
-**Next task, per Hidenori's explicit direction: start OAM ingestion
-integration (D6's 2026-08-06 update in `DECISIONS.md` has the full
-investigation and phased plan -- read that before doing anything
-here, this section only summarizes).** HOTOSM's Tech Lead (Sam
-Woodcock) replied in `#oam-dev` with concrete pointers into their
-ingestion stack; a full read of the actual source (not just READMEs)
-across `hotosm/k8s-infra`, `hotosm/openaerialmap`, and
-`hotosm/stactools-hotosm` found that a real code contribution is
-needed (not something achievable from within this repo alone), and
-identified a **Phase 1** that *can* start immediately, entirely within
-`cogenerate`, no external dependency:
+**OAM ingestion Phase 1 is done (2026-08-06, this session)** -- see
+D6's 2026-08-06 "Phase 1 implemented" update in `DECISIONS.md` for the
+full writeup. All four prep items are complete and pushed:
+`oam:producer_name` decided (`"GSI / UN Smart Maps Group"`), per-layer
+UAV-vs-aircraft platform detection replaces the old hardcoded
+`"aircraft"`, `properties.created` added (carries forward across
+regenerations), and a real STAC `Collection` (`docs/collection.json`,
+computed extent) now exists with every Item referencing it. All 154
+already-published Items were regenerated with the new fields and
+re-validated -- 154/154 pass `stac-validator` against both core STAC
+1.0.0 and the real OAM extension schema.
 
-1. **Decide `oam:producer_name`'s value first** -- this is a real open
-   decision (GSI directly vs. UN Smart Maps Group / UN Open GIS
-   Initiative, the same question posed to Sam) that blocks the rest of
-   Phase 1, not just the eventual Slack reply. Ask Hidenori if not
-   already decided by the time this is read.
-2. Fix `stac_item.py`'s hardcoded `properties.platform = "aircraft"`
-   to reflect UAV vs. aircraft capture accurately per layer -- OAM's
-   extension requires an accurate `oam:platform_type`
-   (kite/balloon/uav/airplane/satellite) and currently every layer
-   would report the same value regardless of truth.
-3. Add `properties.created` (STAC common metadata -- when the Item was
-   *added to the catalog*, distinct from `properties.datetime`, the
-   photo's *capture* date) to every Item -- needed as the "what's new"
-   signal any incremental harvester (ours or HOTOSM's) would filter
-   on. Doesn't exist today.
-4. Mint a STAC `Collection` object for the catalog (title/description/
-   license/extent) -- pgstac requires every ingested Item to reference
-   one, and `cogenerate`'s catalog currently has none (D19 never needed
-   one for a GitHub-Pages-only static catalog).
-
-Phases 2-5 (a PR to `hotosm/stactools-hotosm` proposing a *generic*
-external-STAC-catalog harvester rather than a `cogenerate`-specific
-module, then dependency-bump/CronJob PRs, then a Slack reply to Sam
-*before* writing the harvester code) are cross-repo work needing
-Hidenori's own GitHub identity -- not something to execute
-unilaterally. Full reasoning for "generic, not bespoke" is in D6.
+**Next task, per Hidenori's explicit direction: OAM ingestion
+Phase 2** -- a PR to `hotosm/stactools-hotosm` proposing a *generic*
+external-STAC-catalog harvester (`--catalog-url` + a since-field
+parameter, using `cogenerate`'s own live catalog as the reference
+test case), not a `cogenerate`/GSI-specific bespoke module -- matches
+HOTOSM's own stated OAM v2 roadmap direction (D6). Then Phase 3
+(dependency-bump PR to `hotosm/openaerialmap`'s `backend/stac-ingester`),
+Phase 4 (new CronJob PR to `hotosm/k8s-infra`'s `apps/oam/`), and
+Phase 5 (reply to Sam in `#oam-dev` with the scoped proposal *before*
+writing the harvester code, since design alignment first avoids wasted
+work on an external maintainer's repo). **All of Phase 2-5 need
+Hidenori's own GitHub identity to submit and HOTOSM maintainer review
+to merge -- not something to execute unilaterally.** Full reasoning
+for "generic, not bespoke" is in D6.
 
 **Separately, still true**: a new disaster can add fresh layers to
 `ichiran.html` at any time (confirmed live this session -- the 2026
@@ -194,12 +182,17 @@ entry as a duplicate to skip.
 **Tooling built up across this project's sessions, still current**:
 - `src/cogenerate/candidates.py` -- "what's next" ranking (extent,
   date, or `--keyword`-filtered), replaces one-off manual analysis.
-- `src/cogenerate/stac_item.py` / `stac_catalog.py` (D19) -- STAC
-  1.0.0 generation, `oam-starc`-aligned schema, remote-capable (D21:
-  works even after `out/<layer>.tif` is gone, and uses the correct
-  `data.source.coop` data endpoint, not the `source.coop` web-UI page
-  every earlier Item had wrong). D23 (2026-08-01): handles approximate
-  historical dates via `datetime: null` + `start_datetime`/`end_datetime`.
+- `src/cogenerate/stac_item.py` / `stac_catalog.py` / `stac_collection.py`
+  (D19, D6's 2026-08-06 update) -- STAC 1.0.0 generation, `oam-starc`-
+  aligned schema, remote-capable (D21: works even after
+  `out/<layer>.tif` is gone, and uses the correct `data.source.coop`
+  data endpoint, not the `source.coop` web-UI page every earlier Item
+  had wrong). D23 (2026-08-01): handles approximate historical dates via
+  `datetime: null` + `start_datetime`/`end_datetime`. `stac_item.py` now
+  auto-detects UAV-vs-aircraft `platform`, sets `oam:producer_name`/
+  `oam:platform_type`, and stamps `properties.created`;
+  `stac_collection.py` mints the STAC `Collection` every Item
+  references.
 - `Justfile`'s `verify`/`cleanup-tiles`/`cleanup-cog` (D20) -- the
   standard per-layer disk-reclaim sequence once a layer is confirmed
   live on Source Cooperative.
@@ -209,13 +202,82 @@ entry as a duplicate to skip.
   network errors/5xx get retried before a subtree is pruned; real 404s
   never retried.
 
-**D6/OAM ingestion -- Sam Woodcock (HOT Tech Lead) replied 2026-08-06.**
-Full architecture investigation done (see D6 in `DECISIONS.md` for the
-complete writeup); a real code contribution to `hotosm/stactools-hotosm`
-is needed, but a `cogenerate`-side prep phase can start immediately --
-see "Current status" at the top of this file for the concrete next
-steps. This is the active next task, not a wait-for-a-reply item
-anymore.
+**D6/OAM ingestion -- Sam Woodcock (HOT Tech Lead) replied 2026-08-06,
+and the `cogenerate`-side Phase 1 prep is now complete** (same day, see
+the entry directly below and D6's "Phase 1 implemented" update in
+`DECISIONS.md`). Phase 2 (the `hotosm/stactools-hotosm` PR) is the
+active next task -- see "Current status" at the top of this file.
+
+## 2026-08-06 (continued) -- OAM ingestion Phase 1: producer_name decided, platform-type fixed, `created` added, Collection minted
+
+Picked up directly from the previous entry's "Phase 1" punch list.
+Per D6's own note ("`oam:producer_name`'s value is a real open decision
+blocking step 1's completion"), asked Hidenori first before writing any
+code. His first answer was a joking-but-real proposal: `"GSI/dwg7"`,
+GNU/Linux-style, combining GSI (the actual imagery producer) with
+`dwg7` -- checked live at `unopengis.org` and confirmed DWG7's own page
+title is literally "Smart Maps", i.e. the "UN Smart Maps Group" from
+D6's original two-option question. Flagged that `oam:producer_name` is
+a public, HOTOSM-validated field an outside viewer won't be able to
+parse `"dwg7"` internal shorthand from, and asked which literal string
+to actually write; Hidenori picked the fully-spelled-out
+**`"GSI / UN Smart Maps Group"`**.
+
+Before writing any code, fetched the real OAM extension spec from
+`hotosm/stactools-hotosm` via `gh api` (`stac-extension/README.md`,
+`json-schema/schema.json`, `examples/item.json`, plus `stac.py`/
+`maxar/stac.py` for how HOTOSM's own code populates it) rather than
+working only from the prior session's README-level summary -- caught
+one real discrepancy: the schema's `oam:platform_type` enum says
+`"aircraft"`, not the README's `"airplane"`; schema (what actually
+validates) wins.
+
+Implemented all four Phase 1 items in `src/cogenerate/`:
+- `stac_item.py`'s new `platform_type_of()` looks up each layer in
+  layers-martin's own catalog and checks its `name` field for
+  "UAV"/"無人航空機" -- checked against all 154 already-published
+  layers before trusting it as a rule: 9 UAV, 143 aircraft, 2 fallback
+  cases (a known ID-typo layer and a brand-new one layers-martin
+  hasn't indexed yet, both default to "aircraft" with a warning).
+  `--platform`/`PLATFORM=` overrides it when needed.
+- `oam:producer_name`/`oam:platform_type` properties added;
+  `stac_extensions` now declares the real OAM schema URL (was `[]`);
+  added a `"UN Smart Maps Group"` provider entry (`roles: ["host"]`,
+  matching the `smartmaps` Source Cooperative account, D10).
+- `properties.created` added via a new `created_at()` that carries the
+  value forward from `--previous-item` (so refreshing an Item's
+  checksum never resets its catalog-addition date) and defaults to
+  "now" only the first time. Considered backfilling the 154 existing
+  Items' `created` from their actual first-`git`-commit date instead of
+  "now" (verified this data exists and is accurate) but decided against
+  it -- no incremental harvester exists yet to consume the signal, so a
+  uniform backfill date costs nothing today.
+- New `src/cogenerate/stac_collection.py` mints `docs/collection.json`
+  with a real computed extent (not the placeholder global-bbox pattern
+  `stactools-hotosm`'s own Maxar collection uses) -- verified:
+  bbox `[129.93, 27.16, 144.05, 44.08]` (Japan, correct), temporal
+  `1948-01-01` to `2026-08-03` (correct: 1947/48 Hiroshima historical
+  photos through the newest 2026 Kumamoto layer). `catalog.json` keeps
+  its existing flat `rel:item` links unchanged (`candidates.py` depends
+  on that shape) and gains one `rel:child` link to the Collection; every
+  Item gains a top-level `"collection": "cogenerate"` field (what
+  pgstac needs) and a `rel:collection` link.
+
+`Justfile` updated: `stac-collection` new recipe, `stac` now runs
+`stac-item stac-catalog stac-collection`, `stac-validate` checks the
+Collection too, `PLATFORM=`/`platform_flag` wired through matching the
+existing `SENSOR=` pattern.
+
+Regenerated **all 154 already-published Items** (remote-fallback path,
+D20/D21 -- no local COGs needed) via a one-off backfill script that
+looked up each layer's UAV/aircraft platform and SAR/optical sensor
+once, then ran `just stac-item` per layer; all 154 succeeded. Rebuilt
+`catalog.json`/`collection.json`, then `just stac-validate`: **154/154
+Items valid against both core STAC 1.0.0 and the real OAM extension
+schema, catalog and collection both valid.** Spot-checked several
+diffs (a UAV layer, a SAR layer, the newest Kumamoto layer) -- only the
+intended new fields changed; checksums/bboxes/file sizes untouched.
+`ruff check`/`pytest` clean.
 
 ## 2026-08-06 (session) -- new Kumamoto layers, D26 amendment, HOTOSM reply and OAM architecture investigation
 
